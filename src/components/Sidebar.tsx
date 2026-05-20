@@ -9,9 +9,11 @@ import { motion, AnimatePresence } from 'motion/react';
 import { UserRole } from '../types';
 
 import { useUser } from '../context/UserContext';
+import { useLanguageTheme } from '../context/LanguageThemeContext';
 
 export const Sidebar: React.FC = () => {
   const { user, logout: onLogout } = useUser();
+  const { t } = useLanguageTheme();
   const [isOpen, setIsOpen] = React.useState(false);
 
   if (!user) return null;
@@ -22,27 +24,30 @@ export const Sidebar: React.FC = () => {
     switch (role) {
       case 'customer':
         return [
-          { name: 'Dashboard', path: '/', icon: LayoutDashboard },
-          { name: 'Forum Komunitas', path: '/forum', icon: MessageSquare },
-          { name: 'Tiket Saya', path: '/tickets', icon: Ticket },
-          { name: 'Rewards', path: '/rewards', icon: Gift },
-          { name: 'Riwayat Poin', path: '/points-history', icon: History },
-          { name: 'Profil', path: '/profile', icon: User },
+          { name: t('nav.dashboard'), path: '/', icon: LayoutDashboard },
+          { name: t('nav.forum'), path: '/forum', icon: MessageSquare },
+          { name: t('nav.my_tickets'), path: '/tickets', icon: Ticket },
+          { name: t('nav.rewards'), path: '/rewards', icon: Gift },
+          { name: t('nav.points_history'), path: '/points-history', icon: History },
+          { name: t('nav.profile'), path: '/profile', icon: User },
+          { name: t('nav.settings'), path: '/settings', icon: Settings },
         ];
       case 'staff':
         return [
-          { name: 'Staff Dashboard', path: '/', icon: LayoutDashboard },
-          { name: 'Forum Komunitas', path: '/forum', icon: MessageSquare },
-          { name: 'Antrean Keluhan', path: '/staff', icon: Ticket },
-          { name: 'Profil', path: '/profile', icon: User },
+          { name: t('nav.staff_dashboard'), path: '/', icon: LayoutDashboard },
+          { name: t('nav.forum'), path: '/forum', icon: MessageSquare },
+          { name: t('nav.ticket_queue'), path: '/staff', icon: Ticket },
+          { name: t('nav.profile'), path: '/profile', icon: User },
+          { name: t('nav.settings'), path: '/settings', icon: Settings },
         ];
       case 'admin':
         return [
-          { name: 'Admin Dashboard', path: '/', icon: LayoutDashboard },
-          { name: 'Forum Komunitas', path: '/forum', icon: MessageSquare },
-          { name: 'User Management', path: '/admin/users', icon: Users },
-          { name: 'Ticket Settings', path: '/admin/tickets', icon: Settings },
-          { name: 'Profil', path: '/profile', icon: User },
+          { name: t('nav.dashboard'), path: '/', icon: LayoutDashboard },
+          { name: t('nav.forum'), path: '/forum', icon: MessageSquare },
+          { name: t('nav.user_management'), path: '/admin/users', icon: Users },
+          { name: t('nav.ticket_settings'), path: '/admin/tickets', icon: Settings },
+          { name: t('nav.profile'), path: '/profile', icon: User },
+          { name: t('nav.settings'), path: '/settings', icon: Settings },
         ];
       default:
         return [];

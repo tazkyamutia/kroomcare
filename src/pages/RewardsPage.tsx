@@ -1,13 +1,77 @@
 import React from 'react';
-import { Gift, History, Ticket as VoucherIcon, ArrowUpRight, ArrowDownRight, Sparkles } from 'lucide-react';
-import { DUMMY_TRANSACTIONS, DUMMY_VOUCHERS } from '../utils/dummyData';
+import { Gift, History, Ticket as VoucherIcon, ArrowUpRight, ArrowDownRight, Sparkles, Loader2 } from 'lucide-react';
+import { DUMMY_VOUCHERS } from '../utils/dummyData';
 import { motion } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '../lib/utils';
+import { useUser } from '../context/UserContext';
 
 export const RewardsPage = () => {
   const navigate = useNavigate();
-  const points = 850;
+  const { user, updateUser } = useUser();
+  const [transactions, setTransactions] = React.useState<any[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = React.useState(true);
+
+  const points = user?.points || 0;
+
+  const fetchPointHistory = async () => {
+    if (!user?.id) return;
+    setIsLoadingHistory(true);
+    try {
+      const response = await fetch(`http://localhost:5000/api/points/history/${user.id}`);
+      const result = await response.json();
+      if (response.ok && result.success) {
+        // Ambil maksimal 3 transaksi terakhir untuk panel samping
+        setTransactions(result.data.slice(0, 3));
+      }
+    } catch (error) {
+      console.error('Failed to fetch point history:', error);
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  };
+
+  React.useEffect(() => {
+    fetchPointHistory();
+  }, [user]);
+
+  const handleRedeem = async (pointsRequired: number, voucherName: string) => {
+    if (!user?.id) {
+      alert('Anda harus login terlebih dahulu.');
+      return;
+    }
+    if (points < pointsRequired) {
+      alert('Poin Anda tidak mencukupi untuk menukarkan voucher ini.');
+      return;
+    }
+
+    const confirmRedeem = window.confirm(`Apakah Anda yakin ingin menukarkan ${pointsRequired} Poin untuk "${voucherName}"?`);
+    if (!confirmRedeem) return;
+
+    try {
+      const response = await fetch('http://localhost:5000/api/points/redeem', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: user.id,
+          points_required: pointsRequired,
+          keterangan: `Penukaran voucher: ${voucherName}`
+        })
+      });
+      const result = await response.json();
+      if (response.ok && result.success) {
+        alert('Voucher berhasil ditukarkan!');
+        // Update user context points locally
+        updateUser({ points: points - pointsRequired });
+        fetchPointHistory(); // Segarkan riwayat poin
+      } else {
+        alert(result.message || 'Gagal menukarkan voucher.');
+      }
+    } catch (error) {
+      console.error('Error redeeming voucher:', error);
+      alert('Terjadi kesalahan koneksi.');
+    }
+  };
 
   return (
     <div className="space-y-8">
@@ -25,10 +89,10 @@ export const RewardsPage = () => {
                 <Sparkles size={18} />
                 <span className="text-sm font-medium uppercase tracking-wider">Total Poin Anda</span>
               </div>
-              <h2 className="text-5xl font-bold mb-6">{points.toLocaleString()}</h2>
+              <h2 className="text-5xl font-bold mb-6">{points.toLocaleString('id-ID')}</h2>
               <div className="p-4 bg-white/10 rounded-2xl backdrop-blur-sm border border-white/10">
                 <p className="text-xs text-brand-100 mb-1">Estimasi Nilai Tukar</p>
-                <p className="text-lg font-semibold">Rp {(points * 100).toLocaleString()}</p>
+                <p className="text-lg font-semibold">Rp {(points * 100).toLocaleString('id-ID')}</p>
               </div>
             </div>
             {/* Decorative circles */}
@@ -51,28 +115,38 @@ export const RewardsPage = () => {
               </button>
             </div>
             <div className="space-y-4">
-              {DUMMY_TRANSACTIONS.map((tx) => (
-                <div key={tx.id} className="flex items-center justify-between p-3 rounded-2xl hover:bg-slate-50 transition-colors">
-                  <div className="flex items-center gap-3">
-                    <div className={cn(
-                      "w-10 h-10 rounded-xl flex items-center justify-center",
-                      tx.type === 'Earned' ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600"
-                    )}>
-                      {tx.type === 'Earned' ? <ArrowUpRight size={20} /> : <ArrowDownRight size={20} />}
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-slate-900">{tx.description}</p>
-                      <p className="text-[10px] text-slate-400">{tx.date}</p>
-                    </div>
-                  </div>
-                  <span className={cn(
-                    "text-sm font-bold",
-                    tx.type === 'Earned' ? "text-emerald-600" : "text-red-600"
-                  )}>
-                    {tx.type === 'Earned' ? '+' : '-'}{tx.amount}
-                  </span>
+              {isLoadingHistory ? (
+                <div className="flex justify-center py-6">
+                  <Loader2 className="animate-spin text-brand-600" size={24} />
                 </div>
-              ))}
+              ) : transactions.length > 0 ? (
+                transactions.map((tx) => (
+                  <div key={tx.id} className="flex items-center justify-between p-3 rounded-2xl hover:bg-slate-50 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <div className={cn(
+                        "w-10 h-10 rounded-xl flex items-center justify-center",
+                        tx.jenis_transaksi === 'masuk' ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600"
+                      )}>
+                        {tx.jenis_transaksi === 'masuk' ? <ArrowUpRight size={20} /> : <ArrowDownRight size={20} />}
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-slate-900 truncate max-w-[120px]">{tx.keterangan}</p>
+                        <p className="text-[10px] text-slate-400">
+                          {new Date(tx.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
+                        </p>
+                      </div>
+                    </div>
+                    <span className={cn(
+                      "text-sm font-bold",
+                      tx.jenis_transaksi === 'masuk' ? "text-emerald-600" : "text-red-600"
+                    )}>
+                      {tx.jenis_transaksi === 'masuk' ? '+' : '-'}{tx.jumlah_poin}
+                    </span>
+                  </div>
+                ))
+              ) : (
+                <p className="text-xs text-slate-500 text-center py-6">Belum ada riwayat transaksi.</p>
+              )}
             </div>
           </div>
         </div>
@@ -111,8 +185,9 @@ export const RewardsPage = () => {
                     <span className="text-sm font-bold text-slate-900">{voucher.pointsRequired} Poin</span>
                   </div>
                   <button 
+                    onClick={() => handleRedeem(voucher.pointsRequired, voucher.name)}
                     disabled={points < voucher.pointsRequired}
-                    className="px-4 py-2 bg-slate-900 text-white text-xs font-bold rounded-xl hover:bg-brand-600 disabled:opacity-50 disabled:hover:bg-slate-900 transition-all"
+                    className="px-4 py-2 bg-slate-900 text-white text-xs font-bold rounded-xl hover:bg-brand-600 disabled:opacity-50 disabled:hover:bg-slate-900 transition-all active:scale-95"
                   >
                     Tukarkan
                   </button>

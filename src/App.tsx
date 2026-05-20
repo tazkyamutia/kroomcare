@@ -9,6 +9,7 @@ import { NewTicketPage } from './pages/NewTicketPage';
 import { RewardsPage } from './pages/RewardsPage';
 import { PointHistoryPage } from './pages/customer/PointHistoryPage';
 import { ProfilePage } from './pages/shared/ProfilePage';
+import { SettingsPage } from './pages/shared/SettingsPage';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { UserManagementPage } from './pages/admin/UserManagementPage';
 import { TicketSettingsPage } from './pages/admin/TicketSettingsPage';
@@ -61,6 +62,7 @@ export default function App() {
                     <Route path="/rewards" element={<RewardsPage />} />
                     <Route path="/points-history" element={<PointHistoryPage />} />
                     <Route path="/profile" element={<ProfilePage />} />
+                    <Route path="/settings" element={<SettingsPage />} />
                   </>
                 )}
 
@@ -73,6 +75,7 @@ export default function App() {
                     <Route path="/staff" element={<TicketQueuePage />} />
                     <Route path="/staff/tickets/:id" element={<ForumThreadPage userRole="staff" />} />
                     <Route path="/profile" element={<ProfilePage />} />
+                    <Route path="/settings" element={<SettingsPage />} />
                   </>
                 )}
 
@@ -85,6 +88,7 @@ export default function App() {
                     <Route path="/admin/users" element={<UserManagementPage />} />
                     <Route path="/admin/tickets" element={<TicketSettingsPage />} />
                     <Route path="/profile" element={<ProfilePage />} />
+                    <Route path="/settings" element={<SettingsPage />} />
                   </>
                 )}
 

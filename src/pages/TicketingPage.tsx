@@ -1,6 +1,5 @@
 import React from 'react';
-import { Ticket, Clock, CheckCircle2, AlertCircle, Plus, Search, MessageSquare, ArrowRight, Lightbulb } from 'lucide-react';
-import { DUMMY_TICKETS } from '../utils/dummyData';
+import { Ticket, Clock, CheckCircle2, AlertCircle, Plus, Search, MessageSquare, ArrowRight, Lightbulb, Loader2 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Link, useNavigate } from 'react-router-dom';
 import { cn } from '../lib/utils';
@@ -10,16 +9,33 @@ export const TicketingPage = () => {
   const navigate = useNavigate();
   const { user } = useUser();
   const [searchQuery, setSearchQuery] = React.useState('');
+  const [tickets, setTickets] = React.useState<any[]>([]);
+  const [isLoading, setIsLoading] = React.useState(true);
 
-  const filteredTickets = DUMMY_TICKETS.filter(ticket => {
-    // Only Private Tickets for current user (or Staff/Admin seeing private tickets)
-    // For Member view: just their own private tickets
-    const isMine = ticket.customerId === user?.id;
-    const isPrivate = ticket.isPrivate;
+  React.useEffect(() => {
+    if (!user?.id) return;
+    
+    const fetchTickets = async () => {
+      try {
+        const response = await fetch(`http://localhost:5000/api/tickets?user_id=${user.id}`);
+        const result = await response.json();
+        if (response.ok && result.success) {
+          setTickets(result.data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch tickets:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchTickets();
+  }, [user]);
+
+  const filteredTickets = tickets.filter(ticket => {
     const matchesSearch = ticket.subject.toLowerCase().includes(searchQuery.toLowerCase()) || 
                           ticket.description.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    return isPrivate && isMine && matchesSearch;
+    return matchesSearch;
   });
 
   return (
@@ -58,7 +74,11 @@ export const TicketingPage = () => {
 
       {/* Tickets List */}
       <div className="space-y-4">
-        {filteredTickets.length > 0 ? (
+        {isLoading ? (
+          <div className="flex justify-center py-12">
+            <Loader2 size={32} className="animate-spin text-brand-600" />
+          </div>
+        ) : filteredTickets.length > 0 ? (
           filteredTickets.map((ticket, i) => (
             <motion.div 
               initial={{ opacity: 0, y: 20 }}

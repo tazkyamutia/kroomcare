@@ -136,6 +136,9 @@ export const DUMMY_TRANSACTIONS: PointTransaction[] = [
 export const DUMMY_VOUCHERS: Voucher[] = [
   { id: 'V-1', name: '10% Discount Hosting', code: 'HOST10', discount: '10%', pointsRequired: 200, expiryDate: '2026-12-31' },
   { id: 'V-2', name: 'Free Domain for 1 Year', code: 'FREEDOMAIN', discount: '100%', pointsRequired: 1000, expiryDate: '2026-06-30' },
+  { id: 'V-3', name: '5% Discount VPS', code: 'VPS5', discount: '5%', pointsRequired: 50, expiryDate: '2026-09-30' },
+  { id: 'V-4', name: 'Free SSL Certificate 6-Mo', code: 'SSLFREE', discount: '100%', pointsRequired: 30, expiryDate: '2026-08-31' },
+  { id: 'V-5', name: '20% Discount Dedicated Server', code: 'DEDI20', discount: '20%', pointsRequired: 500, expiryDate: '2026-12-31' },
 ];
 
 export const QUICK_REPLIES = [

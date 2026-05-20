@@ -1,16 +1,122 @@
 import React from 'react';
-import { Sparkles, Bell, User, Settings, LogOut, ChevronDown } from 'lucide-react';
+import { Sparkles, Bell, User, Settings, LogOut, ChevronDown, Ticket, Gift } from 'lucide-react';
 import { UserRole } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '../lib/utils';
-
 import { useUser } from '../context/UserContext';
 
+interface AppNotification {
+  id: string;
+  title: string;
+  description: string;
+  time: string;
+  type: 'ticket' | 'point_in' | 'point_out';
+  link: string;
+}
+
 export const Header: React.FC = () => {
-  const { user } = useUser();
+  const { user, logout } = useUser();
   const [showDropdown, setShowDropdown] = React.useState(false);
+  const [showNotifications, setShowNotifications] = React.useState(false);
+  const [notifications, setNotifications] = React.useState<AppNotification[]>([]);
   const navigate = useNavigate();
+
+  const fetchNotifications = React.useCallback(async () => {
+    if (!user?.id) return;
+
+    try {
+      const list: AppNotification[] = [];
+
+      if (user.role === 'customer') {
+        const [ticketsRes, pointsRes] = await Promise.all([
+          fetch(`http://localhost:5000/api/tickets?user_id=${user.id}`),
+          fetch(`http://localhost:5000/api/points/history/${user.id}`)
+        ]);
+
+        const ticketsData = await ticketsRes.json();
+        const pointsData = await pointsRes.json();
+
+        if (ticketsRes.ok && ticketsData.success) {
+          ticketsData.data.forEach((ticket: any) => {
+            list.push({
+              id: `t-create-${ticket.id}`,
+              title: 'Tiket Keluhan Dibuat',
+              description: `Tiket #${ticket.id} "${ticket.judul}" telah didaftarkan.`,
+              time: ticket.created_at,
+              type: 'ticket',
+              link: '/tickets'
+            });
+
+            if (ticket.status === 'selesai') {
+              list.push({
+                id: `t-solve-${ticket.id}`,
+                title: 'Tiket Selesai Diproses',
+                description: `Tiket #${ticket.id} "${ticket.judul}" telah diselesaikan.`,
+                time: ticket.updated_at || ticket.created_at,
+                type: 'ticket',
+                link: '/tickets'
+              });
+            }
+          });
+        }
+
+        if (pointsRes.ok && pointsData.success) {
+          pointsData.data.forEach((tx: any) => {
+            if (tx.jenis_transaksi === 'masuk') {
+              list.push({
+                id: `p-in-${tx.id}`,
+                title: 'Reward Koin Masuk',
+                description: `Menerima +${tx.jumlah_poin} Poin: ${tx.keterangan}`,
+                time: tx.created_at,
+                type: 'point_in',
+                link: '/points-history'
+              });
+            } else {
+              list.push({
+                id: `p-out-${tx.id}`,
+                title: 'Penukaran Voucher',
+                description: `Menggunakan -${tx.jumlah_poin} Poin untuk voucher: ${tx.keterangan.replace('Penukaran voucher: ', '')}`,
+                time: tx.created_at,
+                type: 'point_out',
+                link: '/rewards'
+              });
+            }
+          });
+        }
+      } else if (user.role === 'staff') {
+        const ticketsRes = await fetch('http://localhost:5000/api/tickets');
+        const ticketsData = await ticketsRes.json();
+        if (ticketsRes.ok && ticketsData.success) {
+          ticketsData.data.forEach((ticket: any) => {
+            if (ticket.status === 'menunggu') {
+              list.push({
+                id: `staff-new-${ticket.id}`,
+                title: 'Tiket Baru Masuk',
+                description: `Tiket #${ticket.id} "${ticket.judul}" menunggu respon Anda.`,
+                time: ticket.created_at,
+                type: 'ticket',
+                link: '/staff'
+              });
+            }
+          });
+        }
+      }
+
+      list.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
+      setNotifications(list.slice(0, 5));
+    } catch (error) {
+      console.error('Failed to construct notifications:', error);
+    }
+  }, [user]);
+
+  React.useEffect(() => {
+    fetchNotifications();
+
+    // Polling notifikasi setiap 10 detik agar terasa real-time
+    const interval = setInterval(fetchNotifications, 10000);
+    return () => clearInterval(interval);
+  }, [fetchNotifications]);
 
   if (!user) return null;
 
@@ -46,10 +152,77 @@ export const Header: React.FC = () => {
           </motion.div>
         )}
         
-        <button className="w-11 h-11 bg-white border border-slate-200 rounded-2xl flex items-center justify-center text-slate-400 hover:text-brand-600 transition-all hover:shadow-md relative">
-          <Bell size={20} />
-          <span className="absolute top-3 right-3 w-2 h-2 bg-red-500 rounded-full border-2 border-white shadow-sm" />
-        </button>
+        {/* Bell Button & Dropdown */}
+        <div className="relative">
+          <button 
+            onClick={() => setShowNotifications(!showNotifications)}
+            className="w-11 h-11 bg-white border border-slate-200 rounded-2xl flex items-center justify-center text-slate-400 hover:text-brand-600 transition-all hover:shadow-md relative"
+          >
+            <Bell size={20} />
+            {notifications.length > 0 && (
+              <span className="absolute top-3 right-3 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white shadow-sm" />
+            )}
+          </button>
+
+          <AnimatePresence>
+            {showNotifications && (
+              <>
+                <motion.div 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 bg-transparent z-40"
+                  onClick={() => setShowNotifications(false)}
+                />
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                  className="absolute right-0 mt-3 w-80 sm:w-96 bg-white rounded-[2rem] border border-slate-200 shadow-2xl p-4 z-50 overflow-hidden"
+                >
+                  <div className="flex items-center justify-between px-3 py-2 border-b border-slate-100 mb-2">
+                    <h3 className="font-bold text-slate-900 text-sm">Notifikasi</h3>
+                    <span className="text-[10px] font-black uppercase bg-brand-50 text-brand-600 px-2 py-1 rounded-lg">
+                      {notifications.length} Info Baru
+                    </span>
+                  </div>
+                  <div className="max-h-[300px] overflow-y-auto space-y-1">
+                    {notifications.length > 0 ? (
+                      notifications.map((notif) => (
+                        <div 
+                          key={notif.id}
+                          onClick={() => {
+                            setShowNotifications(false);
+                            navigate(notif.link);
+                          }}
+                          className="flex items-start gap-3 p-3 rounded-2xl hover:bg-slate-50 transition-colors cursor-pointer"
+                        >
+                          <div className={cn(
+                            "w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0",
+                            notif.type === 'ticket' ? "bg-blue-50 text-blue-600" :
+                            notif.type === 'point_in' ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600"
+                          )}>
+                            {notif.type === 'ticket' ? <Ticket size={16} /> :
+                             notif.type === 'point_in' ? <Sparkles size={16} /> : <Gift size={16} />}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-bold text-slate-900 leading-tight">{notif.title}</p>
+                            <p className="text-[11px] text-slate-500 mt-1 leading-snug break-all">{notif.description}</p>
+                            <p className="text-[9px] text-slate-400 mt-1 font-medium">
+                              {new Date(notif.time).toLocaleDateString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' - ' + new Date(notif.time).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
+                            </p>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-xs text-slate-400 text-center py-8">Tidak ada notifikasi baru.</p>
+                    )}
+                  </div>
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>
+        </div>
 
         {/* Interactive Avatar */}
         <div className="relative">
@@ -74,7 +247,7 @@ export const Header: React.FC = () => {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="fixed inset-0 bg-transparent"
+                  className="fixed inset-0 bg-transparent z-40"
                   onClick={() => setShowDropdown(false)}
                 />
                 <motion.div 
@@ -113,7 +286,10 @@ export const Header: React.FC = () => {
                       Akun Settings
                     </button>
                     <div className="h-px bg-slate-100 my-2" />
-                    <button className="w-full flex items-center gap-3 p-3 text-red-600 hover:bg-red-50 rounded-xl transition-all text-sm font-black uppercase tracking-widest">
+                    <button 
+                      onClick={() => { setShowDropdown(false); logout(); }}
+                      className="w-full flex items-center gap-3 p-3 text-red-600 hover:bg-red-50 rounded-xl transition-all text-sm font-black uppercase tracking-widest"
+                    >
                       <LogOut size={16} />
                       Keluar
                     </button>

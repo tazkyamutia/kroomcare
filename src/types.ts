@@ -7,6 +7,7 @@ export interface User {
   role: UserRole;
   avatar?: string;
   points?: number;
+  status?: 'online' | 'busy' | 'offline';
 }
 
 export interface Ticket {

@@ -1,21 +1,87 @@
 import React from 'react';
-import { MessageSquare, Search, Plus, ArrowRight, User, Users } from 'lucide-react';
-import { DUMMY_TICKETS } from '../utils/dummyData';
-import { motion } from 'motion/react';
-import { Link, useNavigate } from 'react-router-dom';
+import { MessageSquare, Search, Plus, ArrowRight, User, Users, Loader2, X, Trash2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { useNavigate } from 'react-router-dom';
 import { cn } from '../lib/utils';
 import { useUser } from '../context/UserContext';
 
 export const ForumPage = () => {
   const { user } = useUser();
   const navigate = useNavigate();
+  
   const [searchQuery, setSearchQuery] = React.useState('');
+  const [threads, setThreads] = React.useState<any[]>([]);
+  const [isLoading, setIsLoading] = React.useState(true);
 
-  const forumThreads = DUMMY_TICKETS.filter(ticket => {
-    const isPublic = !ticket.isPrivate;
-    const matchesSearch = ticket.subject.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          ticket.description.toLowerCase().includes(searchQuery.toLowerCase());
-    return isPublic && matchesSearch;
+  // Form modal states
+  const [isModalOpen, setIsModalOpen] = React.useState(false);
+  const [newTitle, setNewTitle] = React.useState('');
+  const [newContent, setNewContent] = React.useState('');
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+
+  const fetchForums = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch('http://localhost:5000/api/forums');
+      const result = await response.json();
+      if (response.ok && result.success) {
+        setThreads(result.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch forums:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  React.useEffect(() => {
+    fetchForums();
+  }, []);
+
+  const handleCreateForum = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user?.id) {
+      alert('Anda harus login terlebih dahulu.');
+      return;
+    }
+    if (!newTitle.trim() || !newContent.trim()) {
+      alert('Judul dan konten wajib diisi.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const response = await fetch('http://localhost:5000/api/forums', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: user.id,
+          judul: newTitle,
+          konten: newContent
+        })
+      });
+      const result = await response.json();
+      if (response.ok && result.success) {
+        alert('Diskusi forum berhasil dibuat!');
+        setNewTitle('');
+        setNewContent('');
+        setIsModalOpen(false);
+        fetchForums(); // refresh
+      } else {
+        alert(result.message || 'Gagal membuat diskusi.');
+      }
+    } catch (error) {
+      console.error('Failed to create forum thread:', error);
+      alert('Terjadi kesalahan koneksi server.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const forumThreads = threads.filter(thread => {
+    const matchesSearch = thread.subject.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          thread.description.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesSearch;
   });
 
   return (
@@ -58,18 +124,22 @@ export const ForumPage = () => {
           <span className="px-2.5 py-0.5 bg-slate-100 text-slate-500 rounded-full text-xs font-bold">{forumThreads.length}</span>
         </h2>
         
-        <Link 
-          to="/tickets/new"
+        <button 
+          onClick={() => setIsModalOpen(true)}
           className="flex items-center justify-center gap-2 px-8 py-4 bg-indigo-600 text-white rounded-2xl hover:bg-indigo-700 transition-all font-bold shadow-lg shadow-indigo-500/20 active:scale-95 text-sm"
         >
           <Plus size={20} />
           Mulai Diskusi
-        </Link>
+        </button>
       </div>
 
       {/* Forum List */}
       <div className="grid gap-6">
-        {forumThreads.length > 0 ? (
+        {isLoading ? (
+          <div className="flex justify-center py-12">
+            <Loader2 size={32} className="animate-spin text-indigo-600" />
+          </div>
+        ) : forumThreads.length > 0 ? (
           forumThreads.map((thread, i) => (
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
@@ -95,6 +165,34 @@ export const ForumPage = () => {
                     <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-1 bg-indigo-50 text-indigo-600 rounded-lg ml-auto">
                       {thread.category}
                     </span>
+                    {user?.role === 'admin' && (
+                      <button
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          if (window.confirm('Apakah Anda yakin ingin menghapus diskusi ini beserta seluruh balasannya?')) {
+                            try {
+                              const response = await fetch(`http://localhost:5000/api/forums/${thread.id}`, {
+                                method: 'DELETE'
+                              });
+                              const result = await response.json();
+                              if (response.ok && result.success) {
+                                alert('Diskusi berhasil dihapus.');
+                                fetchForums();
+                              } else {
+                                alert(result.message || 'Gagal menghapus diskusi.');
+                              }
+                            } catch (err) {
+                              console.error('Error deleting thread:', err);
+                              alert('Gagal terhubung ke server.');
+                            }
+                          }
+                        }}
+                        className="p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl transition-all ml-2"
+                        title="Hapus Diskusi (Moderasi Admin)"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    )}
                   </div>
                   
                   <h3 className="text-xl font-bold text-slate-900 group-hover:text-indigo-600 transition-colors mb-3 leading-tight">
@@ -108,7 +206,7 @@ export const ForumPage = () => {
                   <div className="flex items-center gap-6">
                     <div className="flex items-center gap-1.5 text-slate-400 text-xs font-bold">
                       <MessageSquare size={16} />
-                      12 Balasan
+                      {thread.replyCount || 0} Balasan
                     </div>
                     <div className="flex items-center gap-1.5 text-emerald-600 text-xs font-bold px-3 py-1 bg-emerald-50 rounded-full">
                       <ArrowRight size={14} />
@@ -126,15 +224,83 @@ export const ForumPage = () => {
             </div>
             <h3 className="text-2xl font-bold text-slate-900 mb-3">Diskusi tidak ditemukan</h3>
             <p className="text-slate-500 max-w-sm mb-8">Jadilah yang pertama untuk memulai diskusi baru di forum komunitas kami.</p>
-            <Link 
-              to="/tickets/new"
-              className="px-10 py-4 bg-indigo-600 text-white rounded-2xl font-bold"
+            <button 
+              onClick={() => setIsModalOpen(true)}
+              className="px-10 py-4 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 transition-all shadow-lg"
             >
               Buat Diskusi Pertama
-            </Link>
+            </button>
           </div>
         )}
       </div>
+
+      {/* Modern Modal to Create Thread */}
+      <AnimatePresence>
+        {isModalOpen && (
+          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-[2.5rem] border border-slate-200 w-full max-w-lg overflow-hidden shadow-2xl p-8 space-y-6"
+            >
+              <div className="flex items-center justify-between">
+                <h3 className="text-2xl font-display font-bold text-slate-900">Mulai Diskusi Baru</h3>
+                <button 
+                  onClick={() => setIsModalOpen(false)}
+                  className="p-2 hover:bg-slate-100 rounded-xl transition-colors"
+                >
+                  <X size={20} className="text-slate-400" />
+                </button>
+              </div>
+
+              <form onSubmit={handleCreateForum} className="space-y-6">
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold text-slate-700">Subjek/Judul Diskusi</label>
+                  <input 
+                    required
+                    type="text"
+                    placeholder="Contoh: Cara Reset Password KroomCare?"
+                    value={newTitle}
+                    onChange={(e) => setNewTitle(e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold text-slate-700">Konten Pertanyaan / Diskusi</label>
+                  <textarea 
+                    required
+                    rows={5}
+                    placeholder="Tuliskan detail pertanyaan atau topik yang ingin didiskusikan..."
+                    value={newContent}
+                    onChange={(e) => setNewContent(e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all resize-none"
+                  />
+                </div>
+
+                <button 
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full py-4 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 disabled:opacity-75 transition-all shadow-lg flex items-center justify-center gap-2"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="animate-spin" size={20} />
+                      Mengirim...
+                    </>
+                  ) : (
+                    <>
+                      <MessageSquare size={20} />
+                      Buat Thread
+                    </>
+                  )}
+                </button>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

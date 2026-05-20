@@ -1,10 +1,10 @@
 import React from 'react';
-import { MessageSquare, User, ShieldCheck, ArrowLeft, Send, AlertTriangle, Coins, CheckCircle2, MoreHorizontal } from 'lucide-react';
+import { MessageSquare, User, ShieldCheck, ArrowLeft, Send, AlertTriangle, Coins, CheckCircle2, MoreHorizontal, Loader2, Trash2 } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { DUMMY_TICKETS, DUMMY_FORUM_MESSAGES } from '../../utils/dummyData';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../../lib/utils';
-import { UserRole, Ticket, ForumMessage } from '../../types';
+import { UserRole } from '../../types';
+import { useUser } from '../../context/UserContext';
 
 interface ForumThreadProps {
   userRole: UserRole;
@@ -13,56 +13,150 @@ interface ForumThreadProps {
 export const ForumThreadPage: React.FC<ForumThreadProps> = ({ userRole }) => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useUser();
   const [reply, setReply] = React.useState('');
   const [replyingTo, setReplyingTo] = React.useState<{ id: string, name: string } | null>(null);
   
-  // Local state to simulate ticket updates
-  const [ticket, setTicket] = React.useState<Ticket | undefined>(
-    DUMMY_TICKETS.find(t => t.id === id)
-  );
-  
-  const [messages, setMessages] = React.useState(
-    DUMMY_FORUM_MESSAGES.filter(m => m.ticketId === id)
-  );
-
+  const [ticket, setTicket] = React.useState<any | null>(null);
+  const [messages, setMessages] = React.useState<any[]>([]);
+  const [isLoading, setIsLoading] = React.useState(true);
   const [isGivingReward, setIsGivingReward] = React.useState(false);
+
+  const isTicketPath = window.location.pathname.includes('/tickets') || window.location.pathname.includes('/staff/tickets');
+
+  const fetchDetails = async () => {
+    if (!id) return;
+    setIsLoading(true);
+    try {
+      const typePath = isTicketPath ? 'tickets' : 'forums';
+      
+      const resDetail = await fetch(`http://localhost:5000/api/${typePath}/${id}`);
+      const detailResult = await resDetail.json();
+      if (resDetail.ok && detailResult.success) {
+        setTicket(detailResult.data);
+      }
+
+      const resReplies = await fetch(`http://localhost:5000/api/${typePath}/${id}/replies`);
+      const repliesResult = await resReplies.json();
+      if (resReplies.ok && repliesResult.success) {
+        setMessages(repliesResult.data);
+      }
+    } catch (err) {
+      console.error('Error fetching thread details:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  React.useEffect(() => {
+    fetchDetails();
+  }, [id]);
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center py-20">
+        <Loader2 className="animate-spin text-brand-600" size={36} />
+      </div>
+    );
+  }
 
   if (!ticket) return <div className="p-12 text-center font-bold text-slate-500">Thread tidak ditemukan</div>;
 
-  const handleSetPriority = () => {
-    setTicket(prev => prev ? { ...prev, isPriority: !prev.isPriority } : undefined);
+  const handleSetPriority = async () => {
+    if (!ticket) return;
+    const newPriority = !ticket.isPriority;
+    try {
+      const res = await fetch(`http://localhost:5000/api/tickets/${id}/priority`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_priority: newPriority })
+      });
+      const result = await res.json();
+      if (res.ok && result.success) {
+        setTicket((prev: any) => prev ? { ...prev, isPriority: newPriority } : null);
+      } else {
+        alert(result.message || 'Gagal mengubah prioritas.');
+      }
+    } catch (error) {
+      console.error(error);
+      alert('Terjadi kesalahan koneksi.');
+    }
   };
 
-  const handleStatusChange = (newStatus: Ticket['status']) => {
-    setTicket(prev => prev ? { ...prev, status: newStatus } : undefined);
+  const handleStatusChange = async (newStatus: 'Open' | 'In Progress' | 'Resolved') => {
+    if (!ticket) return;
+    try {
+      const res = await fetch(`http://localhost:5000/api/tickets/${id}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus })
+      });
+      const result = await res.json();
+      if (res.ok && result.success) {
+        setTicket((prev: any) => prev ? { ...prev, status: newStatus } : null);
+      } else {
+        alert(result.message || 'Gagal mengubah status.');
+      }
+    } catch (error) {
+      console.error(error);
+      alert('Terjadi kesalahan koneksi.');
+    }
   };
 
-  const handleGiveReward = () => {
+  const handleGiveReward = async () => {
+    if (!ticket) return;
     setIsGivingReward(true);
-    setTimeout(() => {
-      setTicket(prev => prev ? { ...prev, rewardGiven: true } : undefined);
+    try {
+      const res = await fetch(`http://localhost:5000/api/tickets/${id}/reward`, {
+        method: 'POST'
+      });
+      const result = await res.json();
+      if (res.ok && result.success) {
+        setTicket((prev: any) => prev ? { ...prev, rewardGiven: true } : null);
+        alert(`+50 Poin telah diberikan kepada ${ticket.customerName}!`);
+      } else {
+        alert(result.message || 'Gagal memberikan reward.');
+      }
+    } catch (error) {
+      console.error(error);
+      alert('Terjadi kesalahan koneksi.');
+    } finally {
       setIsGivingReward(false);
-      alert(`+50 Poin telah diberikan kepada ${ticket.customerName}!`);
-    }, 1000);
+    }
   };
 
-  const handleSendReply = () => {
-    if (!reply.trim()) return;
-    
-    const newMessage: ForumMessage = {
-      id: `MSG-${Date.now()}`,
-      ticketId: ticket.id,
-      userId: userRole === 'staff' ? 'U2' : (userRole === 'admin' ? 'U3' : 'U1'), // Simplified for demo
-      userName: userRole === 'staff' ? 'Sarah Staff' : (userRole === 'admin' ? 'Alex Admin' : 'John Customer'),
-      userRole: userRole,
-      text: replyingTo ? `@${replyingTo.name} ${reply}` : reply,
-      createdAt: new Date().toISOString(),
-      parentMessageId: replyingTo?.id
-    };
-    
-    setMessages(prev => [...prev, newMessage]);
-    setReply('');
-    setReplyingTo(null);
+  const handleSendReply = async () => {
+    if (!reply.trim() || !user?.id) return;
+    const contentToSend = replyingTo ? `@${replyingTo.name} ${reply}` : reply;
+
+    try {
+      let res;
+      if (isTicketPath) {
+        res = await fetch(`http://localhost:5000/api/tickets/${id}/replies`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: user.id, konten: contentToSend })
+        });
+      } else {
+        res = await fetch(`http://localhost:5000/api/forums/replies`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ forum_id: id, user_id: user.id, konten: contentToSend })
+        });
+      }
+
+      const result = await res.json();
+      if (res.ok && result.success) {
+        setMessages((prev: any) => [...prev, result.data]);
+        setReply('');
+        setReplyingTo(null);
+      } else {
+        alert(result.message || 'Gagal mengirim balasan.');
+      }
+    } catch (error) {
+      console.error(error);
+      alert('Terjadi kesalahan koneksi.');
+    }
   };
 
   const isPrivate = ticket.isPrivate;
@@ -277,7 +371,36 @@ export const ForumThreadPage: React.FC<ForumThreadProps> = ({ userRole }) => {
                               <span className="text-[10px] px-2 py-0.5 bg-brand-600 text-white rounded-md font-black uppercase tracking-tighter shadow-lg shadow-brand-500/20">Official Staff</span>
                             )}
                           </div>
-                          <span className="text-xs text-slate-400 font-medium">{new Date(msg.createdAt).toLocaleString('id-ID')}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-slate-400 font-medium">{new Date(msg.createdAt).toLocaleString('id-ID')}</span>
+                            {user?.role === 'admin' && !isTicketPath && (
+                              <button
+                                onClick={async () => {
+                                  if (window.confirm('Apakah Anda yakin ingin menghapus balasan ini?')) {
+                                    try {
+                                      const res = await fetch(`http://localhost:5000/api/forums/replies/${msg.id}`, {
+                                        method: 'DELETE'
+                                      });
+                                      const result = await res.json();
+                                      if (res.ok && result.success) {
+                                        alert('Balasan berhasil dihapus.');
+                                        setMessages(prev => prev.filter(m => m.id !== msg.id));
+                                      } else {
+                                        alert(result.message || 'Gagal menghapus balasan.');
+                                      }
+                                    } catch (err) {
+                                      console.error(err);
+                                      alert('Koneksi gagal.');
+                                    }
+                                  }
+                                }}
+                                className="p-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-lg transition-colors"
+                                title="Hapus Balasan"
+                              >
+                                <Trash2 size={12} />
+                              </button>
+                            )}
+                          </div>
                         </div>
                         <p className={cn(
                           "leading-relaxed text-lg",
@@ -345,6 +468,14 @@ export const ForumThreadPage: React.FC<ForumThreadProps> = ({ userRole }) => {
               rows={replyingTo || isPrivate ? 1 : 2}
               value={reply}
               onChange={(e) => setReply(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  if (reply.trim()) {
+                    handleSendReply();
+                  }
+                }
+              }}
               placeholder={isPrivate ? "Ketik pesan untuk staff..." : "Tambahkan komentar di diskusi ini..."}
               className="flex-1 px-4 py-3 bg-transparent focus:outline-none resize-none text-slate-700 text-sm"
             />

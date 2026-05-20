@@ -24,6 +24,48 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [user]);
 
+  // Sinkronisasi data pengguna otomatis dari database MySQL
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const syncUserProfile = async () => {
+      try {
+        const response = await fetch(`http://localhost:5000/api/auth/profile/${user.id}`);
+        const result = await response.json();
+        if (response.ok && result.success) {
+          const dbUser = result.data;
+          setUser(prev => {
+            if (!prev) return null;
+            // Hanya update jika ada perubahan untuk mencegah loop rendering tak terbatas
+            if (
+              prev.name !== dbUser.name ||
+              prev.email !== dbUser.email ||
+              prev.points !== dbUser.points ||
+              prev.avatar !== dbUser.avatar ||
+              prev.status !== dbUser.status ||
+              (prev as any).twoFactorEnabled !== dbUser.twoFactorEnabled
+            ) {
+              return {
+                ...prev,
+                name: dbUser.name,
+                email: dbUser.email,
+                points: dbUser.points,
+                avatar: dbUser.avatar,
+                status: dbUser.status,
+                twoFactorEnabled: dbUser.twoFactorEnabled
+              } as any;
+            }
+            return prev;
+          });
+        }
+      } catch (error) {
+        console.error('Failed to sync profile from database:', error);
+      }
+    };
+
+    syncUserProfile();
+  }, [user?.id]);
+
   const updateUser = (updates: Partial<User>) => {
     setUser(prev => prev ? { ...prev, ...updates } : null);
   };

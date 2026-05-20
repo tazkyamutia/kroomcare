@@ -1,22 +1,51 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Send, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Send, AlertCircle, Loader2 } from 'lucide-react';
 import { motion } from 'motion/react';
+import { useUser } from '../context/UserContext';
 
 export const NewTicketPage = () => {
   const navigate = useNavigate();
+  const { user } = useUser();
   const [formData, setFormData] = React.useState({
     subject: '',
     category: 'Hosting',
     priority: 'Medium',
     description: ''
   });
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Simulate submission
-    alert('Tiket berhasil dibuat!');
-    navigate('/tickets');
+    if (!user?.id) {
+      alert('Anda harus login terlebih dahulu.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const response = await fetch('http://localhost:5000/api/tickets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: user.id,
+          judul: formData.subject,
+          deskripsi: formData.description
+        })
+      });
+      const result = await response.json();
+      if (response.ok && result.success) {
+        alert('Tiket berhasil dibuat!');
+        navigate('/tickets');
+      } else {
+        alert(result.message || 'Gagal membuat tiket.');
+      }
+    } catch (error) {
+      console.error('Failed to create ticket:', error);
+      alert('Terjadi kesalahan koneksi server.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -99,10 +128,20 @@ export const NewTicketPage = () => {
 
         <button 
           type="submit"
-          className="w-full py-4 bg-brand-600 text-white rounded-xl font-bold hover:bg-brand-700 transition-all shadow-lg shadow-brand-500/20 flex items-center justify-center gap-2"
+          disabled={isSubmitting}
+          className="w-full py-4 bg-brand-600 text-white rounded-xl font-bold hover:bg-brand-700 disabled:opacity-75 transition-all shadow-lg shadow-brand-500/20 flex items-center justify-center gap-2"
         >
-          <Send size={20} />
-          Kirim Tiket
+          {isSubmitting ? (
+            <>
+              <Loader2 className="animate-spin" size={20} />
+              Mengirim...
+            </>
+          ) : (
+            <>
+              <Send size={20} />
+              Kirim Tiket
+            </>
+          )}
         </button>
       </motion.form>
     </div>

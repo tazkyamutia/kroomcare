@@ -20,6 +20,23 @@ export const ProfilePage: React.FC = () => {
     avatar: user?.avatar || ''
   });
 
+  // Sinkronisasikan form dengan context user yang mengambil data dari database
+  React.useEffect(() => {
+    if (user) {
+      setFormData({
+        name: user.name || '',
+        email: user.email || '',
+        avatar: user.avatar || ''
+      });
+      if (user.status) {
+        setStatus(user.status);
+      }
+      if ((user as any).twoFactorEnabled !== undefined) {
+        setTwoFactorEnabled((user as any).twoFactorEnabled);
+      }
+    }
+  }, [user]);
+
   const [status, setStatus] = React.useState<'online' | 'busy' | 'offline'>('online');
   const [twoFactorEnabled, setTwoFactorEnabled] = React.useState(false);
   const [isSaving, setIsSaving] = React.useState(false);
@@ -60,36 +77,103 @@ export const ProfilePage: React.FC = () => {
 
   const isPasswordValid = passwordForm.new.length >= 8 && passwordForm.new === passwordForm.confirm && passwordForm.current.length > 0;
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user?.id) return;
     setIsSaving(true);
     
-    // Simulate API call
-    setTimeout(() => {
-      updateUser({
-        name: formData.name,
-        email: formData.email,
-        avatar: formData.avatar
+    try {
+      // 1. Simpan data profil dasar
+      const res = await fetch(`http://localhost:5000/api/auth/profile/${user.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          avatar: formData.avatar,
+          status: status
+        })
       });
-      setIsSaving(false);
+      const result = await res.json();
+      if (!res.ok || !result.success) {
+        alert(result.message || 'Gagal menyimpan perubahan profil.');
+        setIsSaving(false);
+        return;
+      }
+
+      // 2. Jika kolom password diisi, lakukan pembaruan password secara bersamaan
+      if (passwordForm.current || passwordForm.new || passwordForm.confirm) {
+        if (!passwordForm.current || !passwordForm.new || !passwordForm.confirm) {
+          alert('Harap lengkapi semua kolom kata sandi jika Anda ingin mengubah kata sandi.');
+          setIsSaving(false);
+          return;
+        }
+        if (passwordForm.new !== passwordForm.confirm) {
+          alert('Konfirmasi sandi baru tidak cocok.');
+          setIsSaving(false);
+          return;
+        }
+        if (passwordForm.new.length < 8) {
+          alert('Kata sandi baru minimal harus 8 karakter.');
+          setIsSaving(false);
+          return;
+        }
+
+        const passwordRes = await fetch(`http://localhost:5000/api/auth/profile/${user.id}/password`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            current: passwordForm.current,
+            newPassword: passwordForm.new
+          })
+        });
+        const passwordResult = await passwordRes.json();
+        if (!passwordRes.ok || !passwordResult.success) {
+          alert(passwordResult.message || 'Gagal memperbarui kata sandi.');
+          setIsSaving(false);
+          return;
+        }
+      }
+
+      // 3. Update User Context dan bersihkan form sandi
+      updateUser({
+        name: result.data.name,
+        email: result.data.email,
+        avatar: result.data.avatar,
+        status: result.data.status
+      });
       setSaved(true);
-      setTimeout(() => setSaved(false), 3000);
-    }, 1000);
-  };
-
-  const handleSecuritySave = (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSaving(true);
-    setTimeout(() => {
-      setIsSaving(false);
-      setSecuritySaved(true);
       setPasswordForm({ current: '', new: '', confirm: '' });
-      setTimeout(() => setSecuritySaved(false), 3000);
-    }, 1200);
+      setTimeout(() => setSaved(false), 3000);
+    } catch (error) {
+      console.error(error);
+      alert('Terjadi kesalahan koneksi.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const points = 850;
-  const recentTransactions = DUMMY_TRANSACTIONS.slice(0, 3);
+  const points = user?.points || 0;
+  const [recentTransactions, setRecentTransactions] = React.useState<any[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = React.useState(true);
+
+  React.useEffect(() => {
+    if (!user?.id) return;
+    const fetchHistory = async () => {
+      try {
+        const response = await fetch(`http://localhost:5000/api/points/history/${user.id}`);
+        const result = await response.json();
+        if (response.ok && result.success) {
+          setRecentTransactions(result.data.slice(0, 3));
+        }
+      } catch (error) {
+        console.error('Failed to fetch history in profile:', error);
+      } finally {
+        setIsLoadingHistory(false);
+      }
+    };
+    fetchHistory();
+  }, [user?.id]);
   
   // Mock staff data
   const staffStats = {
@@ -97,19 +181,93 @@ export const ProfilePage: React.FC = () => {
     rewardsGiven: 300
   };
 
-  const passwordProps = {
-    formData: passwordForm,
-    setFormData: setPasswordForm,
-    showCurrent: showCurrentPassword,
-    setShowCurrent: setShowCurrentPassword,
-    showNew: showNewPassword,
-    setShowNew: setShowNewPassword,
-    showConfirm: showConfirmPassword,
-    setShowConfirm: setShowConfirmPassword,
-    onSubmit: handleSecuritySave,
-    isSaving,
-    isSaved: securitySaved,
-    isValid: isPasswordValid
+  const [show2FAModal, setShow2FAModal] = React.useState(false);
+  const [qrCodeUrl, setQrCodeUrl] = React.useState('');
+  const [setupSecret, setSetupSecret] = React.useState('');
+  const [otpCode, setOtpCode] = React.useState('');
+  const [modalLoading, setModalLoading] = React.useState(false);
+
+  const handle2FAToggle = async () => {
+    if (!user?.id) return;
+
+    if (twoFactorEnabled) {
+      const confirmDisable = window.confirm('Apakah Anda yakin ingin menonaktifkan Two-Factor Authentication (2FA)? Keamanan akun Anda akan berkurang.');
+      if (!confirmDisable) return;
+
+      try {
+        const response = await fetch('http://localhost:5000/api/auth/2fa/disable', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: user.id })
+        });
+        const result = await response.json();
+        if (response.ok && result.success) {
+          setTwoFactorEnabled(false);
+          updateUser({ twoFactorEnabled: false } as any);
+          alert('2FA berhasil dinonaktifkan.');
+        } else {
+          alert(result.message || 'Gagal menonaktifkan 2FA.');
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Koneksi gagal ke server.');
+      }
+    } else {
+      setModalLoading(true);
+      try {
+        const response = await fetch('http://localhost:5000/api/auth/2fa/setup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: user.id })
+        });
+        const result = await response.json();
+        if (response.ok && result.success) {
+          setQrCodeUrl(result.data.qrCodeUrl);
+          setSetupSecret(result.data.secret);
+          setShow2FAModal(true);
+        } else {
+          alert(result.message || 'Gagal menyiapkan 2FA.');
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Koneksi gagal ke server.');
+      } finally {
+        setModalLoading(false);
+      }
+    }
+  };
+
+  const handleVerify2FA = async () => {
+    if (!user?.id || !setupSecret || !otpCode) return;
+    setModalLoading(true);
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/2fa/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: user.id,
+          secret: setupSecret,
+          code: otpCode
+        })
+      });
+      const result = await response.json();
+      if (response.ok && result.success) {
+        setTwoFactorEnabled(true);
+        updateUser({ twoFactorEnabled: true } as any);
+        setShow2FAModal(false);
+        setOtpCode('');
+        setSetupSecret('');
+        setQrCodeUrl('');
+        alert('Two-Factor Authentication (2FA) berhasil diaktifkan!');
+      } else {
+        alert(result.message || 'Kode OTP salah. Silakan coba lagi.');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Koneksi gagal ke server.');
+    } finally {
+      setModalLoading(false);
+    }
   };
 
   return (
@@ -301,7 +459,7 @@ export const ProfilePage: React.FC = () => {
                 </div>
                 <button 
                   type="button"
-                  onClick={() => setTwoFactorEnabled(!twoFactorEnabled)}
+                  onClick={handle2FAToggle}
                   className={cn(
                     "transition-all duration-300 transform",
                     twoFactorEnabled ? "text-emerald-500 scale-110" : "text-slate-300"
@@ -363,25 +521,35 @@ export const ProfilePage: React.FC = () => {
                     <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Riwayat Koin Terakhir</h3>
                   </div>
                   <div className="space-y-4">
-                    {recentTransactions.map((tx) => (
-                      <div key={tx.id} className="bg-white p-5 rounded-2xl border border-slate-100 flex items-center justify-between shadow-sm hover:shadow-md transition-shadow">
-                        <div className="flex items-center gap-4">
-                          <div className={cn(
-                            "w-10 h-10 rounded-xl flex items-center justify-center",
-                            tx.type === 'Earned' ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600"
-                          )}>
-                            {tx.type === 'Earned' ? <ArrowUpRight size={18} /> : <Coins size={18} />}
-                          </div>
-                          <div>
-                            <p className="text-xs font-bold text-slate-900">{tx.description}</p>
-                            <p className="text-[9px] text-slate-400 font-black uppercase tracking-tight mt-0.5">{tx.date}</p>
-                          </div>
-                        </div>
-                        <span className={cn("text-sm font-black", tx.type === 'Earned' ? "text-emerald-600" : "text-red-600")}>
-                          {tx.type === 'Earned' ? '+' : '-'}{tx.amount}
-                        </span>
+                    {isLoadingHistory ? (
+                      <div className="flex justify-center py-6">
+                        <span className="text-xs text-slate-500 font-medium animate-pulse">Memuat riwayat...</span>
                       </div>
-                    ))}
+                    ) : recentTransactions.length > 0 ? (
+                      recentTransactions.map((tx) => (
+                        <div key={tx.id} className="bg-white p-5 rounded-2xl border border-slate-100 flex items-center justify-between shadow-sm hover:shadow-md transition-shadow">
+                          <div className="flex items-center gap-4">
+                            <div className={cn(
+                              "w-10 h-10 rounded-xl flex items-center justify-center",
+                              tx.jenis_transaksi === 'masuk' ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600"
+                            )}>
+                              {tx.jenis_transaksi === 'masuk' ? <ArrowUpRight size={18} /> : <Coins size={18} />}
+                            </div>
+                            <div>
+                              <p className="text-xs font-bold text-slate-900 truncate max-w-[180px]">{tx.keterangan}</p>
+                              <p className="text-[9px] text-slate-400 font-black uppercase tracking-tight mt-0.5">
+                                {new Date(tx.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                              </p>
+                            </div>
+                          </div>
+                          <span className={cn("text-sm font-black", tx.jenis_transaksi === 'masuk' ? "text-emerald-600" : "text-red-600")}>
+                            {tx.jenis_transaksi === 'masuk' ? '+' : '-'}{tx.jumlah_poin}
+                          </span>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-xs text-slate-500 text-center py-6">Belum ada riwayat koin.</p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -488,6 +656,106 @@ export const ProfilePage: React.FC = () => {
               <CheckCircle2 size={20} />
             </div>
             <span className="font-bold text-sm">Profil Anda berhasil diperbarui!</span>
+          </motion.div>
+        )}
+
+        {show2FAModal && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-50 flex items-center justify-center p-4"
+          >
+            <motion.div 
+              initial={{ scale: 0.95, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 20 }}
+              className="bg-white rounded-[2.5rem] w-full max-w-md p-8 border border-slate-100 shadow-2xl relative overflow-hidden"
+            >
+              <button 
+                type="button"
+                onClick={() => {
+                  setShow2FAModal(false);
+                  setOtpCode('');
+                  setSetupSecret('');
+                  setQrCodeUrl('');
+                }}
+                className="absolute right-6 top-6 w-10 h-10 rounded-full bg-slate-50 hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                ✕
+              </button>
+
+              <div className="space-y-6 text-center">
+                <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center text-red-600 mx-auto shadow-sm">
+                  <ShieldEllipsis size={32} />
+                </div>
+                
+                <div>
+                  <h3 className="text-xl font-bold text-slate-900">Setup Two-Factor (2FA)</h3>
+                  <p className="text-xs text-slate-500 mt-2 leading-relaxed">
+                    Tingkatkan keamanan akun Admin Anda menggunakan Google Authenticator atau aplikasi sejenis.
+                  </p>
+                </div>
+
+                {qrCodeUrl && (
+                  <div className="bg-slate-50 p-4 rounded-3xl inline-block border border-slate-100 shadow-inner">
+                    <img src={qrCodeUrl} alt="2FA QR Code" className="w-48 h-48 rounded-xl object-contain mx-auto" />
+                  </div>
+                )}
+
+                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 text-left space-y-2">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Kode Pengaturan Manual:</span>
+                  <div className="flex items-center justify-between">
+                    <code className="text-xs font-mono font-bold text-slate-800 select-all tracking-wider">{setupSecret}</code>
+                    <button 
+                      type="button" 
+                      onClick={() => {
+                        navigator.clipboard.writeText(setupSecret);
+                        alert('Kode disalin ke papan klip!');
+                      }}
+                      className="text-[10px] text-blue-600 hover:underline font-bold"
+                    >
+                      Salin
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-3 text-left">
+                  <label className="text-[10px] font-black uppercase tracking-widest ml-1 text-slate-400">Masukkan Kode Verifikasi 2FA:</label>
+                  <input 
+                    type="text" 
+                    maxLength={6}
+                    value={otpCode}
+                    onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                    placeholder="Contoh: 123456"
+                    className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-brand-500/10 text-center font-mono text-xl font-bold tracking-[0.3em] text-slate-800"
+                  />
+                </div>
+
+                <div className="flex gap-4 pt-2">
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      setShow2FAModal(false);
+                      setOtpCode('');
+                      setSetupSecret('');
+                      setQrCodeUrl('');
+                    }}
+                    className="flex-1 py-4 bg-slate-50 border border-slate-200 text-slate-500 font-bold rounded-2xl hover:bg-slate-100 transition-colors text-sm"
+                  >
+                    Batal
+                  </button>
+                  <button 
+                    type="button"
+                    disabled={otpCode.length !== 6 || modalLoading}
+                    onClick={handleVerify2FA}
+                    className="flex-1 py-4 bg-red-600 text-white font-bold rounded-2xl hover:bg-red-700 transition-colors text-sm disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {modalLoading ? 'Memverifikasi...' : 'Verifikasi & Aktifkan'}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
