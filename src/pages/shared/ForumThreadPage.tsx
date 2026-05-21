@@ -266,7 +266,7 @@ export const ForumThreadPage: React.FC<ForumThreadProps> = ({ userRole }) => {
       {/* Discussion Area */}
       <div className={cn(
         "space-y-6",
-        isPrivate ? "bg-slate-100/50 p-6 rounded-[3rem] border border-slate-200 shadow-inner" : ""
+        isPrivate ? "bg-slate-100/50 dark:bg-slate-900/40 p-6 rounded-[3rem] border border-slate-200/60 dark:border-slate-800/80 shadow-inner" : ""
       )}>
         {/* Original Post */}
         {!isPrivate && (
@@ -448,7 +448,7 @@ export const ForumThreadPage: React.FC<ForumThreadProps> = ({ userRole }) => {
       </div>
 
       {/* Reply Container */}
-      <div className="sticky bottom-0 left-0 right-0 p-4 bg-slate-50/80 backdrop-blur-md rounded-t-[3rem] border-t border-slate-200 z-30 -mx-4 md:mx-0">
+      <div className="sticky bottom-0 left-0 right-0 p-4 bg-slate-50/80 dark:bg-[#0b0f19]/85 backdrop-blur-md rounded-t-[3rem] border-t border-slate-200 dark:border-slate-800/80 z-30 -mx-4 md:mx-0">
         <div className="max-w-4xl mx-auto">
           {replyingTo && (
             <div className="px-6 py-3 bg-indigo-50 border-x border-t border-indigo-100 rounded-t-2xl flex items-center justify-between mb-0">

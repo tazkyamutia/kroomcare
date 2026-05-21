@@ -173,9 +173,9 @@ export const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans flex flex-col selection:bg-blue-100 selection:text-blue-900">
+    <div className="min-h-screen bg-white dark:bg-slate-950 font-sans flex flex-col selection:bg-blue-100 selection:text-blue-900 transition-colors duration-300">
       {/* Navigation */}
-      <nav className="fixed top-0 inset-x-0 bg-white/80 backdrop-blur-md z-50 border-b border-slate-200">
+      <nav className="fixed top-0 inset-x-0 bg-white/70 dark:bg-slate-950/70 backdrop-blur-md z-50 border-b border-slate-200/50 dark:border-slate-900/50 transition-colors duration-300">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2 group">
             <img 
@@ -183,18 +183,18 @@ export const LoginPage = () => {
               alt="Logo KroomCare" 
               className="h-10 w-auto group-hover:scale-105 transition-transform" 
             />
-            <span className="text-xl font-display font-bold text-slate-900">KroomCare</span>
+            <span className="text-xl font-display font-bold text-slate-900 dark:text-white">KroomCare</span>
           </Link>
           <div className="flex items-center gap-4">
             <Link 
               to="/login"
-              className="text-sm font-semibold text-blue-600 transition-colors"
+              className="text-sm font-semibold text-blue-600 dark:text-blue-400 transition-colors"
             >
               Log In
             </Link>
             <Link 
               to="/register"
-              className="px-5 py-2 bg-slate-900 text-white rounded-full text-sm font-bold hover:bg-blue-800 transition-all shadow-md active:scale-95"
+              className="px-5 py-2 bg-slate-900 dark:bg-blue-600 text-white rounded-full text-sm font-bold hover:bg-blue-800 dark:hover:bg-blue-700 transition-all shadow-md active:scale-95"
             >
               Get Started
             </Link>
@@ -210,28 +210,28 @@ export const LoginPage = () => {
         >
           <Link 
             to="/" 
-            className="absolute -top-12 left-0 flex items-center gap-2 text-slate-500 hover:text-blue-600 transition-colors font-semibold group"
+            className="absolute -top-12 left-0 flex items-center gap-2 text-slate-500 hover:text-blue-650 transition-colors font-semibold group"
           >
             <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
-            Kembali ke Beranda
+            Back to Home
           </Link>
 
-          <div className="glass-card p-8 rounded-3xl shadow-2xl">
+          <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-8 rounded-3xl shadow-2xl transition-all duration-300">
             {twoFactorRequired ? (
               <div>
                 <div className="flex flex-col items-center gap-4 mb-10 text-center">
-                  <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center text-red-600 shadow-sm border border-red-50">
+                  <div className="w-16 h-16 bg-red-50 dark:bg-red-950/30 rounded-2xl flex items-center justify-center text-red-650 dark:text-red-400 shadow-sm border border-red-50 dark:border-red-900/30">
                     <Lock size={32} />
                   </div>
-                  <h1 className="text-3xl font-display font-bold text-slate-900">Verifikasi 2FA</h1>
-                  <p className="text-sm text-slate-500 max-w-xs mt-2 leading-relaxed">
-                    Masukkan 6-digit kode OTP dari aplikasi Google Authenticator Anda untuk masuk.
+                  <h1 className="text-3xl font-display font-bold text-slate-900 dark:text-white">2FA Verification</h1>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 max-w-xs mt-2 leading-relaxed">
+                    Enter the 6-digit OTP code from your Google Authenticator app to log in.
                   </p>
                 </div>
 
                 <form onSubmit={handleTwoFactorVerify} className="space-y-6">
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block text-center">Kode OTP 2FA</label>
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-350 uppercase tracking-wider block text-center">2FA OTP Code</label>
                     <input 
                       type="text" 
                       maxLength={6}
@@ -239,24 +239,24 @@ export const LoginPage = () => {
                       value={twoFactorCode}
                       onChange={(e) => setTwoFactorCode(e.target.value.replace(/\D/g, ''))}
                       placeholder="• • • • • •"
-                      className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-brand-500/10 text-center font-mono text-2xl font-bold tracking-[0.3em] text-slate-800"
+                      className="w-full px-4 py-4 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl focus:outline-none focus:ring-4 focus:ring-blue-500/10 text-center font-mono text-2xl font-bold tracking-[0.3em] text-slate-800 dark:text-white"
                     />
                   </div>
 
                   {twoFactorError && (
-                    <p className="text-xs text-red-500 font-medium text-center bg-red-50 py-2 rounded-lg border border-red-100">{twoFactorError}</p>
+                    <p className="text-xs text-red-500 font-medium text-center bg-red-50 dark:bg-red-950/30 py-2 rounded-lg border border-red-100 dark:border-red-900/30">{twoFactorError}</p>
                   )}
 
                   <button 
                     type="submit"
                     disabled={twoFactorCode.length !== 6 || isLoading}
-                    className="w-full py-4 bg-brand-600 text-white rounded-xl font-bold hover:bg-brand-700 transition-all flex items-center justify-center gap-2 group shadow-lg shadow-brand-500/20 disabled:opacity-50"
+                    className="w-full py-4 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all flex items-center justify-center gap-2 group shadow-lg shadow-blue-500/20 disabled:opacity-50"
                   >
                     {isLoading ? (
                       <Loader2 size={20} className="animate-spin" />
                     ) : (
                       <>
-                        Verifikasi & Masuk
+                        Verify & Log In
                         <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
                       </>
                     )}
@@ -270,27 +270,27 @@ export const LoginPage = () => {
                       setTwoFactorCode('');
                       setTwoFactorError('');
                     }}
-                    className="w-full text-center text-xs text-slate-500 hover:text-slate-700 hover:underline pt-2"
+                    className="w-full text-center text-xs text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:underline pt-2"
                   >
-                    Kembali ke Login
+                    Back to Login
                   </button>
                 </form>
               </div>
             ) : mode === 'forgot' ? (
               <div>
                 <div className="flex flex-col items-center gap-4 mb-10 text-center">
-                  <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 shadow-sm border border-blue-50">
+                  <div className="w-16 h-16 bg-blue-50 dark:bg-blue-950/30 rounded-2xl flex items-center justify-center text-blue-600 dark:text-blue-400 shadow-sm border border-blue-50 dark:border-blue-900/30">
                     <Mail size={32} />
                   </div>
-                  <h1 className="text-3xl font-display font-bold text-slate-900">Lupa Password</h1>
-                  <p className="text-sm text-slate-500 max-w-xs mt-2 leading-relaxed">
-                    Masukkan email terdaftar Anda. Kami akan mengirimkan kode verifikasi OTP ke email tersebut.
+                  <h1 className="text-3xl font-display font-bold text-slate-900 dark:text-white">Forgot Password</h1>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 max-w-xs mt-2 leading-relaxed">
+                    Enter your registered email address. We will send an OTP verification code to that email.
                   </p>
                 </div>
 
                 <form onSubmit={handleForgotPassword} className="space-y-6">
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block">Email Address</label>
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-350 uppercase tracking-wider block">Email Address</label>
                     <div className="relative">
                       <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                       <input 
@@ -299,25 +299,25 @@ export const LoginPage = () => {
                         value={forgotEmail}
                         onChange={(e) => setForgotEmail(e.target.value)}
                         placeholder="admin@kroombox.com"
-                        className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-all text-sm"
+                        className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all text-sm text-slate-800 dark:text-white"
                       />
                     </div>
                   </div>
 
                   {error && (
-                    <p className="text-xs text-red-500 font-medium text-center bg-red-50 py-2 rounded-lg border border-red-100">{error}</p>
+                    <p className="text-xs text-red-500 font-medium text-center bg-red-50 dark:bg-red-950/30 py-2 rounded-lg border border-red-100 dark:border-red-900/30">{error}</p>
                   )}
 
                   <button 
                     type="submit"
                     disabled={isLoading}
-                    className="w-full py-4 bg-brand-600 text-white rounded-xl font-bold hover:bg-brand-700 transition-all flex items-center justify-center gap-2 group shadow-lg shadow-brand-500/20 disabled:opacity-50"
+                    className="w-full py-4 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all flex items-center justify-center gap-2 group shadow-lg shadow-blue-500/20 disabled:opacity-50"
                   >
                     {isLoading ? (
                       <Loader2 size={20} className="animate-spin" />
                     ) : (
                       <>
-                        Kirim OTP
+                        Send OTP
                         <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
                       </>
                     )}
@@ -330,27 +330,27 @@ export const LoginPage = () => {
                       setError('');
                       setSuccessMessage('');
                     }}
-                    className="w-full text-center text-xs text-slate-500 hover:text-slate-750 hover:underline pt-2 block"
+                    className="w-full text-center text-xs text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:underline pt-2 block"
                   >
-                    Kembali ke Login
+                    Back to Login
                   </button>
                 </form>
               </div>
             ) : mode === 'reset' ? (
               <div>
                 <div className="flex flex-col items-center gap-4 mb-8 text-center">
-                  <div className="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600 shadow-sm border border-emerald-50">
+                  <div className="w-16 h-16 bg-emerald-50 dark:bg-emerald-950/30 rounded-2xl flex items-center justify-center text-emerald-600 dark:text-emerald-400 shadow-sm border border-emerald-50 dark:border-emerald-900/30">
                     <ShieldCheck size={32} />
                   </div>
-                  <h1 className="text-3xl font-display font-bold text-slate-900">Atur Ulang Password</h1>
-                  <p className="text-xs text-slate-500 max-w-xs mt-2 leading-relaxed">
-                    Kode OTP telah dikirim ke email <strong>{forgotEmail}</strong>. Masukkan kode tersebut dan password baru Anda.
+                  <h1 className="text-3xl font-display font-bold text-slate-900 dark:text-white">Reset Password</h1>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xs mt-2 leading-relaxed">
+                    An OTP code has been sent to <strong>{forgotEmail}</strong>. Enter the code and your new password.
                   </p>
                 </div>
 
                 <form onSubmit={handleResetPassword} className="space-y-5">
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block text-center">Kode OTP (6 Digit)</label>
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-350 uppercase tracking-wider block text-center">OTP Code (6 Digits)</label>
                     <input 
                       type="text" 
                       maxLength={6}
@@ -358,12 +358,12 @@ export const LoginPage = () => {
                       value={otp}
                       onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
                       placeholder="• • • • • •"
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/20 text-center font-mono text-xl font-bold tracking-[0.2em] text-slate-800"
+                      className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-center font-mono text-xl font-bold tracking-[0.2em] text-slate-800 dark:text-white"
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block">Kata Sandi Baru</label>
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-350 uppercase tracking-wider block">New Password</label>
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                       <input 
@@ -371,13 +371,13 @@ export const LoginPage = () => {
                         required
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
-                        placeholder="Minimal 6 karakter"
-                        className="w-full pl-10 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-all text-sm font-bold text-slate-800"
+                        placeholder="Min. 6 characters"
+                        className="w-full pl-10 pr-12 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all text-sm text-slate-800 dark:text-white"
                       />
                       <button
                         type="button"
                         onClick={() => setShowNewPassword(!showNewPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-650 transition-colors"
                       >
                         {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                       </button>
@@ -385,7 +385,7 @@ export const LoginPage = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block">Konfirmasi Kata Sandi Baru</label>
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-350 uppercase tracking-wider block">Confirm New Password</label>
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                       <input 
@@ -393,13 +393,13 @@ export const LoginPage = () => {
                         required
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
-                        placeholder="Ulangi sandi baru"
-                        className="w-full pl-10 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-all text-sm font-bold text-slate-800"
+                        placeholder="Repeat new password"
+                        className="w-full pl-10 pr-12 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all text-sm text-slate-800 dark:text-white"
                       />
                       <button
                         type="button"
                         onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-650 transition-colors"
                       >
                         {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                       </button>
@@ -407,23 +407,23 @@ export const LoginPage = () => {
                   </div>
 
                   {error && (
-                    <p className="text-xs text-red-500 font-medium text-center bg-red-50 py-2 rounded-lg border border-red-100">{error}</p>
+                    <p className="text-xs text-red-500 font-medium text-center bg-red-50 dark:bg-red-950/30 py-2 rounded-lg border border-red-100 dark:border-red-900/30">{error}</p>
                   )}
 
                   {successMessage && (
-                    <p className="text-xs text-emerald-650 font-medium text-center bg-emerald-50 py-2 rounded-lg border border-emerald-100">{successMessage}</p>
+                    <p className="text-xs text-emerald-650 font-medium text-center bg-emerald-50 dark:bg-emerald-950/30 py-2 rounded-lg border border-emerald-100 dark:border-emerald-900/30">{successMessage}</p>
                   )}
 
                   <button 
                     type="submit"
                     disabled={otp.length !== 6 || isLoading}
-                    className="w-full py-4 bg-brand-600 text-white rounded-xl font-bold hover:bg-brand-700 transition-all flex items-center justify-center gap-2 group shadow-lg shadow-brand-500/20 disabled:opacity-50"
+                    className="w-full py-4 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all flex items-center justify-center gap-2 group shadow-lg shadow-blue-500/20 disabled:opacity-50"
                   >
                     {isLoading ? (
                       <Loader2 size={20} className="animate-spin" />
                     ) : (
                       <>
-                        Atur Ulang Sandi
+                        Reset Password
                         <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
                       </>
                     )}
@@ -433,9 +433,9 @@ export const LoginPage = () => {
                     <button 
                       type="button"
                       onClick={() => setMode('forgot')}
-                      className="text-slate-500 hover:text-brand-600 hover:underline font-bold"
+                      className="text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:underline font-bold"
                     >
-                      Kirim Ulang OTP
+                      Resend OTP
                     </button>
                     <button 
                       type="button"
@@ -445,28 +445,28 @@ export const LoginPage = () => {
                         setForgotEmail('');
                         setSuccessMessage('');
                       }}
-                      className="text-slate-500 hover:text-brand-600 hover:underline font-bold"
+                      className="text-slate-500 dark:text-slate-400 hover:text-blue-650 dark:hover:text-blue-400 hover:underline font-bold"
                     >
-                      Batal
+                      Cancel
                     </button>
                   </div>
                 </form>
               </div>
             ) : (
               <>
-                <Link to="/" className="flex flex-col items-center gap-4 mb-10 group hover:opacity-80 transition-all">
+                <Link to="/" className="flex flex-col items-center gap-4 mb-10 group hover:opacity-85 transition-all">
                   <img 
                     src="https://i.ibb.co.com/fGPRy8Jt/Gemini-Generated-Image-yss7sryss7sryss7-removebg-preview.png" 
                     alt="Logo KroomCare" 
                     className="h-32 w-auto object-contain group-hover:scale-105 transition-transform" 
                   />
-                  <h1 className="text-4xl font-display font-bold text-blue-900">KroomCare</h1>
-                  <p className="text-sm text-slate-500 mt-1">Silakan masuk ke akun Anda</p>
+                  <h1 className="text-4xl font-display font-bold text-blue-900 dark:text-white">KroomCare</h1>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Please log in to your account</p>
                 </Link>
 
                 <form onSubmit={handleLogin} className="space-y-5">
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Email Address</label>
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-350 uppercase tracking-wider">Email Address</label>
                     <div className="relative">
                       <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                       <input 
@@ -475,14 +475,14 @@ export const LoginPage = () => {
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         placeholder="customer@kroombox.com"
-                        className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-all text-sm"
+                        className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all text-sm text-slate-800 dark:text-white"
                       />
                     </div>
                   </div>
 
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">
-                      <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Password</label>
+                      <label className="text-xs font-bold text-slate-700 dark:text-slate-350 uppercase tracking-wider">Password</label>
                       <button 
                         type="button" 
                         onClick={() => {
@@ -491,9 +491,9 @@ export const LoginPage = () => {
                           setSuccessMessage('');
                           setForgotEmail(email);
                         }}
-                        className="text-xs text-brand-650 hover:underline font-bold"
+                        className="text-xs text-blue-600 dark:text-blue-400 hover:underline font-bold"
                       >
-                        Lupa Password?
+                        Forgot Password?
                       </button>
                     </div>
                     <div className="relative">
@@ -504,48 +504,47 @@ export const LoginPage = () => {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="••••••••"
-                        className="w-full pl-10 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-all text-sm"
+                        className="w-full pl-10 pr-12 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all text-sm text-slate-800 dark:text-white"
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-650 transition-colors"
                       >
                         {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                       </button>
                     </div>
-                    <p className="text-[10px] text-slate-400 italic ml-1">*Password simulasi aktif (password apa saja boleh).</p>
                   </div>
 
                   {error && (
-                    <p className="text-xs text-red-500 font-medium text-center bg-red-50 py-2 rounded-lg border border-red-100">{error}</p>
+                    <p className="text-xs text-red-500 font-medium text-center bg-red-50 dark:bg-red-950/30 py-2 rounded-lg border border-red-100 dark:border-red-900/30">{error}</p>
                   )}
 
                   <button 
                     type="submit"
                     disabled={isLoading}
-                    className="w-full py-4 bg-brand-600 text-white rounded-xl font-bold hover:bg-brand-700 transition-all flex items-center justify-center gap-2 group shadow-lg shadow-brand-500/20"
+                    className="w-full py-4 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all flex items-center justify-center gap-2 group shadow-lg shadow-blue-500/20"
                   >
                     {isLoading ? (
                       <Loader2 size={20} className="animate-spin" />
                     ) : (
                       <>
-                        Masuk Sekarang
+                        Log In Now
                         <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
                       </>
                     )}
                   </button>
                 </form>
 
-                <div className="mt-8 pt-6 border-t border-slate-100 text-center">
-                  <p className="text-sm text-slate-500">
-                    Belum punya akun?{' '}
-                    <Link to="/register" className="text-brand-600 font-bold hover:underline">
-                      Daftar di sini
+                <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800 text-center">
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    Don't have an account?{' '}
+                    <Link to="/register" className="text-blue-650 dark:text-blue-400 font-bold hover:underline">
+                      Sign Up here
                     </Link>
                   </p>
-                  <p className="text-[10px] text-slate-400 mt-4">
-                    Pilih akun (customer/staff/admin) sesuai kebutuhan pengujian.
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-4">
+                    Select an account (customer/staff/admin) based on testing needs.
                   </p>
                 </div>
               </>
@@ -555,7 +554,7 @@ export const LoginPage = () => {
       </div>
 
       {/* Footer */}
-      <footer className="bg-white border-t border-slate-200 py-16 px-4">
+      <footer className="bg-white dark:bg-slate-950 border-t border-slate-200/50 dark:border-slate-900/50 py-16 px-4 transition-colors duration-300">
         <div className="max-w-7xl mx-auto space-y-12">
           <div className="flex flex-col md:flex-row items-center justify-between gap-8">
             <div className="flex items-center gap-3">
@@ -564,23 +563,23 @@ export const LoginPage = () => {
                 alt="Logo Foot" 
                 className="h-10 w-auto" 
               />
-              <span className="text-2xl font-display font-bold text-slate-900">KroomCare</span>
+              <span className="text-2xl font-display font-bold text-slate-900 dark:text-white">KroomCare</span>
             </div>
 
             <div className="flex items-center gap-6">
-              <a href="mailto:support@kroomcare.com" className="text-slate-400 hover:text-blue-600 transition-colors"><Mail size={24} /></a>
-              <a href="#" className="text-slate-400 hover:text-blue-600 transition-colors"><Twitter size={24} /></a>
-              <a href="#" className="text-slate-400 hover:text-blue-600 transition-colors"><Instagram size={24} /></a>
-              <a href="#" className="text-slate-400 hover:text-blue-600 transition-colors"><Github size={24} /></a>
+              <a href="mailto:support@kroomcare.com" className="text-slate-450 hover:text-blue-650 transition-colors"><Mail size={24} /></a>
+              <a href="#" className="text-slate-450 hover:text-blue-650 transition-colors"><Twitter size={24} /></a>
+              <a href="#" className="text-slate-450 hover:text-blue-650 transition-colors"><Instagram size={24} /></a>
+              <a href="#" className="text-slate-450 hover:text-blue-650 transition-colors"><Github size={24} /></a>
             </div>
           </div>
 
-          <div className="pt-8 border-t border-slate-100 flex flex-col md:flex-row items-center justify-between gap-4">
-            <p className="text-sm text-slate-500">
+          <div className="pt-8 border-t border-slate-100 dark:border-slate-900 flex flex-col md:flex-row items-center justify-between gap-4">
+            <p className="text-sm text-slate-555">
               Transforming customer support with AI efficiency.
             </p>
             <p className="text-xs text-slate-400 font-medium">
-              Hak Cipta &copy; 2026 KroomCare. Dibangun dengan integrasi React &amp; Tailwind CSS.
+              Copyright &copy; 2026 KroomCare. Built with React &amp; Tailwind CSS.
             </p>
           </div>
         </div>

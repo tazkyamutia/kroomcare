@@ -1,0 +1,263 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "nama": "John Customer",
+      "email": "customer@kroombox.com",
+      "password": "password123",
+      "role": "member",
+      "koin_reward": 850,
+      "foto": "",
+      "status_kerja": "online",
+      "two_factor": 0,
+      "two_factor_secret": null,
+      "reset_otp": null,
+      "reset_otp_expires": null
+    },
+    {
+      "id": 2,
+      "nama": "Sarah Staff",
+      "email": "staff@kroombox.com",
+      "password": "password123",
+      "role": "staff",
+      "koin_reward": 0,
+      "foto": "",
+      "status_kerja": "online",
+      "two_factor": 0,
+      "two_factor_secret": null,
+      "reset_otp": null,
+      "reset_otp_expires": null
+    },
+    {
+      "id": 3,
+      "nama": "Alex Admin",
+      "email": "admin@kroombox.com",
+      "password": "password123",
+      "role": "admin",
+      "koin_reward": 0,
+      "foto": "",
+      "status_kerja": "online",
+      "two_factor": 0,
+      "two_factor_secret": null,
+      "reset_otp": null,
+      "reset_otp_expires": null
+    },
+    {
+      "id": 4,
+      "nama": "Budi Santoso",
+      "email": "budi@gmail.com",
+      "password": "password123",
+      "role": "member",
+      "koin_reward": 300,
+      "foto": "",
+      "status_kerja": "online",
+      "two_factor": 0,
+      "two_factor_secret": null,
+      "reset_otp": null,
+      "reset_otp_expires": null
+    },
+    {
+      "id": 5,
+      "nama": "Siti Aminah",
+      "email": "siti@outlook.com",
+      "password": "password123",
+      "role": "member",
+      "koin_reward": 150,
+      "foto": "",
+      "status_kerja": "online",
+      "two_factor": 0,
+      "two_factor_secret": null,
+      "reset_otp": null,
+      "reset_otp_expires": null
+    },
+    {
+      "id": 6,
+      "nama": "Andi Wijaya",
+      "email": "andi@yahoo.com",
+      "password": "password123",
+      "role": "member",
+      "koin_reward": 50,
+      "foto": "",
+      "status_kerja": "online",
+      "two_factor": 0,
+      "two_factor_secret": null,
+      "reset_otp": null,
+      "reset_otp_expires": null
+    },
+    {
+      "id": 7,
+      "nama": "alya fajri",
+      "email": "fajrialyaya78@gmail.com",
+      "password": "Alya234#",
+      "role": "member",
+      "koin_reward": 0,
+      "foto": "",
+      "status_kerja": "online",
+      "two_factor": 0,
+      "two_factor_secret": null,
+      "reset_otp": null,
+      "reset_otp_expires": null
+    },
+    {
+      "id": 8,
+      "nama": "Test User",
+      "email": "test@test.com",
+      "password": "password123",
+      "role": "member",
+      "koin_reward": 0,
+      "foto": "",
+      "status_kerja": "online",
+      "two_factor": 0,
+      "two_factor_secret": null,
+      "reset_otp": null,
+      "reset_otp_expires": null
+    }
+  ],
+  "tickets": [
+    {
+      "id": 1001,
+      "user_id": 1,
+      "staff_id": 2,
+      "judul": "Hosting Error 500 on Main Domain",
+      "deskripsi": "My website is showing a 500 internal server error since this morning.",
+      "status": "diproses",
+      "is_priority": 1,
+      "created_at": "2026-04-01T10:00:00.000Z"
+    },
+    {
+      "id": 1003,
+      "user_id": 1,
+      "staff_id": null,
+      "judul": "SSL Certificate Not Renewing",
+      "deskripsi": "Auto-renewal for my SSL certificate failed.",
+      "status": "menunggu",
+      "is_priority": 0,
+      "created_at": "2026-04-05T09:15:00.000Z"
+    },
+    {
+      "id": 1005,
+      "user_id": 5,
+      "staff_id": 2,
+      "judul": "Refund Kebijakan Pembatalan Layanan",
+      "deskripsi": "Apakah saya bisa mendapatkan refund jika baru berlangganan 1 hari?",
+      "status": "selesai",
+      "is_priority": 0,
+      "created_at": "2026-03-25T11:00:00.000Z"
+    },
+    {
+      "id": 1006,
+      "user_id": 7,
+      "staff_id": null,
+      "judul": "Website Error 505",
+      "deskripsi": "Saya sudah melakukan pembayaran tapi tidak mendpatkan layanannya",
+      "status": "menunggu",
+      "is_priority": 0,
+      "created_at": "2026-05-21T03:37:43.604Z"
+    }
+  ],
+  "ticket_replies": [
+    {
+      "id": 1,
+      "ticket_id": 1001,
+      "user_id": 1,
+      "konten": "Website saya error 500, tolong bantu.",
+      "created_at": "2026-04-01T10:00:00.000Z"
+    },
+    {
+      "id": 2,
+      "ticket_id": 1001,
+      "user_id": 2,
+      "konten": "Halo John, kami sedang mengecek log server Anda. Mohon tunggu sebentar.",
+      "created_at": "2026-04-01T10:15:00.000Z"
+    }
+  ],
+  "forums": [
+    {
+      "id": 2001,
+      "user_id": 1,
+      "judul": "Cara Optimasi Speed WordPress",
+      "konten": "Ada yang tahu plugin terbaik buat optimasi speed WordPress?",
+      "created_at": "2026-03-28T14:30:00.000Z"
+    },
+    {
+      "id": 2004,
+      "user_id": 4,
+      "judul": "Diskusi: Framework PHP terbaik 2026",
+      "konten": "Menurut kalian mending Laravel atau Symfony buat project gede?",
+      "created_at": "2026-03-20T08:00:00.000Z"
+    },
+    {
+      "id": 2006,
+      "user_id": 6,
+      "judul": "Rekomendasi Hosting Murah untuk Landing Page",
+      "konten": "Lagi nyari hosting yang pas buat promo jualan, ada saran?",
+      "created_at": "2026-03-27T15:00:00.000Z"
+    }
+  ],
+  "forum_replies": [
+    {
+      "id": 1,
+      "forum_id": 2001,
+      "user_id": 4,
+      "konten": "Pake WP Rocket sama Cloudflare bro, mantap tuh.",
+      "created_at": "2026-03-29T09:00:00.000Z"
+    },
+    {
+      "id": 2,
+      "forum_id": 2001,
+      "user_id": 6,
+      "konten": "Setuju sama Budi, tambahin LiteSpeed Cache kalo servernya support.",
+      "created_at": "2026-03-29T10:30:00.000Z"
+    }
+  ],
+  "point_histories": [
+    {
+      "id": 1,
+      "user_id": 1,
+      "jenis_transaksi": "masuk",
+      "jumlah_poin": 50,
+      "keterangan": "Lapor Bug UI (Visual Glitch)",
+      "created_at": "2026-04-28T12:00:00.000Z"
+    },
+    {
+      "id": 2,
+      "user_id": 1,
+      "jenis_transaksi": "masuk",
+      "jumlah_poin": 10,
+      "keterangan": "Feedback Forum (Saran Fitur)",
+      "created_at": "2026-04-25T12:00:00.000Z"
+    },
+    {
+      "id": 3,
+      "user_id": 1,
+      "jenis_transaksi": "masuk",
+      "jumlah_poin": 500,
+      "keterangan": "Monthly Subscription Bonus",
+      "created_at": "2026-04-01T12:00:00.000Z"
+    },
+    {
+      "id": 4,
+      "user_id": 1,
+      "jenis_transaksi": "keluar",
+      "jumlah_poin": 200,
+      "keterangan": "Redeemed 10% Discount Voucher",
+      "created_at": "2026-03-15T12:00:00.000Z"
+    },
+    {
+      "id": 5,
+      "user_id": 4,
+      "jenis_transaksi": "masuk",
+      "jumlah_poin": 100,
+      "keterangan": "Daily Check-in",
+      "created_at": "2026-05-01T12:00:00.000Z"
+    },
+    {
+      "id": 6,
+      "user_id": 4,
+      "jenis_transaksi": "keluar",
+      "jumlah_poin": 50,
+      "keterangan": "Avatar Customize",
+      "created_at": "2026-05-02T12:00:00.000Z"
+    }
+  ]
+}

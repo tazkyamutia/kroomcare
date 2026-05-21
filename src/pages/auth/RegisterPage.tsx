@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { UserPlus, User, Mail, Lock, ArrowRight, Loader2, CheckCircle2, ArrowLeft, Twitter, Instagram, Github } from 'lucide-react';
+import { UserPlus, User, Mail, Lock, ArrowRight, Loader2, CheckCircle2, ArrowLeft, Twitter, Instagram, Github, Eye, EyeOff } from 'lucide-react';
 import { motion } from 'motion/react';
 
 export const RegisterPage = () => {
@@ -10,46 +10,76 @@ export const RegisterPage = () => {
     password: '',
     confirmPassword: ''
   });
+  const [showPassword, setShowPassword] = React.useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
   const [isSuccess, setIsSuccess] = React.useState(false);
+  const [error, setError] = React.useState('');
   const navigate = useNavigate();
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (formData.password !== formData.confirmPassword) {
+      setError('Password dan konfirmasi password tidak cocok.');
+      return;
+    }
+    
     setIsLoading(true);
+    setError('');
 
-    // Simulasi pendaftaran
-    setTimeout(() => {
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          password: formData.password
+        }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        setIsSuccess(true);
+        setTimeout(() => {
+          navigate('/login');
+        }, 2000);
+      } else {
+        setError(result.message || 'Registrasi gagal. Silakan coba lagi.');
+      }
+    } catch (err: any) {
+      console.error('Register error:', err);
+      setError('Gagal terhubung ke server backend. Pastikan server backend Anda berjalan.');
+    } finally {
       setIsLoading(false);
-      setIsSuccess(true);
-      setTimeout(() => {
-        navigate('/login');
-      }, 2000);
-    }, 1500);
+    }
   };
 
   if (isSuccess) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
+      <div className="min-h-screen bg-white dark:bg-slate-950 flex items-center justify-center p-6 transition-colors duration-300">
         <motion.div 
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          className="max-w-md w-full glass-card p-12 rounded-3xl text-center shadow-2xl"
+          className="max-w-md w-full bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-12 rounded-3xl text-center shadow-2xl transition-all duration-300"
         >
-          <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6">
+          <div className="w-20 h-20 bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center mx-auto mb-6">
             <CheckCircle2 size={48} />
           </div>
-          <h2 className="text-2xl font-bold text-slate-900 mb-2">Pendaftaran Berhasil!</h2>
-          <p className="text-slate-500">Akun Anda telah dibuat. Mengalihkan ke halaman login...</p>
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Registration Successful!</h2>
+          <p className="text-slate-500 dark:text-slate-400">Your account has been created. Redirecting to login page...</p>
         </motion.div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans flex flex-col selection:bg-blue-100 selection:text-blue-900">
+    <div className="min-h-screen bg-white dark:bg-slate-950 font-sans flex flex-col selection:bg-blue-100 selection:text-blue-900 transition-colors duration-300">
       {/* Navigation */}
-      <nav className="fixed top-0 inset-x-0 bg-white/80 backdrop-blur-md z-50 border-b border-slate-200">
+      <nav className="fixed top-0 inset-x-0 bg-white/70 dark:bg-slate-950/70 backdrop-blur-md z-50 border-b border-slate-200/50 dark:border-slate-900/50 transition-colors duration-300">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2 group">
             <img 
@@ -57,18 +87,18 @@ export const RegisterPage = () => {
               alt="Logo KroomCare" 
               className="h-10 w-auto group-hover:scale-105 transition-transform" 
             />
-            <span className="text-xl font-display font-bold text-slate-900">KroomCare</span>
+            <span className="text-xl font-display font-bold text-slate-900 dark:text-white">KroomCare</span>
           </Link>
           <div className="flex items-center gap-4">
             <Link 
               to="/login"
-              className="text-sm font-semibold text-slate-600 hover:text-blue-600 transition-colors"
+              className="text-sm font-semibold text-slate-650 dark:text-blue-450 hover:text-blue-600 transition-colors"
             >
               Log In
             </Link>
             <Link 
               to="/register"
-              className="px-5 py-2 bg-slate-900 text-white rounded-full text-sm font-bold hover:bg-blue-800 transition-all shadow-md active:scale-95"
+              className="px-5 py-2 bg-slate-900 dark:bg-blue-600 text-white rounded-full text-sm font-bold hover:bg-blue-800 dark:hover:bg-blue-700 transition-all shadow-md active:scale-95"
             >
               Get Started
             </Link>
@@ -84,26 +114,29 @@ export const RegisterPage = () => {
         >
           <Link 
             to="/" 
-            className="absolute -top-12 left-0 flex items-center gap-2 text-slate-500 hover:text-blue-600 transition-colors font-semibold group"
+            className="absolute -top-12 left-0 flex items-center gap-2 text-slate-500 hover:text-blue-650 transition-colors font-semibold group"
           >
             <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
-            Kembali ke Beranda
+            Back to Home
           </Link>
 
-          <div className="glass-card p-8 rounded-3xl shadow-2xl">
-            <Link to="/" className="flex flex-col items-center gap-4 mb-10 group hover:opacity-80 transition-all">
+          <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-8 rounded-3xl shadow-2xl transition-all duration-300">
+            <Link to="/" className="flex flex-col items-center gap-4 mb-10 group hover:opacity-85 transition-all">
               <img 
                 src="https://i.ibb.co.com/fGPRy8Jt/Gemini-Generated-Image-yss7sryss7sryss7-removebg-preview.png" 
                 alt="Logo KroomCare" 
                 className="h-32 w-auto object-contain group-hover:scale-105 transition-transform" 
               />
-              <h1 className="text-4xl font-display font-bold text-blue-900">KroomCare</h1>
-              <p className="text-sm text-slate-500 mt-1">Bergabung dengan ekosistem KroomCare</p>
+              <h1 className="text-4xl font-display font-bold text-blue-900 dark:text-white">KroomCare</h1>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Join the KroomCare ecosystem</p>
             </Link>
 
             <form onSubmit={handleRegister} className="space-y-4">
+              {error && (
+                <p className="text-xs text-red-500 font-medium text-center bg-red-50 dark:bg-red-950/30 py-2 rounded-lg border border-red-100 dark:border-red-900/30">{error}</p>
+              )}
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider ml-1">Nama Lengkap</label>
+                <label className="text-[10px] font-bold text-slate-700 dark:text-slate-350 uppercase tracking-wider ml-1">Full Name</label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                   <input 
@@ -112,13 +145,14 @@ export const RegisterPage = () => {
                     value={formData.name}
                     onChange={(e) => setFormData({...formData, name: e.target.value})}
                     placeholder="John Doe"
-                    className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-all"
+                    autoComplete="name"
+                    className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all text-sm text-slate-800 dark:text-white"
                   />
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider ml-1">Email Address</label>
+                <label className="text-[10px] font-bold text-slate-700 dark:text-slate-350 uppercase tracking-wider ml-1">Email Address</label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                   <input 
@@ -126,63 +160,80 @@ export const RegisterPage = () => {
                     required
                     value={formData.email}
                     onChange={(e) => setFormData({...formData, email: e.target.value})}
-                    placeholder="name@example.com"
-                    className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-all"
+                    placeholder="johndoe@example.com"
+                    autoComplete="email"
+                    className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all text-sm text-slate-800 dark:text-white"
                   />
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider ml-1">Password</label>
+                <label className="text-[10px] font-bold text-slate-700 dark:text-slate-350 uppercase tracking-wider ml-1">Password</label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                   <input 
-                    type="password" 
+                    type={showPassword ? "text" : "password"} 
                     required
                     value={formData.password}
                     onChange={(e) => setFormData({...formData, password: e.target.value})}
                     placeholder="••••••••"
-                    className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-all"
+                    autoComplete="new-password"
+                    className="w-full pl-10 pr-12 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all text-sm text-slate-800 dark:text-white"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors p-1"
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider ml-1">Konfirmasi Password</label>
+                <label className="text-[10px] font-bold text-slate-700 dark:text-slate-350 uppercase tracking-wider ml-1">Confirm Password</label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                   <input 
-                    type="password" 
+                    type={showConfirmPassword ? "text" : "password"} 
                     required
                     value={formData.confirmPassword}
                     onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
                     placeholder="••••••••"
-                    className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-all"
+                    autoComplete="new-password"
+                    className="w-full pl-10 pr-12 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all text-sm text-slate-800 dark:text-white"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors p-1"
+                  >
+                    {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
                 </div>
               </div>
 
               <button 
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-4 bg-brand-600 text-white rounded-xl font-bold hover:bg-brand-700 transition-all flex items-center justify-center gap-2 group shadow-lg shadow-brand-500/20 mt-4"
+                className="w-full py-4 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all flex items-center justify-center gap-2 group shadow-lg shadow-blue-500/20 mt-4"
               >
                 {isLoading ? (
                   <Loader2 size={20} className="animate-spin" />
                 ) : (
                   <>
-                    Daftar Sekarang
+                    Register Now
                     <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
                   </>
                 )}
               </button>
             </form>
 
-            <div className="mt-8 pt-6 border-t border-slate-100 text-center">
-              <p className="text-sm text-slate-500">
-                Sudah punya akun?{' '}
-                <Link to="/login" className="text-brand-600 font-bold hover:underline">
-                  Masuk di sini
+            <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800 text-center">
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                Already have an account?{' '}
+                <Link to="/login" className="text-blue-650 dark:text-blue-400 font-bold hover:underline">
+                  Log in here
                 </Link>
               </p>
             </div>
@@ -191,7 +242,7 @@ export const RegisterPage = () => {
       </div>
 
       {/* Footer */}
-      <footer className="bg-white border-t border-slate-200 py-16 px-4">
+      <footer className="bg-white dark:bg-slate-950 border-t border-slate-200/50 dark:border-slate-900/50 py-16 px-4 transition-colors duration-300">
         <div className="max-w-7xl mx-auto space-y-12">
           <div className="flex flex-col md:flex-row items-center justify-between gap-8">
             <div className="flex items-center gap-3">
@@ -200,23 +251,23 @@ export const RegisterPage = () => {
                 alt="Logo Foot" 
                 className="h-10 w-auto" 
               />
-              <span className="text-2xl font-display font-bold text-slate-900">KroomCare</span>
+              <span className="text-2xl font-display font-bold text-slate-900 dark:text-white">KroomCare</span>
             </div>
 
             <div className="flex items-center gap-6">
-              <a href="mailto:support@kroomcare.com" className="text-slate-400 hover:text-blue-600 transition-colors"><Mail size={24} /></a>
-              <a href="#" className="text-slate-400 hover:text-blue-600 transition-colors"><Twitter size={24} /></a>
-              <a href="#" className="text-slate-400 hover:text-blue-600 transition-colors"><Instagram size={24} /></a>
-              <a href="#" className="text-slate-400 hover:text-blue-600 transition-colors"><Github size={24} /></a>
+              <a href="mailto:support@kroomcare.com" className="text-slate-450 hover:text-blue-650 transition-colors"><Mail size={24} /></a>
+              <a href="#" className="text-slate-450 hover:text-blue-650 transition-colors"><Twitter size={24} /></a>
+              <a href="#" className="text-slate-450 hover:text-blue-650 transition-colors"><Instagram size={24} /></a>
+              <a href="#" className="text-slate-450 hover:text-blue-650 transition-colors"><Github size={24} /></a>
             </div>
           </div>
 
-          <div className="pt-8 border-t border-slate-100 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="pt-8 border-t border-slate-100 dark:border-slate-900 flex flex-col md:flex-row items-center justify-between gap-4">
             <p className="text-sm text-slate-500">
               Transforming customer support with AI efficiency.
             </p>
             <p className="text-xs text-slate-400 font-medium">
-              Hak Cipta &copy; 2026 KroomCare. Dibangun dengan integrasi React &amp; Tailwind CSS.
+              Copyright &copy; 2026 KroomCare. Built with React &amp; Tailwind CSS.
             </p>
           </div>
         </div>

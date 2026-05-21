@@ -121,7 +121,7 @@ export const RewardsPage = () => {
                 </div>
               ) : transactions.length > 0 ? (
                 transactions.map((tx) => (
-                  <div key={tx.id} className="flex items-center justify-between p-3 rounded-2xl hover:bg-slate-50 transition-colors">
+                  <div key={tx.id} className="flex items-center justify-between p-3 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors">
                     <div className="flex items-center gap-3">
                       <div className={cn(
                         "w-10 h-10 rounded-xl flex items-center justify-center",
@@ -194,8 +194,8 @@ export const RewardsPage = () => {
                 </div>
 
                 {/* Decorative cutouts */}
-                <div className="absolute top-1/2 -left-3 w-6 h-6 bg-slate-50 rounded-full -translate-y-1/2" />
-                <div className="absolute top-1/2 -right-3 w-6 h-6 bg-slate-50 rounded-full -translate-y-1/2" />
+                <div className="absolute top-1/2 -left-3 w-6 h-6 bg-white dark:bg-[#0b0f19] rounded-full -translate-y-1/2" />
+                <div className="absolute top-1/2 -right-3 w-6 h-6 bg-white dark:bg-[#0b0f19] rounded-full -translate-y-1/2" />
               </motion.div>
             ))}
           </div>

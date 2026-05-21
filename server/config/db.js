@@ -11,13 +11,13 @@ const pool = mysql.createPool({
   queueLimit: 0
 });
 
-// Verifikasi koneksi awal
+// Initial verification logic
 pool.getConnection()
-  .then(connection => {
-    console.log('Database Connected Successfully!');
+  .then((connection) => {
+    console.log('Database Connected Successfully to MySQL!');
     connection.release();
   })
-  .catch(err => {
+  .catch((err) => {
     console.error('Database connection failed:', err.message);
   });
 

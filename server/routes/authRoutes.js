@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { 
   login, 
+  register,
   getProfile, 
   updateProfile, 
   changePassword,
@@ -13,8 +14,9 @@ const {
   resetPassword
 } = require('../controllers/authController');
 
-// Route untuk login
+// Route untuk login & register
 router.post('/login', login);
+router.post('/register', register);
 router.post('/login/2fa', login2FA);
 router.post('/forgot-password', forgotPassword);
 router.post('/reset-password', resetPassword);

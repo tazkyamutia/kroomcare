@@ -41,8 +41,8 @@ export const Header: React.FC = () => {
           ticketsData.data.forEach((ticket: any) => {
             list.push({
               id: `t-create-${ticket.id}`,
-              title: 'Tiket Keluhan Dibuat',
-              description: `Tiket #${ticket.id} "${ticket.judul}" telah didaftarkan.`,
+              title: 'Complaint Ticket Created',
+              description: `Ticket #${ticket.id} "${ticket.judul}" has been registered.`,
               time: ticket.created_at,
               type: 'ticket',
               link: '/tickets'
@@ -51,8 +51,8 @@ export const Header: React.FC = () => {
             if (ticket.status === 'selesai') {
               list.push({
                 id: `t-solve-${ticket.id}`,
-                title: 'Tiket Selesai Diproses',
-                description: `Tiket #${ticket.id} "${ticket.judul}" telah diselesaikan.`,
+                title: 'Ticket Resolved',
+                description: `Ticket #${ticket.id} "${ticket.judul}" has been resolved.`,
                 time: ticket.updated_at || ticket.created_at,
                 type: 'ticket',
                 link: '/tickets'
@@ -66,8 +66,8 @@ export const Header: React.FC = () => {
             if (tx.jenis_transaksi === 'masuk') {
               list.push({
                 id: `p-in-${tx.id}`,
-                title: 'Reward Koin Masuk',
-                description: `Menerima +${tx.jumlah_poin} Poin: ${tx.keterangan}`,
+                title: 'Coin Reward Received',
+                description: `Received +${tx.jumlah_poin} Points: ${tx.keterangan}`,
                 time: tx.created_at,
                 type: 'point_in',
                 link: '/points-history'
@@ -75,8 +75,8 @@ export const Header: React.FC = () => {
             } else {
               list.push({
                 id: `p-out-${tx.id}`,
-                title: 'Penukaran Voucher',
-                description: `Menggunakan -${tx.jumlah_poin} Poin untuk voucher: ${tx.keterangan.replace('Penukaran voucher: ', '')}`,
+                title: 'Voucher Redeemed',
+                description: `Used -${tx.jumlah_poin} Points for voucher: ${tx.keterangan.replace('Penukaran voucher: ', '')}`,
                 time: tx.created_at,
                 type: 'point_out',
                 link: '/rewards'
@@ -92,8 +92,8 @@ export const Header: React.FC = () => {
             if (ticket.status === 'menunggu') {
               list.push({
                 id: `staff-new-${ticket.id}`,
-                title: 'Tiket Baru Masuk',
-                description: `Tiket #${ticket.id} "${ticket.judul}" menunggu respon Anda.`,
+                title: 'New Ticket Received',
+                description: `Ticket #${ticket.id} "${ticket.judul}" is awaiting your response.`,
                 time: ticket.created_at,
                 type: 'ticket',
                 link: '/staff'
@@ -147,7 +147,7 @@ export const Header: React.FC = () => {
             </div>
             <div className="flex flex-col">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider leading-none">Loyalty</span>
-              <span className="text-sm font-bold text-slate-900 leading-none mt-1">🪙 {points.toLocaleString()} <span className="text-slate-500 font-medium">Poin</span></span>
+              <span className="text-sm font-bold text-slate-900 leading-none mt-1">🪙 {points.toLocaleString()} <span className="text-slate-500 font-medium">Points</span></span>
             </div>
           </motion.div>
         )}
@@ -181,9 +181,9 @@ export const Header: React.FC = () => {
                   className="absolute right-0 mt-3 w-80 sm:w-96 bg-white rounded-[2rem] border border-slate-200 shadow-2xl p-4 z-50 overflow-hidden"
                 >
                   <div className="flex items-center justify-between px-3 py-2 border-b border-slate-100 mb-2">
-                    <h3 className="font-bold text-slate-900 text-sm">Notifikasi</h3>
+                    <h3 className="font-bold text-slate-900 text-sm">Notifications</h3>
                     <span className="text-[10px] font-black uppercase bg-brand-50 text-brand-600 px-2 py-1 rounded-lg">
-                      {notifications.length} Info Baru
+                      {notifications.length} New Info
                     </span>
                   </div>
                   <div className="max-h-[300px] overflow-y-auto space-y-1">
@@ -209,13 +209,13 @@ export const Header: React.FC = () => {
                             <p className="text-xs font-bold text-slate-900 leading-tight">{notif.title}</p>
                             <p className="text-[11px] text-slate-500 mt-1 leading-snug break-all">{notif.description}</p>
                             <p className="text-[9px] text-slate-400 mt-1 font-medium">
-                              {new Date(notif.time).toLocaleDateString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' - ' + new Date(notif.time).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
+                              {new Date(notif.time).toLocaleDateString('en-US', { hour: '2-digit', minute: '2-digit' }) + ' - ' + new Date(notif.time).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}
                             </p>
                           </div>
                         </div>
                       ))
                     ) : (
-                      <p className="text-xs text-slate-400 text-center py-8">Tidak ada notifikasi baru.</p>
+                      <p className="text-xs text-slate-400 text-center py-8">No new notifications.</p>
                     )}
                   </div>
                 </motion.div>
@@ -277,13 +277,13 @@ export const Header: React.FC = () => {
                       <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center group-hover:bg-brand-100 group-hover:text-brand-600 transition-colors">
                         <User size={16} />
                       </div>
-                      Edit Profil
+                      Edit Profile
                     </button>
                     <button className="w-full flex items-center gap-3 p-3 text-slate-600 hover:bg-slate-50 hover:text-brand-600 rounded-xl transition-all text-sm font-bold group">
                       <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center group-hover:bg-brand-100 group-hover:text-brand-600 transition-colors">
                         <Settings size={16} />
                       </div>
-                      Akun Settings
+                      Account Settings
                     </button>
                     <div className="h-px bg-slate-100 my-2" />
                     <button 
@@ -291,7 +291,7 @@ export const Header: React.FC = () => {
                       className="w-full flex items-center gap-3 p-3 text-red-600 hover:bg-red-50 rounded-xl transition-all text-sm font-black uppercase tracking-widest"
                     >
                       <LogOut size={16} />
-                      Keluar
+                      Log Out
                     </button>
                   </div>
                 </motion.div>

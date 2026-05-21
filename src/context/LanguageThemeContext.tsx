@@ -132,15 +132,15 @@ const LanguageThemeContext = createContext<LanguageThemeContextType | undefined>
 
 export const LanguageThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [language, setLanguageState] = useState<Language>(() => {
-    return (localStorage.getItem('kroomcare_lang') as Language) || 'id';
+    return 'en';
   });
   const [theme, setThemeState] = useState<Theme>(() => {
     return (localStorage.getItem('kroomcare_theme') as Theme) || 'light';
   });
 
   const setLanguage = (lang: Language) => {
-    setLanguageState(lang);
-    localStorage.setItem('kroomcare_lang', lang);
+    setLanguageState('en');
+    localStorage.setItem('kroomcare_lang', 'en');
   };
 
   const setTheme = (newTheme: Theme) => {

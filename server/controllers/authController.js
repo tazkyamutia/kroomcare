@@ -511,9 +511,50 @@ const resetPassword = async (req, res) => {
     res.status(500).json({ success: false, message: 'Gagal memperbarui password.', error: error.message });
   }
 };
+// Register User
+const register = async (req, res) => {
+  try {
+    const { name, email, password } = req.body;
+
+    if (!name || !email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Nama, email, dan password wajib diisi.'
+      });
+    }
+
+    // Periksa apakah email sudah terdaftar
+    const checkQuery = 'SELECT * FROM users WHERE email = ?';
+    const [existingUsers] = await db.query(checkQuery, [email]);
+
+    if (existingUsers.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email sudah terdaftar.'
+      });
+    }
+
+    // Insert user baru dengan default role 'member' dan koin_reward 0
+    const insertQuery = 'INSERT INTO users (nama, email, password, role, koin_reward) VALUES (?, ?, ?, ?, ?)';
+    await db.query(insertQuery, [name, email, password, 'member', 0]);
+
+    res.status(201).json({
+      success: true,
+      message: 'Registrasi berhasil. Silakan login.'
+    });
+  } catch (error) {
+    console.error('Error in register:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Terjadi kesalahan server saat registrasi.',
+      error: error.message
+    });
+  }
+};
 
 module.exports = {
   login,
+  register,
   getProfile,
   updateProfile,
   changePassword,

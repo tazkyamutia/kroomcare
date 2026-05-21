@@ -61,14 +61,14 @@ export const Sidebar: React.FC = () => {
       {/* Mobile Toggle */}
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-white rounded-lg shadow-md"
+        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-white dark:bg-slate-900 border border-slate-200/55 dark:border-slate-800 rounded-lg shadow-md text-slate-700 dark:text-white"
       >
         {isOpen ? <X size={24} /> : <Menu size={24} />}
       </button>
 
       {/* Sidebar */}
       <aside className={cn(
-        "fixed inset-y-0 left-0 z-40 w-64 bg-white border-r border-slate-200 transform transition-transform duration-300 ease-in-out lg:translate-x-0",
+        "fixed inset-y-0 left-0 z-40 w-64 bg-white dark:bg-slate-900 border-r border-slate-200/50 dark:border-slate-800/80 transform transition-transform duration-300 ease-in-out lg:translate-x-0",
         isOpen ? "translate-x-0" : "-translate-x-full"
       )}>
         <div className="flex flex-col h-full">
@@ -76,10 +76,10 @@ export const Sidebar: React.FC = () => {
             <div className="flex flex-col items-center gap-3 text-center">
               <img 
                 src="https://i.ibb.co.com/fGPRy8Jt/Gemini-Generated-Image-yss7sryss7sryss7-removebg-preview.png" 
-                alt="Logo KroomCare" 
+                alt="KroomCare Logo" 
                 className="h-20 w-auto object-contain" 
               />
-              <span className="text-2xl font-display font-bold tracking-tight text-slate-900">KroomCare</span>
+              <span className="text-2xl font-display font-bold tracking-tight text-slate-900 dark:text-white">KroomCare</span>
             </div>
           </div>
 
@@ -92,21 +92,21 @@ export const Sidebar: React.FC = () => {
                 className={({ isActive }) => cn(
                   "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group",
                   isActive 
-                    ? "bg-brand-50 text-brand-600 font-medium" 
-                    : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+                    ? "bg-brand-50 dark:bg-blue-950/40 text-brand-600 dark:text-blue-400 font-medium" 
+                    : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-950/60 hover:text-slate-900 dark:hover:text-white"
                 )}
               >
                 <item.icon size={20} className={cn(
                   "transition-colors",
-                  "group-hover:text-brand-500"
+                  "group-hover:text-brand-500 dark:group-hover:text-blue-400"
                 )} />
                 {item.name}
               </NavLink>
             ))}
           </nav>
 
-          <div className="p-4 border-t border-slate-100">
-            <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50">
+          <div className="p-4 border-t border-slate-100 dark:border-slate-800">
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-100/50 dark:border-slate-900">
               <div className={cn(
                 "w-10 h-10 rounded-full flex items-center justify-center font-medium overflow-hidden",
                 role === 'admin' ? "bg-slate-900 text-white" : "bg-brand-100 text-brand-700"
@@ -118,8 +118,8 @@ export const Sidebar: React.FC = () => {
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-slate-900 truncate">{userName}</p>
-                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{role}</p>
+                <p className="text-sm font-medium text-slate-900 dark:text-white truncate">{userName}</p>
+                <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{role}</p>
               </div>
               <button 
                 onClick={onLogout}

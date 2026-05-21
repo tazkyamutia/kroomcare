@@ -39,53 +39,9 @@ export const SettingsPage: React.FC = () => {
 
       <hr className="border-slate-100 dark:border-slate-800" />
 
-      {/* Main Settings Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      {/* Main Settings Card */}
+      <div className="max-w-md mx-auto">
         
-        {/* Language Selection Card */}
-        <section className="bg-white rounded-3xl p-8 border border-slate-100 shadow-sm space-y-6 transition-all hover:shadow-md dark:bg-slate-900 dark:border-slate-850">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/30 rounded-2xl flex items-center justify-center text-blue-600 dark:text-blue-400">
-              <Languages size={24} />
-            </div>
-            <div>
-              <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-                {t('settings.language_section')}
-              </h2>
-              <p className="text-[11px] text-slate-400 dark:text-slate-500 leading-relaxed mt-0.5">
-                {t('settings.language_desc')}
-              </p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3 pt-2">
-            <button
-              onClick={() => handleLanguageChange('id')}
-              className={cn(
-                "p-4 rounded-2xl border-2 flex flex-col items-center justify-center gap-2 transition-all font-bold text-sm",
-                language === 'id'
-                  ? "border-blue-600 bg-blue-50/50 text-blue-700 dark:border-blue-500 dark:bg-blue-950/20 dark:text-blue-400"
-                  : "border-slate-100 bg-slate-50 text-slate-600 hover:bg-slate-100 hover:border-slate-200 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-400 dark:hover:bg-slate-900"
-              )}
-            >
-              <span className="text-2xl">🇮🇩</span>
-              <span>Bahasa Indonesia</span>
-            </button>
-            <button
-              onClick={() => handleLanguageChange('en')}
-              className={cn(
-                "p-4 rounded-2xl border-2 flex flex-col items-center justify-center gap-2 transition-all font-bold text-sm",
-                language === 'en'
-                  ? "border-blue-600 bg-blue-50/50 text-blue-700 dark:border-blue-500 dark:bg-blue-950/20 dark:text-blue-400"
-                  : "border-slate-100 bg-slate-50 text-slate-600 hover:bg-slate-100 hover:border-slate-200 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-400 dark:hover:bg-slate-900"
-              )}
-            >
-              <span className="text-2xl">🇬🇧</span>
-              <span>English</span>
-            </button>
-          </div>
-        </section>
-
         {/* Theme Mode Card */}
         <section className="bg-white rounded-3xl p-8 border border-slate-100 shadow-sm space-y-6 transition-all hover:shadow-md dark:bg-slate-900 dark:border-slate-850">
           <div className="flex items-center gap-4">
