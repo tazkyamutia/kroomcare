@@ -21,6 +21,7 @@ export const ForumThreadPage: React.FC<ForumThreadProps> = ({ userRole }) => {
   const [messages, setMessages] = React.useState<any[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [isGivingReward, setIsGivingReward] = React.useState(false);
+  const [rewardPoints, setRewardPoints] = React.useState<number>(50);
 
   const isTicketPath = window.location.pathname.includes('/tickets') || window.location.pathname.includes('/staff/tickets');
 
@@ -89,11 +90,20 @@ export const ForumThreadPage: React.FC<ForumThreadProps> = ({ userRole }) => {
       const res = await fetch(`http://localhost:5000/api/tickets/${id}/status`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus })
+        body: JSON.stringify({ 
+          status: newStatus,
+          staff_id: userRole === 'staff' ? user?.id : undefined
+        })
       });
       const result = await res.json();
       if (res.ok && result.success) {
         setTicket((prev: any) => prev ? { ...prev, status: newStatus } : null);
+        if (newStatus === 'Resolved' && userRole === 'staff') {
+          // Beri feedback singkat sebelum redirect
+          setTimeout(() => {
+            navigate('/');
+          }, 1000);
+        }
       } else {
         alert(result.message || 'Gagal mengubah status.');
       }
@@ -108,12 +118,14 @@ export const ForumThreadPage: React.FC<ForumThreadProps> = ({ userRole }) => {
     setIsGivingReward(true);
     try {
       const res = await fetch(`http://localhost:5000/api/tickets/${id}/reward`, {
-        method: 'POST'
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ points: rewardPoints })
       });
       const result = await res.json();
       if (res.ok && result.success) {
         setTicket((prev: any) => prev ? { ...prev, rewardGiven: true } : null);
-        alert(`+50 Poin telah diberikan kepada ${ticket.customerName}!`);
+        alert(`+${rewardPoints} Poin telah diberikan kepada ${ticket.customerName}!`);
       } else {
         alert(result.message || 'Gagal memberikan reward.');
       }
@@ -245,14 +257,26 @@ export const ForumThreadPage: React.FC<ForumThreadProps> = ({ userRole }) => {
             </div>
 
             {!ticket.rewardGiven ? (
-              <button 
-                onClick={handleGiveReward}
-                disabled={isGivingReward}
-                className="flex items-center gap-2 px-6 py-3 bg-amber-500 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-amber-600 transition-all shadow-lg shadow-amber-500/20"
-              >
-                <Coins size={16} fill="currentColor" />
-                {isGivingReward ? 'Memberi...' : 'Beri Reward Poin'}
-              </button>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-2xl px-3 py-2 shadow-sm">
+                  <span className="text-[10px] font-black uppercase text-slate-400">Poin:</span>
+                  <input 
+                    type="number"
+                    value={rewardPoints}
+                    onChange={(e) => setRewardPoints(Math.max(1, parseInt(e.target.value) || 0))}
+                    className="w-12 bg-transparent border-none text-slate-700 text-xs font-bold focus:outline-none focus:ring-0 text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    min="1"
+                  />
+                </div>
+                <button 
+                  onClick={handleGiveReward}
+                  disabled={isGivingReward || rewardPoints <= 0}
+                  className="flex items-center gap-2 px-6 py-3 bg-amber-500 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-amber-600 transition-all shadow-lg shadow-amber-500/20"
+                >
+                  <Coins size={16} fill="currentColor" />
+                  {isGivingReward ? 'Memberi...' : 'Beri Poin'}
+                </button>
+              </div>
             ) : (
               <div className="flex items-center gap-2 px-6 py-3 bg-emerald-50 text-emerald-600 border border-emerald-200 rounded-2xl text-[10px] font-black uppercase tracking-widest">
                 <CheckCircle2 size={16} />

@@ -207,7 +207,7 @@ const setPriority = async (req, res) => {
 const updateStatus = async (req, res) => {
   try {
     const { id } = req.params;
-    const { status } = req.body; // Open, In Progress, Resolved
+    const { status, staff_id } = req.body; // Open, In Progress, Resolved, staff_id optional
 
     if (!status) {
       return res.status(400).json({
@@ -221,8 +221,16 @@ const updateStatus = async (req, res) => {
     if (status === 'In Progress') dbStatus = 'diproses';
     else if (status === 'Resolved' || status === 'Closed') dbStatus = 'selesai';
 
-    const query = 'UPDATE tickets SET status = ? WHERE id = ?';
-    const [result] = await db.query(query, [dbStatus, id]);
+    let query = 'UPDATE tickets SET status = ?';
+    let params = [dbStatus];
+    if (staff_id) {
+      query += ', staff_id = ?';
+      params.push(staff_id);
+    }
+    query += ' WHERE id = ?';
+    params.push(id);
+
+    const [result] = await db.query(query, params);
 
     if (result.affectedRows === 0) {
       return res.status(404).json({
@@ -314,6 +322,11 @@ const addTicketReply = async (req, res) => {
     const [userRows] = await db.query('SELECT nama, role FROM users WHERE id = ?', [user_id]);
     const user = userRows[0] || { nama: 'Unknown', role: 'member' };
 
+    // Jika pengirim adalah staff, secara otomatis assign tiket ke staff ini jika belum di-assign
+    if (user.role === 'staff') {
+      await db.query('UPDATE tickets SET staff_id = ? WHERE id = ? AND (staff_id IS NULL OR staff_id = 0)', [user_id, id]);
+    }
+
     res.status(201).json({
       success: true,
       message: 'Balasan tiket berhasil ditambahkan.',
@@ -341,6 +354,8 @@ const addTicketReply = async (req, res) => {
 const giveReward = async (req, res) => {
   try {
     const { id } = req.params; // ticket ID
+    const { points } = req.body; // read points from request body
+    const pointsAmount = parseInt(points) || 50; // default to 50 if not specified
 
     // Cari tiket untuk mendapatkan customer user_id
     const [ticketRows] = await db.query('SELECT user_id, judul FROM tickets WHERE id = ?', [id]);
@@ -355,18 +370,19 @@ const giveReward = async (req, res) => {
     const customerId = ticket.user_id;
 
     // Tambahkan poin ke user
-    await db.query('UPDATE users SET koin_reward = koin_reward + 50 WHERE id = ?', [customerId]);
+    await db.query('UPDATE users SET koin_reward = koin_reward + ? WHERE id = ?', [pointsAmount, customerId]);
 
     // Catat histori poin
     const desc = `Reward penyelesaian tiket #${id}: ${ticket.judul}`;
     await db.query(
       'INSERT INTO point_histories (user_id, jenis_transaksi, jumlah_poin, keterangan) VALUES (?, ?, ?, ?)',
-      [customerId, 'masuk', 50, desc]
+      [customerId, 'masuk', pointsAmount, desc]
     );
 
     res.status(200).json({
       success: true,
-      message: 'Poin reward berhasil diberikan kepada pelanggan.'
+      message: 'Poin reward berhasil diberikan kepada pelanggan.',
+      data: { points: pointsAmount }
     });
   } catch (error) {
     console.error('Error in giveReward:', error);

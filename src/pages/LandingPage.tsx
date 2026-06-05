@@ -7,15 +7,38 @@ import {
   ShieldCheck, 
   ArrowRight, 
   Mail, 
-  Twitter, 
   Instagram, 
-  Github,
+  Linkedin,
   Zap,
   Sun,
   Moon,
-  ArrowUpRight
+  ArrowUpRight,
+  Phone,
+  MapPin,
+  Send,
+  MessageCircle,
+  BookOpen,
+  HelpCircle,
+  Star,
+  Shield
 } from 'lucide-react';
 import { useLanguageTheme } from '../context/LanguageThemeContext';
+
+const Tiktok = ({ size = 24, ...props }: { size?: number } & React.SVGProps<SVGSVGElement>) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    width={size}
+    height={size}
+    {...props}
+  >
+    <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5" />
+  </svg>
+);
 
 export const LandingPage = () => {
   const navigate = useNavigate();
@@ -57,7 +80,16 @@ export const LandingPage = () => {
 
           <div className="hidden md:flex items-center gap-8 text-sm font-semibold text-slate-600 dark:text-slate-300">
             <a href="#features" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Features</a>
-            <a href="#rewards" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Rewards</a>
+            <a 
+              href="/login?redirect=/rewards"
+              onClick={(e) => {
+                e.preventDefault();
+                navigate('/login?redirect=/rewards');
+              }}
+              className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+            >
+              Rewards
+            </a>
             <a href="#about" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">About Us</a>
           </div>
 
@@ -210,7 +242,7 @@ export const LandingPage = () => {
                 </p>
               </div>
               <button 
-                onClick={() => navigate('/login')}
+                onClick={() => navigate('/login?redirect=/rewards')}
                 className="mt-6 flex items-center gap-1.5 text-blue-600 dark:text-blue-400 font-bold text-xs hover:underline group"
               >
                 <span>Go to Rewards</span>
@@ -268,44 +300,197 @@ export const LandingPage = () => {
       </section>
 
       {/* Footer */}
-      <footer id="about" className="bg-white dark:bg-slate-950 border-t border-slate-200/50 dark:border-slate-900/50 py-16 px-6 transition-colors duration-300">
-        <div className="max-w-7xl mx-auto space-y-12">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-8">
-            <div className="flex items-center gap-2.5">
-              <img 
-                src="https://i.ibb.co.com/fGPRy8Jt/Gemini-Generated-Image-yss7sryss7sryss7-removebg-preview.png" 
-                alt="Logo Footer" 
-                className="h-8 w-auto" 
-              />
-              <span className="text-xl font-display font-extrabold text-slate-900 dark:text-white tracking-tight">KroomCare</span>
-            </div>
+      <footer id="about" className="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white border-t border-slate-200 dark:border-slate-800 transition-colors duration-300">
 
-            <div className="flex items-center gap-6">
-              <a href="mailto:support@kroomcare.com" className="text-slate-450 hover:text-blue-650 transition-colors" aria-label="Mail">
-                <Mail size={20} />
-              </a>
-              <a href="#" className="text-slate-450 hover:text-blue-650 transition-colors" aria-label="Twitter">
-                <Twitter size={20} />
-              </a>
-              <a href="#" className="text-slate-450 hover:text-blue-650 transition-colors" aria-label="Instagram">
-                <Instagram size={20} />
-              </a>
-              <a href="#" className="text-slate-450 hover:text-blue-650 transition-colors" aria-label="GitHub">
-                <Github size={20} />
-              </a>
+        {/* Newsletter Banner */}
+        <div className="border-b border-slate-200 dark:border-slate-800">
+          <div className="max-w-7xl mx-auto px-6 py-14">
+            <div className="relative rounded-3xl overflow-hidden bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 p-10 flex flex-col md:flex-row items-center justify-between gap-8 shadow-2xl">
+              {/* Decorative blobs */}
+              <div className="absolute -top-12 -left-12 w-48 h-48 bg-white/10 rounded-full blur-3xl pointer-events-none" />
+              <div className="absolute -bottom-12 -right-12 w-64 h-64 bg-indigo-400/20 rounded-full blur-3xl pointer-events-none" />
+
+              <div className="relative z-10 flex-1">
+                <div className="inline-flex items-center gap-2 bg-white/20 text-white text-xs font-bold px-3 py-1 rounded-full mb-4">
+                  <Star size={12} className="fill-yellow-300 text-yellow-300" />
+                  Newsletter KroomCare
+                </div>
+                <h3 className="text-2xl md:text-3xl font-display font-bold text-white leading-snug">
+                  Dapatkan tips layanan pelanggan &amp; <br className="hidden md:block" />update fitur terbaru kami
+                </h3>
+                <p className="text-sm text-blue-100 mt-2">Gratis. Tanpa spam. Bisa berhenti kapan saja.</p>
+              </div>
+
+              <div className="relative z-10 w-full md:w-auto">
+                <div className="flex gap-2">
+                  <div className="relative flex-1 md:w-72">
+                    <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="email"
+                      placeholder="Masukkan email Anda..."
+                      className="w-full pl-10 pr-4 py-3 bg-white text-slate-800 text-sm rounded-2xl border-0 focus:outline-none focus:ring-2 focus:ring-white/50 placeholder:text-slate-400"
+                    />
+                  </div>
+                  <button className="px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white text-sm font-bold rounded-2xl transition-all flex items-center gap-2 shrink-0 shadow-lg">
+                    <Send size={14} />
+                    Subscribe
+                  </button>
+                </div>
+                <p className="text-[10px] text-blue-200 mt-2 ml-1">Dengan subscribe, Anda menyetujui kebijakan privasi kami.</p>
+              </div>
             </div>
           </div>
+        </div>
 
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4 pt-8 border-t border-slate-200 dark:border-slate-900 transition-colors duration-300">
-            <p className="text-xs text-slate-500 dark:text-slate-400 text-center md:text-left">
-              Fostering client retention and operational efficiency through interactive support.
+        {/* Main Footer Content */}
+        <div className="max-w-7xl mx-auto px-6 py-16">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12">
+
+            {/* Brand Column */}
+            <div className="lg:col-span-2 space-y-6">
+              <div className="flex items-center gap-3">
+                <img
+                  src="https://i.ibb.co.com/fGPRy8Jt/Gemini-Generated-Image-yss7sryss7sryss7-removebg-preview.png"
+                  alt="Logo KroomCare"
+                  className="h-10 w-auto"
+                />
+                <span className="text-2xl font-display font-extrabold text-slate-900 dark:text-white tracking-tight">KroomCare</span>
+              </div>
+              <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed max-w-xs">
+                Platform CRM modern yang menghubungkan bisnis dengan pelanggannya secara lebih cerdas, lebih cepat, dan lebih personal.
+              </p>
+              <div className="flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400">
+                <MapPin size={14} className="text-blue-500 dark:text-blue-400 shrink-0" />
+                <span>Bandung, Jawa Barat, Indonesia</span>
+              </div>
+              <div className="flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400">
+                <Mail size={14} className="text-blue-500 dark:text-blue-400 shrink-0" />
+                <a href="https://mail.google.com/mail/?view=cm&fs=1&to=kroomcare97@gmail.com" target="_blank" rel="noopener noreferrer" className="hover:text-blue-600 dark:hover:text-white transition-colors">kroomcare97@gmail.com</a>
+              </div>
+              <div className="flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400">
+                <Phone size={14} className="text-blue-500 dark:text-blue-400 shrink-0" />
+                <span>+6285847255010</span>
+              </div>
+
+              {/* Social Icons */}
+              <div className="flex items-center gap-3 pt-2">
+                {[
+                  { icon: Instagram, label: 'Instagram', href: 'https://www.instagram.com/kroombox.official?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==' },
+                  { icon: Tiktok, label: 'TikTok', href: 'https://www.tiktok.com/@kroombox.com?is_from_webapp=1&sender_device=pc' },
+                  { icon: Linkedin, label: 'LinkedIn', href: 'https://linkedin.com/company/kroomcare' },
+                ].map(({ icon: Icon, label, href }) => (
+                  <a
+                    key={label}
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={label}
+                    className="w-9 h-9 rounded-xl bg-slate-200 dark:bg-slate-800 hover:bg-blue-600 dark:hover:bg-blue-600 text-slate-500 dark:text-slate-400 hover:text-white dark:hover:text-white flex items-center justify-center transition-all"
+                  >
+                    <Icon size={16} />
+                  </a>
+                ))}
+              </div>
+            </div>
+
+            {/* Product Column */}
+            <div className="space-y-5">
+              <h4 className="text-xs font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Produk</h4>
+              <ul className="space-y-3">
+                {[
+                  { label: 'Fitur', href: '#features' },
+                  { label: 'Rewards & Poin', href: '/login?redirect=/rewards' },
+                  { label: 'Community Forum', href: '/login' },
+                  { label: 'Sistem Tiket', href: '/login' },
+                  { label: 'Dashboard Admin', href: '/login' },
+                ].map(item => (
+                  <li key={item.label}>
+                    <a
+                      href={item.href}
+                      onClick={(e) => {
+                        if (!item.href.startsWith('#')) {
+                          e.preventDefault();
+                          navigate(item.href);
+                        }
+                      }}
+                      className="text-sm text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-white transition-colors flex items-center gap-1.5 group"
+                    >
+                      <ArrowRight size={12} className="opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-blue-500" />
+                      {item.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Support Column */}
+            <div className="space-y-5">
+              <h4 className="text-xs font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Dukungan</h4>
+              <ul className="space-y-3">
+                {[
+                  { label: 'Pusat Bantuan', icon: HelpCircle },
+                  { label: 'Buat Tiket Baru', icon: MessageCircle },
+                  { label: 'Dokumentasi', icon: BookOpen },
+                  { label: 'Status Layanan', icon: Zap },
+                  { label: 'Keamanan (2FA)', icon: Shield },
+                ].map(item => (
+                  <li key={item.label}>
+                    <a
+                      href="/login"
+                      className="text-sm text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-white transition-colors flex items-center gap-2 group"
+                    >
+                      <item.icon size={13} className="text-slate-400 dark:text-slate-600 group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors shrink-0" />
+                      {item.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Company Column */}
+            <div className="space-y-5">
+              <h4 className="text-xs font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Perusahaan</h4>
+              <ul className="space-y-3">
+                {[
+                  'Tentang Kami',
+                  'Tim KroomCare',
+                  'Karir',
+                  'Blog & Artikel',
+                  'Kebijakan Privasi',
+                  'Syarat & Ketentuan',
+                ].map(item => (
+                  <li key={item}>
+                    <a
+                      href="#"
+                      className="text-sm text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-white transition-colors flex items-center gap-1.5 group"
+                    >
+                      <ArrowRight size={12} className="opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-blue-500" />
+                      {item}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom Bar */}
+        <div className="border-t border-slate-200 dark:border-slate-800">
+          <div className="max-w-7xl mx-auto px-6 py-6 flex flex-col md:flex-row items-center justify-between gap-4">
+            <p className="text-xs text-slate-400 dark:text-slate-500">
+              &copy; {new Date().getFullYear()} KroomCare. All rights reserved. Built with React &amp; TailwindCSS.
             </p>
-            <p className="text-xs text-slate-450 font-semibold text-center md:text-right">
-              Copyright &copy; 2026 KroomCare. Built with React &amp; Tailwind CSS.
-            </p>
+            <div className="flex items-center gap-6">
+              {['Kebijakan Privasi', 'Syarat Layanan', 'Legal', 'Peta Situs'].map(link => (
+                <a key={link} href="#" className="text-xs text-slate-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-slate-300 transition-colors">
+                  {link}
+                </a>
+              ))}
+            </div>
           </div>
         </div>
       </footer>
     </div>
   );
 };
+

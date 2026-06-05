@@ -1,6 +1,9 @@
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
+const swaggerUi = require('swagger-ui-express');
+const YAML = require('yamljs');
+const path = require('path');
 
 // Impor Rute
 const ticketRoutes = require('./routes/ticketRoutes');
@@ -23,6 +26,10 @@ app.use('/api/forums', forumRoutes);
 app.use('/api/points', pointRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
+
+// Dokumentasi Swagger API
+const swaggerDocument = YAML.load(path.join(__dirname, 'swagger_spec.yaml'));
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // Rute tes utama
 app.get('/', (req, res) => {

@@ -1,7 +1,23 @@
 import React from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { UserPlus, User, Mail, Lock, ArrowRight, Loader2, CheckCircle2, ArrowLeft, Twitter, Instagram, Github, Eye, EyeOff } from 'lucide-react';
+import { UserPlus, User, Mail, Lock, ArrowRight, Loader2, CheckCircle2, ArrowLeft, Instagram, Linkedin, Eye, EyeOff } from 'lucide-react';
 import { motion } from 'motion/react';
+
+const Tiktok = ({ size = 24, ...props }: { size?: number } & React.SVGProps<SVGSVGElement>) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    width={size}
+    height={size}
+    {...props}
+  >
+    <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5" />
+  </svg>
+);
 
 export const RegisterPage = () => {
   const [formData, setFormData] = React.useState({
@@ -255,10 +271,10 @@ export const RegisterPage = () => {
             </div>
 
             <div className="flex items-center gap-6">
-              <a href="mailto:support@kroomcare.com" className="text-slate-450 hover:text-blue-650 transition-colors"><Mail size={24} /></a>
-              <a href="#" className="text-slate-450 hover:text-blue-650 transition-colors"><Twitter size={24} /></a>
-              <a href="#" className="text-slate-450 hover:text-blue-650 transition-colors"><Instagram size={24} /></a>
-              <a href="#" className="text-slate-450 hover:text-blue-650 transition-colors"><Github size={24} /></a>
+              <a href="https://mail.google.com/mail/?view=cm&fs=1&to=kroomcare97@gmail.com" target="_blank" rel="noopener noreferrer" className="text-slate-450 hover:text-blue-650 transition-colors"><Mail size={24} /></a>
+              <a href="https://www.instagram.com/kroombox.official?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==" target="_blank" rel="noopener noreferrer" className="text-slate-450 hover:text-blue-650 transition-colors"><Instagram size={24} /></a>
+              <a href="https://www.tiktok.com/@kroombox.com?is_from_webapp=1&sender_device=pc" target="_blank" rel="noopener noreferrer" className="text-slate-450 hover:text-blue-650 transition-colors"><Tiktok size={24} /></a>
+              <a href="https://linkedin.com/company/kroomcare" target="_blank" rel="noopener noreferrer" className="text-slate-450 hover:text-blue-650 transition-colors"><Linkedin size={24} /></a>
             </div>
           </div>
 

@@ -5,11 +5,15 @@ const {
   getAllUsers, 
   createUser, 
   deleteUser, 
-  getUserPointHistoryAdmin 
+  getUserPointHistoryAdmin,
+  getStaffDashboardStats
 } = require('../controllers/adminController');
 
 // Route untuk mendapatkan seluruh data statistik admin dashboard
 router.get('/stats', getAdminStats);
+
+// Route untuk statistik staff dashboard
+router.get('/stats/staff', getStaffDashboardStats);
 
 // Route manajemen pengguna admin
 router.get('/users', getAllUsers);

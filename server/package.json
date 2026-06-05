@@ -14,7 +14,9 @@
     "express": "^4.19.2",
     "mysql2": "^3.9.7",
     "nodemailer": "^8.0.7",
-    "react-example": "file:.."
+    "react-example": "file:..",
+    "swagger-ui-express": "^5.0.1",
+    "yamljs": "^0.3.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.0"

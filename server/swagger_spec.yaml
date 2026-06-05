@@ -1,0 +1,821 @@
+openapi: 3.0.3
+info:
+  title: KroomCare AI-Supported CRM API
+  description: Dokumentasi API untuk platform KroomCare CRM, meliputi fitur Autentikasi (2FA), Tiket Bantuan, Poin & Loyalty, Forum Komunitas, dan Panel Dashboard Admin/Staf.
+  version: 1.0.0
+servers:
+  - url: http://localhost:5000
+    description: Development Server
+paths:
+  # ==========================================
+  # AUTHENTICATION
+  # ==========================================
+  /api/auth/register:
+    post:
+      summary: Registrasi Akun Baru
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - email
+                - password
+              properties:
+                name:
+                  type: string
+                  example: John Doe
+                email:
+                  type: string
+                  example: customer@kroombox.com
+                password:
+                  type: string
+                  example: password123
+      responses:
+        '200':
+          description: Registrasi berhasil
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Registrasi berhasil.
+
+  /api/auth/login:
+    post:
+      summary: Login Akun Pengguna
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  example: customer@kroombox.com
+                password:
+                  type: string
+                  example: password123
+      responses:
+        '200':
+          description: Login sukses (2FA aktif atau tidak)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  twoFactorRequired:
+                    type: boolean
+                    example: false
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        example: 1
+                      name:
+                        type: string
+                        example: John Doe
+                      email:
+                        type: string
+                        example: customer@kroombox.com
+                      role:
+                        type: string
+                        example: customer
+                      points:
+                        type: integer
+                        example: 350
+
+  /api/auth/login/2fa:
+    post:
+      summary: Verifikasi Kode 2FA OTP saat Login
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - userId
+                - code
+              properties:
+                userId:
+                  type: string
+                  example: "1"
+                code:
+                  type: string
+                  example: "123456"
+      responses:
+        '200':
+          description: Login & 2FA Berhasil
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+
+  /api/auth/forgot-password:
+    post:
+      summary: Kirim Kode OTP Lupa Password
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  example: customer@kroombox.com
+      responses:
+        '200':
+          description: OTP Terkirim
+
+  /api/auth/reset-password:
+    post:
+      summary: Reset Password dengan Kode OTP
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - otp
+                - newPassword
+              properties:
+                email:
+                  type: string
+                  example: customer@kroombox.com
+                otp:
+                  type: string
+                  example: "123456"
+                newPassword:
+                  type: string
+                  example: newsecurepassword
+      responses:
+        '200':
+          description: Reset password berhasil
+
+  /api/auth/profile/{id}:
+    get:
+      summary: Ambil Data Profil Pengguna
+      tags:
+        - Authentication
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Data profil berhasil diambil
+    put:
+      summary: Update Informasi Profil Pengguna
+      tags:
+        - Authentication
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                no_hp:
+                  type: string
+                instansi:
+                  type: string
+      responses:
+        '200':
+          description: Profil berhasil diperbarui
+
+  /api/auth/profile/{id}/password:
+    put:
+      summary: Ubah Kata Sandi Akun
+      tags:
+        - Authentication
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - oldPassword
+                - newPassword
+              properties:
+                oldPassword:
+                  type: string
+                newPassword:
+                  type: string
+      responses:
+        '200':
+          description: Sandi berhasil diperbarui
+
+  /api/auth/2fa/setup:
+    post:
+      summary: Inisialisasi Google Authenticator 2FA (Ambil QR Code)
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - userId
+              properties:
+                userId:
+                  type: integer
+                  example: 1
+      responses:
+        '200':
+          description: Secret key & QR Code terbuat
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  qrCodeUrl:
+                    type: string
+                  secret:
+                    type: string
+
+  /api/auth/2fa/verify:
+    post:
+      summary: Verifikasi dan Aktifkan 2FA
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - userId
+                - code
+              properties:
+                userId:
+                  type: integer
+                code:
+                  type: string
+      responses:
+        '200':
+          description: 2FA berhasil diaktifkan
+
+  /api/auth/2fa/disable:
+    post:
+      summary: Nonaktifkan 2FA
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - userId
+              properties:
+                userId:
+                  type: integer
+      responses:
+        '200':
+          description: 2FA berhasil dinonaktifkan
+
+  # ==========================================
+  # POINTS & REWARDS
+  # ==========================================
+  /api/points/history/{user_id}:
+    get:
+      summary: Ambil Riwayat Poin Pengguna
+      tags:
+        - Points & Loyalty
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Riwayat transaksi poin berhasil diperoleh
+
+  /api/points/redeem:
+    post:
+      summary: Tukarkan Poin dengan Voucher Belanja
+      tags:
+        - Points & Loyalty
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - user_id
+                - points_required
+                - keterangan
+              properties:
+                user_id:
+                  type: integer
+                points_required:
+                  type: integer
+                  example: 200
+                keterangan:
+                  type: string
+                  example: "Penukaran voucher: Free Domain"
+      responses:
+        '200':
+          description: Penukaran poin berhasil diproses
+
+  /api/points/balance/{user_id}:
+    get:
+      summary: Dapatkan Saldo Poin Pengguna Terbaru
+      tags:
+        - Points & Loyalty
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Saldo poin berhasil diambil
+
+  # ==========================================
+  # TICKETS
+  # ==========================================
+  /api/tickets:
+    get:
+      summary: Dapatkan Seluruh Daftar Tiket
+      tags:
+        - Support Tickets
+      parameters:
+        - name: role
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: userId
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Sukses mengambil daftar tiket
+    post:
+      summary: Buat Tiket Keluhan Baru
+      tags:
+        - Support Tickets
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - user_id
+                - title
+                - category
+                - description
+              properties:
+                user_id:
+                  type: integer
+                title:
+                  type: string
+                category:
+                  type: string
+                description:
+                  type: string
+                priority:
+                  type: string
+                  default: Low
+      responses:
+        '200':
+          description: Tiket berhasil dibuat
+
+  /api/tickets/{id}:
+    get:
+      summary: Ambil Detail Tiket Berdasarkan ID
+      tags:
+        - Support Tickets
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Detail tiket berhasil diambil
+
+  /api/tickets/{id}/priority:
+    put:
+      summary: Ubah Tingkat Prioritas Tiket
+      tags:
+        - Support Tickets
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - priority
+              properties:
+                priority:
+                  type: string
+                  example: High
+      responses:
+        '200':
+          description: Prioritas tiket berhasil diubah
+
+  /api/tickets/{id}/status:
+    put:
+      summary: Ubah Status Tiket
+      tags:
+        - Support Tickets
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  type: string
+                  example: Resolved
+      responses:
+        '200':
+          description: Status tiket berhasil diubah
+
+  /api/tickets/{id}/replies:
+    get:
+      summary: Ambil Seluruh Balasan Chat Tiket
+      tags:
+        - Support Tickets
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Sukses mengambil daftar obrolan tiket
+    post:
+      summary: Kirim Balasan Obrolan Tiket Baru
+      tags:
+        - Support Tickets
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - sender_id
+                - sender_name
+                - sender_role
+                - message
+              properties:
+                sender_id:
+                  type: integer
+                sender_name:
+                  type: string
+                sender_role:
+                  type: string
+                  example: staff
+                message:
+                  type: string
+      responses:
+        '200':
+          description: Balasan tiket berhasil dikirim
+
+  /api/tickets/{id}/reward:
+    post:
+      summary: Berikan Reward Poin (Kustom) Terkait Tiket
+      tags:
+        - Support Tickets
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - user_id
+                - points
+              properties:
+                user_id:
+                  type: integer
+                points:
+                  type: integer
+                  example: 100
+      responses:
+        '200':
+          description: Poin reward kustom berhasil diberikan kepada pelanggan
+
+  # ==========================================
+  # FORUMS
+  # ==========================================
+  /api/forums:
+    get:
+      summary: Dapatkan Semua Thread Forum Komunitas
+      tags:
+        - Community Forum
+      responses:
+        '200':
+          description: Sukses mengambil daftar thread
+    post:
+      summary: Buat Thread Diskusi Baru
+      tags:
+        - Community Forum
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - user_id
+                - title
+                - content
+              properties:
+                user_id:
+                  type: integer
+                title:
+                  type: string
+                content:
+                  type: string
+                tags:
+                  type: string
+      responses:
+        '200':
+          description: Thread baru berhasil diterbitkan
+
+  /api/forums/{id}:
+    get:
+      summary: Dapatkan Detail Thread Forum
+      tags:
+        - Community Forum
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Detail thread berhasil diambil
+    delete:
+      summary: Hapus Thread Forum (Moderasi Admin/Staf)
+      tags:
+        - Community Forum
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Thread forum berhasil dihapus
+
+  /api/forums/{id}/replies:
+    get:
+      summary: Dapatkan Semua Balasan Komentar Thread Forum
+      tags:
+        - Community Forum
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Daftar balasan komentar berhasil diambil
+
+  /api/forums/replies:
+    post:
+      summary: Kirim Balasan Komentar Baru di Forum
+      tags:
+        - Community Forum
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - forum_id
+                - user_id
+                - content
+              properties:
+                forum_id:
+                  type: integer
+                user_id:
+                  type: integer
+                content:
+                  type: string
+      responses:
+        '200':
+          description: Balasan komentar forum berhasil dikirim
+
+  /api/forums/replies/{id}:
+    delete:
+      summary: Hapus Balasan Komentar Forum (Moderasi Admin/Staf)
+      tags:
+        - Community Forum
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Komentar berhasil dihapus
+
+  # ==========================================
+  # ADMIN & STAFF PERFORMANCE
+  # ==========================================
+  /api/admin/stats:
+    get:
+      summary: Ambil Seluruh Data Statistik Global Dashboard Admin
+      tags:
+        - Admin & Staff Performance
+      responses:
+        '200':
+          description: Sukses mengambil statistik global dashboard admin
+
+  /api/admin/stats/staff:
+    get:
+      summary: Dapatkan Data Statistik Performa Staff Berdasarkan Shift Kerja
+      tags:
+        - Admin & Staff Performance
+      parameters:
+        - name: staffId
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: shift
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [Pagi, Siang, Malam]
+      responses:
+        '200':
+          description: Data dashboard staff berhasil diperoleh sesuai filter shift
+
+  /api/admin/users:
+    get:
+      summary: Ambil Seluruh Daftar Pengguna (Admin Panel)
+      tags:
+        - Admin & Staff Performance
+      responses:
+        '200':
+          description: Daftar user berhasil diambil
+    post:
+      summary: Tambahkan Pengguna Baru (Staf/Admin/Customer)
+      tags:
+        - Admin & Staff Performance
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - email
+                - password
+                - role
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                password:
+                  type: string
+                role:
+                  type: string
+                  enum: [customer, staff, admin]
+      responses:
+        '200':
+          description: Pengguna baru berhasil didaftarkan
+
+  /api/admin/users/{id}:
+    delete:
+      summary: Hapus Pengguna (Admin Panel)
+      tags:
+        - Admin & Staff Performance
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Pengguna berhasil dihapus
+
+  /api/admin/users/{id}/points:
+    get:
+      summary: Dapatkan Riwayat Transaksi Poin Pengguna Tertentu (Admin Panel)
+      tags:
+        - Admin & Staff Performance
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Riwayat transaksi poin user berhasil diambil

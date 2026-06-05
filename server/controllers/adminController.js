@@ -351,10 +351,143 @@ const getUserPointHistoryAdmin = async (req, res) => {
   }
 };
 
+// Staff Dashboard Stats
+const getStaffDashboardStats = async (req, res) => {
+  try {
+    const { staffId, shift } = req.query;
+    const today = new Date();
+    const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+    // Helper to get shift filter query conditions using HOUR(created_at)
+    const getShiftCondition = (fieldName = 'created_at') => {
+      if (shift === 'Pagi') {
+        return ` AND HOUR(${fieldName}) >= 7 AND HOUR(${fieldName}) < 15`;
+      } else if (shift === 'Siang') {
+        return ` AND HOUR(${fieldName}) >= 15 AND HOUR(${fieldName}) < 23`;
+      } else if (shift === 'Malam') {
+        return ` AND (HOUR(${fieldName}) >= 23 OR HOUR(${fieldName}) < 7)`;
+      }
+      return '';
+    };
+
+    // 1. Tiket Baru (status = 'menunggu' dan belum ada staff)
+    let newTicketsQuery = `SELECT COUNT(*) AS total FROM tickets WHERE status = 'menunggu' AND (staff_id IS NULL OR staff_id = 0)`;
+    newTicketsQuery += getShiftCondition();
+    const [newTickets] = await db.query(newTicketsQuery);
+
+    // 2. Tiket Saya (semua tiket milik staff ini)
+    let myTicketsQuery = staffId
+      ? `SELECT COUNT(*) AS total FROM tickets WHERE staff_id = ?`
+      : `SELECT COUNT(*) AS total FROM tickets WHERE staff_id IS NOT NULL`;
+    const myTicketsParams = staffId ? [staffId] : [];
+    myTicketsQuery += getShiftCondition();
+    const [myTickets] = await db.query(myTicketsQuery, myTicketsParams);
+
+    // 3. Selesai Hari Ini
+    let doneQuery = staffId
+      ? `SELECT COUNT(*) AS total FROM tickets WHERE status = 'selesai' AND staff_id = ? AND updated_at >= ?`
+      : `SELECT COUNT(*) AS total FROM tickets WHERE status = 'selesai' AND updated_at >= ?`;
+    const doneParams = staffId ? [staffId, startOfToday] : [startOfToday];
+    doneQuery += getShiftCondition('updated_at');
+    const [doneToday] = await db.query(doneQuery, doneParams);
+
+    // 4. SLA Rate (persentase tiket selesai dari total yang ditangani staff ini)
+    let totalHandledQuery = staffId
+      ? `SELECT COUNT(*) AS total FROM tickets WHERE staff_id = ?`
+      : `SELECT COUNT(*) AS total FROM tickets WHERE staff_id IS NOT NULL`;
+    const totalHandledParams = staffId ? [staffId] : [];
+    totalHandledQuery += getShiftCondition();
+    const [totalHandled] = await db.query(totalHandledQuery, totalHandledParams);
+
+    let resolvedQuery = staffId
+      ? `SELECT COUNT(*) AS total FROM tickets WHERE status = 'selesai' AND staff_id = ?`
+      : `SELECT COUNT(*) AS total FROM tickets WHERE status = 'selesai' AND staff_id IS NOT NULL`;
+    const resolvedParams = staffId ? [staffId] : [];
+    resolvedQuery += getShiftCondition();
+    const [resolved] = await db.query(resolvedQuery, resolvedParams);
+
+    const totalCount = totalHandled[0].total || 0;
+    const resolvedCount = resolved[0].total || 0;
+    const slaRate = totalCount > 0 ? Math.round((resolvedCount / totalCount) * 100) : 100;
+
+    // 5. Data Chart Mingguan (7 hari terakhir)
+    let weeklyQuery = `
+      SELECT 
+        DATE(created_at) AS day,
+        COUNT(*) AS total,
+        SUM(CASE WHEN status = 'selesai' THEN 1 ELSE 0 END) AS resolved
+      FROM tickets
+      WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+    `;
+    weeklyQuery += getShiftCondition();
+    weeklyQuery += `
+      GROUP BY DATE(created_at)
+      ORDER BY day ASC
+    `;
+    const [weeklyData] = await db.query(weeklyQuery);
+
+    // 6. Aktivitas Terbaru dari ticket_replies
+    let activityQuery = `
+      SELECT tr.id, tr.created_at, u.nama AS user_name, u.role, t.id AS ticket_id, t.status
+      FROM ticket_replies tr
+      JOIN users u ON tr.user_id = u.id
+      JOIN tickets t ON tr.ticket_id = t.id
+    `;
+    const activityShiftCondition = getShiftCondition('tr.created_at');
+    if (activityShiftCondition) {
+      // Remove leading ' AND '
+      activityQuery += ` WHERE ` + activityShiftCondition.substring(5);
+    }
+    activityQuery += `
+      ORDER BY tr.created_at DESC
+      LIMIT 5
+    `;
+    const [recentActivity] = await db.query(activityQuery);
+
+    const formatTimeAgo = (date) => {
+      const diffMs = new Date() - new Date(date);
+      const diffMins = Math.floor(diffMs / 60000);
+      if (diffMins < 1) return 'baru saja';
+      if (diffMins < 60) return `${diffMins} menit yang lalu`;
+      const diffHrs = Math.floor(diffMins / 60);
+      if (diffHrs < 24) return `${diffHrs} jam yang lalu`;
+      return `${Math.floor(diffHrs / 24)} hari yang lalu`;
+    };
+
+    const formattedActivity = recentActivity.map(row => ({
+      id: row.id,
+      user: row.user_name,
+      type: row.status === 'selesai' ? 'resolved' : row.role === 'member' ? 'reply' : 'reply',
+      ticket: `T-${row.ticket_id}`,
+      time: formatTimeAgo(row.created_at)
+    }));
+
+    res.status(200).json({
+      success: true,
+      data: {
+        newTickets: newTickets[0].total,
+        myTickets: myTickets[0].total,
+        doneToday: doneToday[0].total,
+        slaRate: `${slaRate}%`,
+        weeklyChart: weeklyData,
+        recentActivity: formattedActivity
+      }
+    });
+  } catch (error) {
+    console.error('Error in getStaffDashboardStats:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Gagal mengambil data staff dashboard.',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   getAdminStats,
   getAllUsers,
   createUser,
   deleteUser,
-  getUserPointHistoryAdmin
+  getUserPointHistoryAdmin,
+  getStaffDashboardStats
 };
