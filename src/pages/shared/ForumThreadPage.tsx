@@ -21,7 +21,7 @@ export const ForumThreadPage: React.FC<ForumThreadProps> = ({ userRole }) => {
   const [messages, setMessages] = React.useState<any[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [isGivingReward, setIsGivingReward] = React.useState(false);
-  const [rewardPoints, setRewardPoints] = React.useState<number>(50);
+  const [rewardPoints, setRewardPoints] = React.useState<number | ''>(50);
 
   const isTicketPath = window.location.pathname.includes('/tickets') || window.location.pathname.includes('/staff/tickets');
 
@@ -257,20 +257,30 @@ export const ForumThreadPage: React.FC<ForumThreadProps> = ({ userRole }) => {
             </div>
 
             {!ticket.rewardGiven ? (
-              <div className="flex items-center gap-3">
+               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-2xl px-3 py-2 shadow-sm">
                   <span className="text-[10px] font-black uppercase text-slate-400">Poin:</span>
                   <input 
                     type="number"
                     value={rewardPoints}
-                    onChange={(e) => setRewardPoints(Math.max(1, parseInt(e.target.value) || 0))}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val === '') {
+                        setRewardPoints('');
+                      } else {
+                        const parsed = parseInt(val, 10);
+                        if (!isNaN(parsed)) {
+                          setRewardPoints(Math.max(0, parsed));
+                        }
+                      }
+                    }}
                     className="w-12 bg-transparent border-none text-slate-700 text-xs font-bold focus:outline-none focus:ring-0 text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                    min="1"
+                    min="0"
                   />
                 </div>
                 <button 
                   onClick={handleGiveReward}
-                  disabled={isGivingReward || rewardPoints <= 0}
+                  disabled={isGivingReward || rewardPoints === '' || rewardPoints <= 0}
                   className="flex items-center gap-2 px-6 py-3 bg-amber-500 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-amber-600 transition-all shadow-lg shadow-amber-500/20"
                 >
                   <Coins size={16} fill="currentColor" />
