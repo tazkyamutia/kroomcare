@@ -6,7 +6,8 @@ const {
   createUser, 
   deleteUser, 
   getUserPointHistoryAdmin,
-  getStaffDashboardStats
+  getStaffDashboardStats,
+  resetUserPoints
 } = require('../controllers/adminController');
 
 // Route untuk mendapatkan seluruh data statistik admin dashboard
@@ -20,5 +21,8 @@ router.get('/users', getAllUsers);
 router.post('/users', createUser);
 router.delete('/users/:id', deleteUser);
 router.get('/users/:id/points', getUserPointHistoryAdmin);
+router.put('/users/:id/reset-points', resetUserPoints);
 
 module.exports = router;
+
+

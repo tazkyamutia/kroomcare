@@ -22,8 +22,10 @@ export const ForumThreadPage: React.FC<ForumThreadProps> = ({ userRole }) => {
   const [isLoading, setIsLoading] = React.useState(true);
   const [isGivingReward, setIsGivingReward] = React.useState(false);
   const [rewardPoints, setRewardPoints] = React.useState<number | ''>(50);
+  const [showToastTransfer, setShowToastTransfer] = React.useState(false);
 
   const isTicketPath = window.location.pathname.includes('/tickets') || window.location.pathname.includes('/staff/tickets');
+  const isEscalated = messages.some(msg => msg.text && msg.text.includes("dieskalasi ke tim teknis"));
 
   const fetchDetails = async () => {
     if (!id) return;
@@ -77,6 +79,28 @@ export const ForumThreadPage: React.FC<ForumThreadProps> = ({ userRole }) => {
         setTicket((prev: any) => prev ? { ...prev, isPriority: newPriority } : null);
       } else {
         alert(result.message || 'Gagal mengubah prioritas.');
+      }
+    } catch (error) {
+      console.error(error);
+      alert('Terjadi kesalahan koneksi.');
+    }
+  };
+
+  const handleTransferMaintenance = async () => {
+    if (!ticket) return;
+    try {
+      const res = await fetch(`http://localhost:5000/api/tickets/${id}/escalate`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ staff_id: user?.id })
+      });
+      const result = await res.json();
+      if (res.ok && result.success) {
+        setShowToastTransfer(true);
+        setTimeout(() => setShowToastTransfer(false), 5000);
+        await fetchDetails();
+      } else {
+        alert(result.message || 'Gagal melakukan eskalasi.');
       }
     } catch (error) {
       console.error(error);
@@ -181,7 +205,7 @@ export const ForumThreadPage: React.FC<ForumThreadProps> = ({ userRole }) => {
           initial={{ y: -20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           className={cn(
-            "p-3 rounded-2xl flex items-center justify-between shadow-lg transition-all",
+            "p-3 rounded-2xl flex flex-wrap items-center justify-between gap-3 shadow-lg transition-all",
             ticket.isPriority ? "bg-orange-500 text-white" : "bg-white border border-slate-200 text-slate-600"
           )}
         >
@@ -191,15 +215,31 @@ export const ForumThreadPage: React.FC<ForumThreadProps> = ({ userRole }) => {
               {ticket.isPriority ? 'Mendesak: Prioritas Aktif' : 'Tandai sebagai Prioritas?'}
             </span>
           </div>
-          <button 
-            onClick={handleSetPriority}
-            className={cn(
-              "px-6 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all active:scale-95",
-              ticket.isPriority ? "bg-white text-orange-600" : "bg-orange-500 text-white"
+          <div className="flex items-center gap-2">
+            {ticket.isPriority && (
+              <button 
+                onClick={handleTransferMaintenance}
+                disabled={isEscalated}
+                className={cn(
+                  "px-6 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all active:scale-95 flex items-center gap-2",
+                  isEscalated 
+                    ? "bg-slate-700/20 text-slate-400 border border-slate-700/30 cursor-not-allowed" 
+                    : "bg-slate-900 text-white hover:bg-slate-800 border border-transparent shadow-md hover:shadow-lg"
+                )}
+              >
+                {isEscalated ? 'Sudah Dieskalasi' : 'Transfer to Maintenance'}
+              </button>
             )}
-          >
-            {ticket.isPriority ? 'Batalkan Prioritas' : 'Set as Priority'}
-          </button>
+            <button 
+              onClick={handleSetPriority}
+              className={cn(
+                "px-6 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all active:scale-95",
+                ticket.isPriority ? "bg-white text-orange-600" : "bg-orange-500 text-white"
+              )}
+            >
+              {ticket.isPriority ? 'Batalkan Prioritas' : 'Set as Priority'}
+            </button>
+          </div>
         </motion.div>
       )}
 
@@ -523,6 +563,17 @@ export const ForumThreadPage: React.FC<ForumThreadProps> = ({ userRole }) => {
           </div>
         </div>
       </div>
+
+      {/* Floating Toast Notification for Escalation */}
+      {showToastTransfer && (
+        <div 
+          id="toast_success_transfer"
+          className="toast_success_transfer fixed bottom-24 right-8 bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl border border-slate-800 flex items-center gap-3 z-50 animate-bounce"
+        >
+          <CheckCircle2 size={20} className="text-emerald-500" />
+          <span className="text-xs font-bold">Sistem berhasil melakukan eskalasi tiket ke tim teknis</span>
+        </div>
+      )}
     </div>
   );
 };

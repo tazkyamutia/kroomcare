@@ -483,11 +483,54 @@ const getStaffDashboardStats = async (req, res) => {
   }
 };
 
+// Reset User Points
+const resetUserPoints = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Ambil poin saat ini sebelum direset
+    const [userRows] = await db.query('SELECT koin_reward FROM users WHERE id = ?', [id]);
+    if (userRows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Pengguna tidak ditemukan.'
+      });
+    }
+    const currentPoints = userRows[0].koin_reward || 0;
+
+    // 1. Update koin_reward to 0 in users table
+    await db.query('UPDATE users SET koin_reward = 0 WHERE id = ?', [id]);
+
+    // 2. Insert point history record for resetting
+    if (currentPoints > 0) {
+      const desc = "Reset Poin Loyalitas oleh Administrator";
+      await db.query(
+        'INSERT INTO point_histories (user_id, jenis_transaksi, jumlah_poin, keterangan) VALUES (?, ?, ?, ?)',
+        [id, 'keluar', currentPoints, desc]
+      );
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Poin loyalitas koin customer berhasil direset ke angka 0.'
+    });
+  } catch (error) {
+    console.error('Error in resetUserPoints:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Gagal mengatur ulang koin reward.',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   getAdminStats,
   getAllUsers,
   createUser,
   deleteUser,
   getUserPointHistoryAdmin,
-  getStaffDashboardStats
+  getStaffDashboardStats,
+  resetUserPoints
 };
+

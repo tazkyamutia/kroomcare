@@ -414,8 +414,8 @@ const nodemailer = require('nodemailer');
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
-    user: 'kroomcare97@gmail.com',
-    pass: 'knwn yzan nnwo egfx'
+    user: 'krooomcare@gmail.com',
+    pass: 'arub dkir jegn lvsh'
   }
 });
 
@@ -441,9 +441,10 @@ const forgotPassword = async (req, res) => {
 
     // Kirim email
     const mailOptions = {
-      from: '"KroomCare Support" <kroomcare97@gmail.com>',
+      from: '"KroomCare Support" <krooomcare@gmail.com>',
       to: email,
       subject: 'Kode OTP Reset Password KroomCare',
+      text: `Halo ${user.nama},\n\nKami menerima permintaan untuk mereset kata sandi akun Anda. Silakan gunakan kode OTP berikut untuk melanjutkan proses reset password:\n\n${otp}\n\nKode OTP ini hanya berlaku selama 10 menit. Jika Anda tidak merasa mengajukan permintaan ini, silakan abaikan email ini dengan aman.\n\nSalam,\nKroomCare Support`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 30px; border: 1px solid #e2e8f0; border-radius: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
           <div style="text-align: center; margin-bottom: 20px;">

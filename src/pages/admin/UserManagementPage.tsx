@@ -1,5 +1,5 @@
 import React from 'react';
-import { Users, UserPlus, Search, Edit2, Trash2, Shield, User as UserIcon, Coins, X, ArrowUpRight, ArrowDownLeft, History, Loader2 } from 'lucide-react';
+import { Users, UserPlus, Search, Edit2, Trash2, Shield, User as UserIcon, Coins, X, ArrowUpRight, ArrowDownLeft, History, Loader2, RefreshCw, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../../lib/utils';
 
@@ -14,6 +14,7 @@ export const UserManagementPage = () => {
 
   const [searchQuery, setSearchQuery] = React.useState('');
   const [selectedRole, setSelectedRole] = React.useState('All');
+  const [showToastReset, setShowToastReset] = React.useState(false);
 
   // Add User Modal State
   const [isAddModalOpen, setIsAddModalOpen] = React.useState(false);
@@ -86,6 +87,25 @@ export const UserManagementPage = () => {
         console.error(err);
         alert('Gagal terhubung ke server.');
       }
+    }
+  };
+
+  const handleResetPoints = async (userId: string) => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/admin/users/${userId}/reset-points`, {
+        method: 'PUT'
+      });
+      const result = await response.json();
+      if (response.ok && result.success) {
+        setShowToastReset(true);
+        setTimeout(() => setShowToastReset(false), 3000);
+        fetchUsers();
+      } else {
+        alert(result.message || 'Gagal mengatur ulang poin koin.');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Gagal terhubung ke server.');
     }
   };
 
@@ -266,6 +286,15 @@ export const UserManagementPage = () => {
                           >
                             History
                           </button>
+                          {u.role === 'customer' && (
+                            <button 
+                              onClick={() => handleResetPoints(u.id)}
+                              className="p-2 hover:bg-blue-50 text-blue-500 hover:text-blue-600 rounded-lg transition-all btn_reset_points_user"
+                              title="Reset Points"
+                            >
+                              <RefreshCw size={14} />
+                            </button>
+                          )}
                           <button 
                             onClick={() => handleDeleteUser(u.id, u.name)}
                             className="p-2 hover:bg-red-50 text-slate-400 hover:text-red-600 rounded-lg transition-all"
@@ -507,6 +536,16 @@ export const UserManagementPage = () => {
           </div>
         )}
       </AnimatePresence>
+      {/* Toast Reset Points Success */}
+      {showToastReset && (
+        <div 
+          id="toast_reset_success"
+          className="toast_reset_success fixed bottom-24 right-8 bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl border border-slate-800 flex items-center gap-3 z-50 animate-bounce"
+        >
+          <CheckCircle2 size={20} className="text-emerald-500" />
+          <span className="text-xs font-bold">Poin loyalitas koin customer berhasil direset ke angka 0</span>
+        </div>
+      )}
     </div>
   );
 };

@@ -670,7 +670,7 @@ export const ProfilePage: React.FC = () => {
               initial={{ scale: 0.95, y: 20 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.95, y: 20 }}
-              className="bg-white rounded-[2.5rem] w-full max-w-md p-8 border border-slate-100 shadow-2xl relative overflow-hidden"
+              className="bg-white rounded-[2.5rem] w-full max-w-md p-6 md:p-8 border border-slate-100 shadow-2xl relative overflow-y-auto max-h-[90vh] scrollbar-thin"
             >
               <button 
                 type="button"
@@ -698,8 +698,13 @@ export const ProfilePage: React.FC = () => {
                 </div>
 
                 {qrCodeUrl && (
-                  <div className="bg-slate-50 p-4 rounded-3xl inline-block border border-slate-100 shadow-inner">
-                    <img src={qrCodeUrl} alt="2FA QR Code" className="w-48 h-48 rounded-xl object-contain mx-auto" />
+                  <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100 shadow-inner w-full flex justify-center items-center">
+                    <img 
+                      src={qrCodeUrl} 
+                      alt="2FA QR Code" 
+                      className="qr-code w-full max-w-[200px] h-[200px] rounded-xl object-contain mx-auto"
+                      style={{ width: '100%', height: '100%', maxWidth: '200px' }}
+                    />
                   </div>
                 )}
 

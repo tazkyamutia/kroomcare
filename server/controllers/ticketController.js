@@ -394,6 +394,42 @@ const giveReward = async (req, res) => {
   }
 };
 
+// Escalate Ticket to Maintenance
+const escalateTicket = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { staff_id } = req.body;
+
+    // 1. Update status to 'diproses'
+    await db.query("UPDATE tickets SET status = 'diproses' WHERE id = ?", [id]);
+
+    // 2. Update priority to High (is_priority = 1)
+    await db.query("UPDATE tickets SET is_priority = 1 WHERE id = ?", [id]);
+
+    // 3. Catat eskalasi ke ticket_replies
+    const systemUserId = staff_id || 2; // Default to staff_id or Sarah Staff (2)
+    const content = "Tiket telah dieskalasi ke tim teknis (Transfer to Maintenance).";
+    await db.query('INSERT INTO ticket_replies (ticket_id, user_id, konten) VALUES (?, ?, ?)', [id, systemUserId, content]);
+
+    res.status(200).json({
+      success: true,
+      message: 'Tiket berhasil dieskalasi ke tim teknis.',
+      data: {
+        id,
+        status: 'In Progress',
+        isPriority: true
+      }
+    });
+  } catch (error) {
+    console.error('Error in escalateTicket:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Terjadi kesalahan server.',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   createTicket,
   getTickets,
@@ -402,5 +438,7 @@ module.exports = {
   updateStatus,
   getTicketReplies,
   addTicketReply,
-  giveReward
+  giveReward,
+  escalateTicket
 };
+

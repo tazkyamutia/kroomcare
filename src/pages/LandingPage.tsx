@@ -365,7 +365,7 @@ export const LandingPage = () => {
               </div>
               <div className="flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400">
                 <Mail size={14} className="text-blue-500 dark:text-blue-400 shrink-0" />
-                <a href="https://mail.google.com/mail/?view=cm&fs=1&to=kroomcare97@gmail.com" target="_blank" rel="noopener noreferrer" className="hover:text-blue-600 dark:hover:text-white transition-colors">kroomcare97@gmail.com</a>
+                <a href="https://mail.google.com/mail/?view=cm&fs=1&to=krooomcare@gmail.com" target="_blank" rel="noopener noreferrer" className="hover:text-blue-600 dark:hover:text-white transition-colors">krooomcare@gmail.com</a>
               </div>
               <div className="flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400">
                 <Phone size={14} className="text-blue-500 dark:text-blue-400 shrink-0" />

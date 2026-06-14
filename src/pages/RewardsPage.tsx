@@ -1,5 +1,5 @@
 import React from 'react';
-import { Gift, History, Ticket as VoucherIcon, ArrowUpRight, ArrowDownRight, Sparkles, Loader2 } from 'lucide-react';
+import { Gift, History, Ticket as VoucherIcon, ArrowUpRight, ArrowDownRight, Sparkles, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { DUMMY_VOUCHERS } from '../utils/dummyData';
 import { motion } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
@@ -11,6 +11,13 @@ export const RewardsPage = () => {
   const { user, updateUser } = useUser();
   const [transactions, setTransactions] = React.useState<any[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = React.useState(true);
+
+  const [showConfirmModal, setShowConfirmModal] = React.useState(false);
+  const [selectedVoucher, setSelectedVoucher] = React.useState<any>(null);
+  const [redeemedCode, setRedeemedCode] = React.useState('');
+  const [showToast, setShowToast] = React.useState(false);
+  const [toastMessage, setToastMessage] = React.useState('');
+  const [toastType, setToastType] = React.useState<'success' | 'error'>('success');
 
   const points = user?.points || 0;
 
@@ -35,18 +42,29 @@ export const RewardsPage = () => {
     fetchPointHistory();
   }, [user]);
 
-  const handleRedeem = async (pointsRequired: number, voucherName: string) => {
+  const handleRedeem = (pointsRequired: number, voucherName: string) => {
     if (!user?.id) {
-      alert('Anda harus login terlebih dahulu.');
+      setToastMessage('Anda harus login terlebih dahulu.');
+      setToastType('error');
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
       return;
     }
     if (points < pointsRequired) {
-      alert('Poin Anda tidak mencukupi untuk menukarkan voucher ini.');
+      setToastMessage('Koin tidak mencukupi.');
+      setToastType('error');
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
       return;
     }
 
-    const confirmRedeem = window.confirm(`Apakah Anda yakin ingin menukarkan ${pointsRequired} Poin untuk "${voucherName}"?`);
-    if (!confirmRedeem) return;
+    setSelectedVoucher({ pointsRequired, name: voucherName });
+    setShowConfirmModal(true);
+  };
+
+  const executeRedeem = async () => {
+    if (!selectedVoucher || !user?.id) return;
+    setShowConfirmModal(false);
 
     try {
       const response = await fetch('http://localhost:5000/api/points/redeem', {
@@ -54,22 +72,33 @@ export const RewardsPage = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           user_id: user.id,
-          points_required: pointsRequired,
-          keterangan: `Penukaran voucher: ${voucherName}`
+          points_required: selectedVoucher.pointsRequired,
+          keterangan: `Penukaran voucher: ${selectedVoucher.name}`
         })
       });
       const result = await response.json();
       if (response.ok && result.success) {
-        alert('Voucher berhasil ditukarkan!');
+        const randCode = 'KRM-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+        setRedeemedCode(randCode);
+        setToastMessage('Voucher berhasil ditukarkan!');
+        setToastType('success');
+        setShowToast(true);
+        setTimeout(() => setShowToast(false), 4000);
         // Update user context points locally
-        updateUser({ points: points - pointsRequired });
+        updateUser({ points: points - selectedVoucher.pointsRequired });
         fetchPointHistory(); // Segarkan riwayat poin
       } else {
-        alert(result.message || 'Gagal menukarkan voucher.');
+        setToastMessage(result.message || 'Gagal menukarkan voucher.');
+        setToastType('error');
+        setShowToast(true);
+        setTimeout(() => setShowToast(false), 3000);
       }
     } catch (error) {
       console.error('Error redeeming voucher:', error);
-      alert('Terjadi kesalahan koneksi.');
+      setToastMessage('Terjadi kesalahan koneksi.');
+      setToastType('error');
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
     }
   };
 
@@ -159,6 +188,24 @@ export const RewardsPage = () => {
               Tukarkan Voucher
             </h3>
           </div>
+
+          {redeemedCode && (
+            <div id="code_voucher_display" className="code_voucher_display bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 p-6 rounded-3xl text-center flex flex-col items-center justify-center gap-2 mb-6">
+              <CheckCircle2 className="text-emerald-500" size={32} />
+              <h4 className="font-bold text-emerald-900 dark:text-emerald-400">Voucher Berhasil Ditukarkan!</h4>
+              <p className="text-xs text-slate-500">Gunakan kode voucher di bawah ini saat checkout:</p>
+              <div className="font-mono bg-white dark:bg-slate-900 px-4 py-2 border border-slate-200 rounded-xl font-bold text-lg text-slate-900 select-all">
+                {redeemedCode}
+              </div>
+              <button 
+                onClick={() => setRedeemedCode('')} 
+                className="mt-2 text-xs text-brand-600 font-bold hover:underline"
+              >
+                Tutup
+              </button>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             {DUMMY_VOUCHERS.map((voucher, i) => (
               <motion.div
@@ -186,8 +233,12 @@ export const RewardsPage = () => {
                   </div>
                   <button 
                     onClick={() => handleRedeem(voucher.pointsRequired, voucher.name)}
-                    disabled={points < voucher.pointsRequired}
-                    className="px-4 py-2 bg-slate-900 text-white text-xs font-bold rounded-xl hover:bg-brand-600 disabled:opacity-50 disabled:hover:bg-slate-900 transition-all active:scale-95"
+                    className={cn(
+                      "px-4 py-2 text-white text-xs font-bold rounded-xl transition-all active:scale-95",
+                      points < voucher.pointsRequired 
+                        ? "bg-slate-300 dark:bg-slate-800 text-slate-500 cursor-not-allowed" 
+                        : "bg-slate-900 hover:bg-brand-600 cursor-pointer"
+                    )}
                   >
                     Tukarkan
                   </button>
@@ -201,6 +252,52 @@ export const RewardsPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Custom Confirmation Modal */}
+      {showConfirmModal && selectedVoucher && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-8 rounded-3xl max-w-sm w-full shadow-2xl text-center">
+            <Gift size={48} className="mx-auto text-brand-600 mb-4 animate-pulse" />
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Konfirmasi Penukaran</h3>
+            <p className="text-sm text-slate-500 mb-6">
+              Apakah Anda yakin ingin menukarkan <span className="font-bold text-slate-700 dark:text-slate-300">{selectedVoucher.pointsRequired} Poin</span> untuk "{selectedVoucher.name}"?
+            </p>
+            <div className="flex gap-4">
+              <button
+                onClick={() => setShowConfirmModal(false)}
+                className="flex-1 py-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl text-sm font-bold text-slate-600 dark:text-slate-300 transition-colors"
+              >
+                Batal
+              </button>
+              <button
+                id="btn_confirm"
+                onClick={executeRedeem}
+                className="flex-1 py-3 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-bold shadow-lg shadow-brand-500/20 transition-all active:scale-95"
+              >
+                Tukar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Floating Toast Notification */}
+      {showToast && (
+        <div 
+          id={toastType === 'success' ? "toast_success" : "toast_error"} 
+          className={cn(
+            "fixed bottom-24 right-8 bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl border border-slate-800 flex items-center gap-3 z-50 animate-bounce transition-all duration-300",
+            toastType === 'success' ? "border-emerald-500" : "border-red-500"
+          )}
+        >
+          {toastType === 'success' ? (
+            <CheckCircle2 size={18} className="text-emerald-400" />
+          ) : (
+            <AlertCircle size={18} className="text-red-400" />
+          )}
+          <span className="text-xs font-bold">{toastMessage}</span>
+        </div>
+      )}
     </div>
   );
 };

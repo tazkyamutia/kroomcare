@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { UserPlus, User, Mail, Lock, ArrowRight, Loader2, CheckCircle2, ArrowLeft, Instagram, Linkedin, Eye, EyeOff } from 'lucide-react';
+import { UserPlus, User, Mail, Lock, ArrowRight, Loader2, CheckCircle2, ArrowLeft, Instagram, Linkedin, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { motion } from 'motion/react';
 
 const Tiktok = ({ size = 24, ...props }: { size?: number } & React.SVGProps<SVGSVGElement>) => (
@@ -31,12 +31,19 @@ export const RegisterPage = () => {
   const [isLoading, setIsLoading] = React.useState(false);
   const [isSuccess, setIsSuccess] = React.useState(false);
   const [error, setError] = React.useState('');
+  const [showToast, setShowToast] = React.useState(false);
+  const [toastMessage, setToastMessage] = React.useState('');
+  const [toastType, setToastType] = React.useState<'success' | 'error'>('success');
   const navigate = useNavigate();
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.password !== formData.confirmPassword) {
       setError('Password dan konfirmasi password tidak cocok.');
+      setToastMessage('Password dan konfirmasi password tidak cocok.');
+      setToastType('error');
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
       return;
     }
     
@@ -59,16 +66,29 @@ export const RegisterPage = () => {
       const result = await response.json();
 
       if (response.ok && result.success) {
-        setIsSuccess(true);
+        setToastMessage('Registrasi berhasil. Silakan login.');
+        setToastType('success');
+        setShowToast(true);
         setTimeout(() => {
+          setShowToast(false);
           navigate('/login');
         }, 2000);
       } else {
-        setError(result.message || 'Registrasi gagal. Silakan coba lagi.');
+        const errMsg = result.message || 'Registrasi gagal. Silakan coba lagi.';
+        setError(errMsg);
+        setToastMessage(errMsg);
+        setToastType('error');
+        setShowToast(true);
+        setTimeout(() => setShowToast(false), 3000);
       }
     } catch (err: any) {
       console.error('Register error:', err);
-      setError('Gagal terhubung ke server backend. Pastikan server backend Anda berjalan.');
+      const errMsg = 'Gagal terhubung ke server backend. Pastikan server backend Anda berjalan.';
+      setError(errMsg);
+      setToastMessage(errMsg);
+      setToastType('error');
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
     } finally {
       setIsLoading(false);
     }
@@ -149,7 +169,7 @@ export const RegisterPage = () => {
 
             <form onSubmit={handleRegister} className="space-y-4">
               {error && (
-                <p className="text-xs text-red-500 font-medium text-center bg-red-50 dark:bg-red-950/30 py-2 rounded-lg border border-red-100 dark:border-red-900/30">{error}</p>
+                <p id="alert_error" className="alert_error text-xs text-red-500 font-medium text-center bg-red-50 dark:bg-red-950/30 py-2 rounded-lg border border-red-100 dark:border-red-900/30">{error}</p>
               )}
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold text-slate-700 dark:text-slate-350 uppercase tracking-wider ml-1">Full Name</label>
@@ -271,7 +291,7 @@ export const RegisterPage = () => {
             </div>
 
             <div className="flex items-center gap-6">
-              <a href="https://mail.google.com/mail/?view=cm&fs=1&to=kroomcare97@gmail.com" target="_blank" rel="noopener noreferrer" className="text-slate-450 hover:text-blue-650 transition-colors"><Mail size={24} /></a>
+              <a href="https://mail.google.com/mail/?view=cm&fs=1&to=krooomcare@gmail.com" target="_blank" rel="noopener noreferrer" className="text-slate-450 hover:text-blue-650 transition-colors"><Mail size={24} /></a>
               <a href="https://www.instagram.com/kroombox.official?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==" target="_blank" rel="noopener noreferrer" className="text-slate-450 hover:text-blue-650 transition-colors"><Instagram size={24} /></a>
               <a href="https://www.tiktok.com/@kroombox.com?is_from_webapp=1&sender_device=pc" target="_blank" rel="noopener noreferrer" className="text-slate-450 hover:text-blue-650 transition-colors"><Tiktok size={24} /></a>
               <a href="https://linkedin.com/company/kroomcare" target="_blank" rel="noopener noreferrer" className="text-slate-450 hover:text-blue-650 transition-colors"><Linkedin size={24} /></a>
@@ -288,6 +308,21 @@ export const RegisterPage = () => {
           </div>
         </div>
       </footer>
+
+      {/* Floating Toast Notification */}
+      {showToast && (
+        <div 
+          id={toastType === 'success' ? "toast_success" : "toast_error"} 
+          className={`toast_${toastType} fixed bottom-24 right-8 bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl border border-slate-800 flex items-center gap-3 z-50 animate-bounce transition-all duration-300`}
+        >
+          {toastType === 'success' ? (
+            <CheckCircle2 size={18} className="text-emerald-400" />
+          ) : (
+            <AlertCircle size={18} className="text-red-400" />
+          )}
+          <span className="text-xs font-bold">{toastMessage}</span>
+        </div>
+      )}
     </div>
   );
 };

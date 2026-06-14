@@ -8,7 +8,8 @@ const {
   updateStatus,
   getTicketReplies,
   addTicketReply,
-  giveReward
+  giveReward,
+  escalateTicket
 } = require('../controllers/ticketController');
 
 // Rute daftar tiket
@@ -25,6 +26,10 @@ router.put('/:id/priority', setPriority);
 
 // Rute ubah status tiket
 router.put('/:id/status', updateStatus);
+
+// Rute eskalasi tiket ke maintenance
+router.put('/:id/escalate', escalateTicket);
+
 
 // Rute ambil chat/balasan tiket
 router.get('/:id/replies', getTicketReplies);
