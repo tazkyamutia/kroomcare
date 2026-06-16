@@ -186,6 +186,9 @@ export const ForumThreadPage: React.FC<ForumThreadProps> = ({ userRole }) => {
         setMessages((prev: any) => [...prev, result.data]);
         setReply('');
         setReplyingTo(null);
+        if (userRole === 'staff' && isTicketPath) {
+          setTicket((prev: any) => prev ? { ...prev, status: 'In Progress' } : null);
+        }
       } else {
         alert(result.message || 'Gagal mengirim balasan.');
       }
@@ -522,47 +525,49 @@ export const ForumThreadPage: React.FC<ForumThreadProps> = ({ userRole }) => {
       </div>
 
       {/* Reply Container */}
-      <div className="sticky bottom-0 left-0 right-0 p-4 bg-slate-50/80 dark:bg-[#0b0f19]/85 backdrop-blur-md rounded-t-[3rem] border-t border-slate-200 dark:border-slate-800/80 z-30 -mx-4 md:mx-0">
-        <div className="max-w-4xl mx-auto">
-          {replyingTo && (
-            <div className="px-6 py-3 bg-indigo-50 border-x border-t border-indigo-100 rounded-t-2xl flex items-center justify-between mb-0">
-               <p className="text-xs text-indigo-600 font-bold">
-                Membalas ke <span className="text-indigo-800">@{replyingTo.name}</span>
-               </p>
-               <button onClick={() => setReplyingTo(null)} className="text-indigo-400 hover:text-indigo-600">
-                <MoreHorizontal size={16} />
-               </button>
-            </div>
-          )}
-          <div className={cn(
-            "bg-white rounded-3xl border border-slate-200 shadow-xl p-2 flex items-end gap-2",
-            replyingTo && "rounded-t-none"
-          )}>
-            <textarea 
-              rows={replyingTo || isPrivate ? 1 : 2}
-              value={reply}
-              onChange={(e) => setReply(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  if (reply.trim()) {
-                    handleSendReply();
+      {ticket.status !== 'Resolved' && (
+        <div className="sticky bottom-0 left-0 right-0 p-4 bg-slate-50/80 dark:bg-[#0b0f19]/85 backdrop-blur-md rounded-t-[3rem] border-t border-slate-200 dark:border-slate-800/80 z-30 -mx-4 md:mx-0">
+          <div className="max-w-4xl mx-auto">
+            {replyingTo && (
+              <div className="px-6 py-3 bg-indigo-50 border-x border-t border-indigo-100 rounded-t-2xl flex items-center justify-between mb-0">
+                 <p className="text-xs text-indigo-600 font-bold">
+                  Membalas ke <span className="text-indigo-800">@{replyingTo.name}</span>
+                 </p>
+                 <button onClick={() => setReplyingTo(null)} className="text-indigo-400 hover:text-indigo-600">
+                  <MoreHorizontal size={16} />
+                 </button>
+              </div>
+            )}
+            <div className={cn(
+              "bg-white rounded-3xl border border-slate-200 shadow-xl p-2 flex items-end gap-2",
+              replyingTo && "rounded-t-none"
+            )}>
+              <textarea 
+                rows={replyingTo || isPrivate ? 1 : 2}
+                value={reply}
+                onChange={(e) => setReply(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    if (reply.trim()) {
+                      handleSendReply();
+                    }
                   }
-                }
-              }}
-              placeholder={isPrivate ? "Ketik pesan untuk staff..." : "Tambahkan komentar di diskusi ini..."}
-              className="flex-1 px-4 py-3 bg-transparent focus:outline-none resize-none text-slate-700 text-sm"
-            />
-            <button 
-              onClick={handleSendReply}
-              disabled={!reply.trim()}
-              className="p-3 bg-brand-600 text-white rounded-2xl hover:bg-brand-700 disabled:opacity-50 transition-all shadow-lg shadow-brand-500/20 active:scale-95 shrink-0"
-            >
-              <Send size={20} className={isPrivate ? "" : "-rotate-45"} />
-            </button>
+                }}
+                placeholder={isPrivate ? "Ketik pesan untuk staff..." : "Tambahkan komentar di diskusi ini..."}
+                className="flex-1 px-4 py-3 bg-transparent focus:outline-none resize-none text-slate-700 text-sm"
+              />
+              <button 
+                onClick={handleSendReply}
+                disabled={!reply.trim()}
+                className="p-3 bg-brand-600 text-white rounded-2xl hover:bg-brand-700 disabled:opacity-50 transition-all shadow-lg shadow-brand-500/20 active:scale-95 shrink-0"
+              >
+                <Send size={20} className={isPrivate ? "" : "-rotate-45"} />
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Floating Toast Notification for Escalation */}
       {showToastTransfer && (

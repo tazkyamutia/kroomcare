@@ -1,4 +1,5 @@
 const db = require('../config/db');
+const QRCode = require('qrcode');
 
 // Login User
 const login = async (req, res) => {
@@ -298,7 +299,7 @@ const setup2FA = async (req, res) => {
     const label = encodeURIComponent(`KroomCare:${user.email}`);
     const issuer = encodeURIComponent('KroomCare');
     const otpauthUrl = `otpauth://totp/${label}?secret=${secret}&issuer=${issuer}`;
-    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(otpauthUrl)}`;
+    const qrCodeUrl = await QRCode.toDataURL(otpauthUrl);
 
     res.status(200).json({
       success: true,
@@ -322,12 +323,17 @@ const verify2FA = async (req, res) => {
       return res.status(400).json({ success: false, message: 'ID, secret, dan OTP code wajib diisi.' });
     }
 
+    const userId = parseInt(id, 10);
+    if (isNaN(userId)) {
+      return res.status(400).json({ success: false, message: 'ID pengguna tidak valid.' });
+    }
+
     const isValid = verifyTOTP(secret, code);
     if (!isValid) {
       return res.status(400).json({ success: false, message: 'Kode OTP yang Anda masukkan salah atau sudah kadaluarsa.' });
     }
 
-    await db.query('UPDATE users SET two_factor = 1, two_factor_secret = ? WHERE id = ?', [secret, id]);
+    await db.query('UPDATE users SET two_factor = 1, two_factor_secret = ? WHERE id = ?', [secret, userId]);
 
     res.status(200).json({
       success: true,
@@ -348,7 +354,12 @@ const disable2FA = async (req, res) => {
       return res.status(400).json({ success: false, message: 'User ID wajib diisi.' });
     }
 
-    await db.query('UPDATE users SET two_factor = 0, two_factor_secret = NULL WHERE id = ?', [id]);
+    const userId = parseInt(id, 10);
+    if (isNaN(userId)) {
+      return res.status(400).json({ success: false, message: 'User ID tidak valid.' });
+    }
+
+    await db.query('UPDATE users SET two_factor = 0, two_factor_secret = NULL WHERE id = ?', [userId]);
 
     res.status(200).json({
       success: true,

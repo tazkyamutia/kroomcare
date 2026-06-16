@@ -6,7 +6,7 @@ import { useUser } from '../context/UserContext';
 
 export const NewTicketPage = () => {
   const navigate = useNavigate();
-  const { user } = useUser();
+  const { user, updateUser } = useUser();
   const [formData, setFormData] = React.useState({
     subject: '',
     category: 'Hosting',
@@ -30,11 +30,13 @@ export const NewTicketPage = () => {
         body: JSON.stringify({
           user_id: user.id,
           judul: formData.subject,
-          deskripsi: formData.description
+          deskripsi: formData.description,
+          is_priority: formData.priority === 'High' ? 1 : 0
         })
       });
       const result = await response.json();
       if (response.ok && result.success) {
+        updateUser({ points: (user.points || 0) + 50 });
         alert('Tiket berhasil dibuat!');
         navigate('/tickets');
       } else {
@@ -86,11 +88,11 @@ export const NewTicketPage = () => {
               value={formData.category}
               onChange={e => setFormData({...formData, category: e.target.value})}
             >
-              <option>Hosting</option>
-              <option>Billing</option>
-              <option>Technical</option>
-              <option>Domain</option>
-              <option>Other</option>
+              <option value="Hosting">Hosting</option>
+              <option value="Billing">Billing</option>
+              <option value="Technical">Technical</option>
+              <option value="Domain">Domain</option>
+              <option value="Other">Other</option>
             </select>
           </div>
           <div className="space-y-2">
@@ -100,9 +102,9 @@ export const NewTicketPage = () => {
               value={formData.priority}
               onChange={e => setFormData({...formData, priority: e.target.value})}
             >
-              <option>Low</option>
-              <option>Medium</option>
-              <option>High</option>
+              <option value="Low">Low</option>
+              <option value="Medium">Medium</option>
+              <option value="High">High</option>
             </select>
           </div>
         </div>

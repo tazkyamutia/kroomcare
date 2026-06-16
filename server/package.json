@@ -14,6 +14,7 @@
     "express": "^4.19.2",
     "mysql2": "^3.9.7",
     "nodemailer": "^8.0.7",
+    "qrcode": "^1.5.4",
     "react-example": "file:..",
     "swagger-ui-express": "^5.0.1",
     "yamljs": "^0.3.0"

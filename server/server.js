@@ -27,6 +27,8 @@ app.use('/api/points', pointRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 
+
+
 // Dokumentasi Swagger API
 const swaggerDocument = YAML.load(path.join(__dirname, 'swagger_spec.yaml'));
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));

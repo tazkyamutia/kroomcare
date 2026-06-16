@@ -3,7 +3,7 @@ const db = require('../config/db');
 // Create Ticket
 const createTicket = async (req, res) => {
   try {
-    const { user_id, judul, deskripsi } = req.body;
+    const { user_id, judul, deskripsi, is_priority } = req.body;
     
     if (!user_id || !judul || !deskripsi) {
       return res.status(400).json({ 
@@ -12,17 +12,29 @@ const createTicket = async (req, res) => {
       });
     }
 
-    const query = 'INSERT INTO tickets (user_id, judul, deskripsi) VALUES (?, ?, ?)';
-    const [result] = await db.query(query, [user_id, judul, deskripsi]);
+    const query = 'INSERT INTO tickets (user_id, judul, deskripsi, is_priority) VALUES (?, ?, ?, ?)';
+    const [result] = await db.query(query, [user_id, judul, deskripsi, is_priority ? 1 : 0]);
+    const ticketId = result.insertId;
+
+    // Tambahkan 50 koin reward ke customer
+    await db.query('UPDATE users SET koin_reward = COALESCE(koin_reward, 0) + 50 WHERE id = ?', [user_id]);
+
+    // Catat histori poin
+    const desc = `Reward pembuatan tiket baru #${ticketId}`;
+    await db.query(
+      'INSERT INTO point_histories (user_id, jenis_transaksi, jumlah_poin, keterangan) VALUES (?, ?, ?, ?)',
+      [user_id, 'masuk', 50, desc]
+    );
 
     res.status(201).json({
       success: true,
       message: 'Tiket berhasil dibuat.',
       data: {
-        id: result.insertId,
+        id: ticketId,
         user_id,
         judul,
-        deskripsi
+        deskripsi,
+        isPriority: !!is_priority
       }
     });
   } catch (error) {
@@ -322,9 +334,9 @@ const addTicketReply = async (req, res) => {
     const [userRows] = await db.query('SELECT nama, role FROM users WHERE id = ?', [user_id]);
     const user = userRows[0] || { nama: 'Unknown', role: 'member' };
 
-    // Jika pengirim adalah staff, secara otomatis assign tiket ke staff ini jika belum di-assign
+    // Jika pengirim adalah staff, secara otomatis assign tiket ke staff ini dan ubah status menjadi 'diproses'
     if (user.role === 'staff') {
-      await db.query('UPDATE tickets SET staff_id = ? WHERE id = ? AND (staff_id IS NULL OR staff_id = 0)', [user_id, id]);
+      await db.query("UPDATE tickets SET staff_id = ?, status = 'diproses' WHERE id = ?", [user_id, id]);
     }
 
     res.status(201).json({

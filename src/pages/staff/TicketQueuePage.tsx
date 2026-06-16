@@ -31,6 +31,8 @@ export const TicketQueuePage = () => {
   }, []);
 
   const filteredTickets = tickets.filter(t => {
+    if (t.status === 'Resolved') return false;
+
     const matchesFilter = filter === 'All' || 
                         (filter === 'Priority' ? t.isPriority : 
                          filter === 'High' ? t.isPriority : 
@@ -53,7 +55,7 @@ export const TicketQueuePage = () => {
         <div className="flex items-center gap-3">
           <div className="px-4 py-2 bg-red-100 text-red-700 rounded-2xl text-xs font-black uppercase tracking-widest flex items-center gap-2">
             <span className="w-2 h-2 bg-red-600 rounded-full animate-pulse" />
-            {tickets.filter(t => t.isPriority).length} Perlu Prioritas
+            {tickets.filter(t => t.isPriority && t.status !== 'Resolved').length} Perlu Prioritas
           </div>
         </div>
       </div>

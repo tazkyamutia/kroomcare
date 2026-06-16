@@ -20,6 +20,7 @@ export const ProfilePage: React.FC = () => {
     avatar: user?.avatar || ''
   });
 
+
   // Sinkronisasikan form dengan context user yang mengambil data dari database
   React.useEffect(() => {
     if (user) {

@@ -83,7 +83,7 @@ export const StaffDashboard = () => {
     <div className="space-y-8">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-display font-bold text-slate-900">Ringkasan Staf</h1>
+          <h1 className="text-3xl font-display font-bold text-slate-900">Ringkasan Staff</h1>
           <p className="text-slate-500 mt-1">Pantau performa dukungan dan ringkasan aktivitas hari ini.</p>
         </div>
         <div className="flex items-center gap-2 bg-white p-1.5 rounded-2xl border border-slate-200 shadow-sm">

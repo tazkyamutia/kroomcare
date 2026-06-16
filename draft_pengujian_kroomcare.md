@@ -99,13 +99,15 @@ Pembuatan rancangan (*test case*) dan pelaksanaan pengujian harus dijadwalkan de
 
 *   **Tabel Jadwal Pelaksanaan**:
 
-| Tahap Pengujian | Aktivitas Pengujian | Target Pelaksanaan | Keterangan |
+| No. | Tanggal | Pekerjaan | Penanggung Jawab |
 |---|---|---|---|
-| Tahap 1 | Analisis Sistem & Rancangan Test Case | Minggu ke-1 | Pemetaan fungsionalitas dan draf Tabel 2-1 s/d 2-13 |
-| Tahap 2 | Instalasi Tools & Setup Environment | Minggu ke-2 | Setup Katalon Studio, konfigurasi port localhost:3000, penyiapan data akun |
-| Tahap 3 | Pembuatan Object Repository & Scripting | Minggu ke-3 | Spy & Capture elemen web KroomCare, pembuatan script Groovy |
-| Tahap 4 | Eksekusi Pengujian Otomatis & Logging | Minggu ke-4 | Running Test Suite di Chrome, verifikasi assert |
-| Tahap 5 | Evaluasi Hasil & Penyusunan Laporan | Minggu ke-5 | Analisis hasil aktual, penarikan kesimpulan, dan finalisasi dokumen |
+| 1. | 1 – 3 Juni 2026 | Mempersiapkan source code KroomCare yang akan diuji | Tazkya Mutia |
+| 2. | 3 – 5 Juni 2026 | Memasang runtime Node.js, dependensi, dan db local Laragon | Tazkya Mutia |
+| 3. | 5 – 7 Juni 2026 | Menentukan fungsionalitas KroomCare & cakupan pengujian | Tazkya Mutia |
+| 4. | 7 – 9 Juni 2026 | Merancang skenario test case & data pengujian (TC-LGN-01 s/d TC-PRF-03) | Tazkya Mutia |
+| 5. | 9 – 12 Juni 2026 | Melakukan scripting Katalon Studio & konfigurasi Object Repository | Tazkya Mutia |
+| 6. | 12 – 14 Juni 2026 | Eksekusi test case secara otomatis di Katalon Studio & merekam bukti uji | Tazkya Mutia |
+| 7. | 14 – 15 Juni 2026 | Penyusunan laporan hasil pengujian dan penulisan kesimpulan akhir | Tazkya Mutia |
 
 ---
 
