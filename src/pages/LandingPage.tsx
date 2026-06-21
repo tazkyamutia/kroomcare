@@ -142,7 +142,7 @@ export const LandingPage = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
-            className="text-4xl sm:text-6xl md:text-7xl lg:text-[5.5rem] font-black tracking-tight leading-[1.05] text-slate-900 dark:text-white mb-6"
+            className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight leading-[1.15] text-slate-900 dark:text-white mb-6"
           >
             Elevate Your <br />
             <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-500 dark:from-blue-400 dark:to-indigo-300">Customer Support</span>
@@ -152,7 +152,7 @@ export const LandingPage = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.15 }}
-            className="text-base sm:text-lg md:text-xl text-slate-600 dark:text-slate-400 mb-10 max-w-2xl leading-relaxed"
+            className="text-sm sm:text-base text-slate-600 dark:text-slate-400 mb-8 max-w-xl leading-relaxed"
           >
             Unlock your support potential in a fully integrated, gamified CRM workspace. Powered by smart routing and real-time response optimizations.
           </motion.p>
@@ -161,7 +161,7 @@ export const LandingPage = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.3 }}
-            className="mb-20"
+            className="mb-12"
           >
             <button 
               onClick={() => navigate('/login')}
@@ -220,7 +220,7 @@ export const LandingPage = () => {
       <section id="features" className="py-24 px-4 bg-white dark:bg-slate-900 border-t border-slate-200/50 dark:border-slate-900 transition-colors duration-300">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-20">
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-slate-900 dark:text-white mb-4 tracking-tight">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-slate-900 dark:text-white mb-4 tracking-tight">
               Powerful KroomCare Ecosystem
             </h2>
             <div className="h-1 w-12 bg-blue-500 mx-auto rounded-full" />
@@ -315,7 +315,7 @@ export const LandingPage = () => {
                   <Star size={12} className="fill-yellow-300 text-yellow-300" />
                   Newsletter KroomCare
                 </div>
-                <h3 className="text-2xl md:text-3xl font-display font-bold text-white leading-snug">
+                <h3 className="text-lg md:text-xl font-display font-bold text-white leading-snug">
                   Dapatkan tips layanan pelanggan &amp; <br className="hidden md:block" />update fitur terbaru kami
                 </h3>
                 <p className="text-sm text-blue-100 mt-2">Gratis. Tanpa spam. Bisa berhenti kapan saja.</p>
