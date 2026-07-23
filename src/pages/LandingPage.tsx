@@ -369,15 +369,22 @@ export const LandingPage = () => {
               </div>
               <div className="flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400">
                 <Phone size={14} className="text-blue-500 dark:text-blue-400 shrink-0" />
-                <span>+6285847255010</span>
+                <a 
+                  href="https://wa.me/6287886746543" 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="hover:text-blue-600 dark:hover:text-white transition-colors"
+                >
+                  +6287886746543
+                </a>
               </div>
 
               {/* Social Icons */}
               <div className="flex items-center gap-3 pt-2">
                 {[
-                  { icon: Instagram, label: 'Instagram', href: 'https://www.instagram.com/kroombox.official?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==' },
-                  { icon: Tiktok, label: 'TikTok', href: 'https://www.tiktok.com/@kroombox.com?is_from_webapp=1&sender_device=pc' },
-                  { icon: Linkedin, label: 'LinkedIn', href: 'https://linkedin.com/company/kroomcare' },
+                  { icon: Instagram, label: 'Instagram', href: 'https://www.instagram.com/kroombox?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==' },
+                  { icon: Tiktok, label: 'TikTok', href: 'https://www.tiktok.com/@kroombox?is_from_webapp=1&sender_device=pc' },
+                  { icon: Linkedin, label: 'LinkedIn', href: 'https://www.linkedin.com/company/kroombox/' },
                 ].map(({ icon: Icon, label, href }) => (
                   <a
                     key={label}
