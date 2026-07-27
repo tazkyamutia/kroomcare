@@ -26,6 +26,50 @@ const createTicket = async (req, res) => {
       [user_id, 'masuk', 50, desc]
     );
 
+    // Kirim Notifikasi WhatsApp via GoWA
+    let userNama = 'Unknown';
+    let userEmail = 'unknown@kroombox.com';
+    try {
+      const [userRows] = await db.query('SELECT * FROM users WHERE id = ?', [user_id]);
+      if (userRows && userRows.length > 0) {
+        userNama = userRows[0].nama || 'Unknown';
+        userEmail = userRows[0].email || 'unknown@kroombox.com';
+      }
+    } catch (dbErr) {
+      console.error('Failed to fetch user details for WhatsApp notification:', dbErr.message);
+    }
+
+    const targetJid = process.env.WA_TARGET_JID || '120363xxxxx@g.us';
+    const waEndpoint = 'https://kroomhook.kroombox.com/notify';
+    const messageContent = `🎫 *Tiket Keluhan Baru #${ticketId}*
+*Nama:* ${userNama}
+*Email:* ${userEmail}
+*Subjek:* ${judul}
+*Deskripsi:* ${deskripsi}
+*Prioritas:* ${is_priority ? 'Tinggi (High)' : 'Normal'}`;
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+    fetch(waEndpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        to: targetJid,
+        message: messageContent
+      }),
+      signal: controller.signal
+    })
+      .then(async (response) => {
+        clearTimeout(timeoutId);
+        const text = await response.text();
+        console.log(`WhatsApp notification status: ${response.status}, response: ${text}`);
+      })
+      .catch((err) => {
+        clearTimeout(timeoutId);
+        console.error('WhatsApp notification error (timeout or network):', err.message);
+      });
+
     res.status(201).json({
       success: true,
       message: 'Tiket berhasil dibuat.',

@@ -44,8 +44,60 @@ export const LandingPage = () => {
   const navigate = useNavigate();
   const { theme, setTheme, t } = useLanguageTheme();
 
+  const [newsletterEmail, setNewsletterEmail] = React.useState('');
+  const [newsletterLoading, setNewsletterLoading] = React.useState(false);
+  const [newsletterToast, setNewsletterToast] = React.useState<{ show: boolean; message: string; type: 'success' | 'error' }>({
+    show: false,
+    message: '',
+    type: 'success'
+  });
+
   const toggleTheme = () => {
     setTheme(theme === 'light' ? 'dark' : 'light');
+  };
+
+  const handleSubscribe = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newsletterEmail) return;
+
+    setNewsletterLoading(true);
+    try {
+      const response = await fetch('http://newsletterHost/api/newsletter/subscribe'.replace('newsletterHost', window.location.hostname + ':5000'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email: newsletterEmail })
+      });
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        setNewsletterToast({
+          show: true,
+          message: 'Terima kasih! Anda berhasil berlangganan newsletter kami.',
+          type: 'success'
+        });
+        setNewsletterEmail('');
+      } else {
+        setNewsletterToast({
+          show: true,
+          message: result.message || 'Gagal berlangganan. Silakan coba lagi.',
+          type: 'error'
+        });
+      }
+    } catch (err) {
+      console.error('Newsletter error:', err);
+      setNewsletterToast({
+        show: true,
+        message: 'Gagal terhubung ke server backend.',
+        type: 'error'
+      });
+    } finally {
+      setNewsletterLoading(false);
+      setTimeout(() => {
+        setNewsletterToast(prev => ({ ...prev, show: false }));
+      }, 4000);
+    }
   };
 
   return (
@@ -321,23 +373,30 @@ export const LandingPage = () => {
                 <p className="text-sm text-blue-100 mt-2">Gratis. Tanpa spam. Bisa berhenti kapan saja.</p>
               </div>
 
-              <div className="relative z-10 w-full md:w-auto">
+              <form onSubmit={handleSubscribe} className="relative z-10 w-full md:w-auto">
                 <div className="flex gap-2">
                   <div className="relative flex-1 md:w-72">
                     <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                     <input
                       type="email"
+                      required
+                      value={newsletterEmail}
+                      onChange={(e) => setNewsletterEmail(e.target.value)}
                       placeholder="Masukkan email Anda..."
                       className="w-full pl-10 pr-4 py-3 bg-white text-slate-800 text-sm rounded-2xl border-0 focus:outline-none focus:ring-2 focus:ring-white/50 placeholder:text-slate-400"
                     />
                   </div>
-                  <button className="px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white text-sm font-bold rounded-2xl transition-all flex items-center gap-2 shrink-0 shadow-lg">
+                  <button 
+                    type="submit"
+                    disabled={newsletterLoading}
+                    className="px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white text-sm font-bold rounded-2xl transition-all flex items-center gap-2 shrink-0 shadow-lg disabled:opacity-70"
+                  >
                     <Send size={14} />
-                    Subscribe
+                    {newsletterLoading ? 'Subscribing...' : 'Subscribe'}
                   </button>
                 </div>
                 <p className="text-[10px] text-blue-200 mt-2 ml-1">Dengan subscribe, Anda menyetujui kebijakan privasi kami.</p>
-              </div>
+              </form>
             </div>
           </div>
         </div>
@@ -361,7 +420,14 @@ export const LandingPage = () => {
               </p>
               <div className="flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400">
                 <MapPin size={14} className="text-blue-500 dark:text-blue-400 shrink-0" />
-                <span>Bandung, Jawa Barat, Indonesia</span>
+                <a 
+                  href="https://maps.app.goo.gl/Nwd5ibK6BLPkHJri8" 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="hover:text-blue-600 dark:hover:text-white transition-colors"
+                >
+                  Ko+Lab Lt.4, Fakultas Ilmu Terapan, Telkom University
+                </a>
               </div>
               <div className="flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400">
                 <Mail size={14} className="text-blue-500 dark:text-blue-400 shrink-0" />
@@ -497,6 +563,16 @@ export const LandingPage = () => {
           </div>
         </div>
       </footer>
+
+      {/* Newsletter Floating Toast Notification */}
+      {newsletterToast.show && (
+        <div 
+          className={`fixed bottom-24 right-8 bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl border border-slate-800 flex items-center gap-3 z-50 animate-bounce transition-all duration-300`}
+        >
+          <div className={`w-2 h-2 rounded-full ${newsletterToast.type === 'success' ? 'bg-emerald-400' : 'bg-red-400'}`} />
+          <span className="text-xs font-bold">{newsletterToast.message}</span>
+        </div>
+      )}
     </div>
   );
 };

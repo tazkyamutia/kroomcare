@@ -742,6 +742,34 @@ async function query(sql, params = []) {
     return [rows, null];
   }
 
+  // CREATE TABLE IF NOT EXISTS newsletters
+  if (lowerSql.startsWith('create table if not exists newsletters')) {
+    return [[], null];
+  }
+
+  // INSERT INTO newsletters
+  if (lowerSql.startsWith('insert into newsletters')) {
+    const [email] = params;
+    if (!data.newsletters) {
+      data.newsletters = [];
+    }
+    const duplicate = data.newsletters.find(n => n.email === email);
+    if (duplicate) {
+      const err = new Error(`Duplicate entry '${email}' for key 'email'`);
+      err.code = 'ER_DUP_ENTRY';
+      err.errno = 1062;
+      throw err;
+    }
+    const newId = data.newsletters.length > 0 ? Math.max(...data.newsletters.map(n => n.id)) + 1 : 1;
+    data.newsletters.push({
+      id: newId,
+      email,
+      created_at: new Date().toISOString()
+    });
+    writeData(data);
+    return [{ insertId: newId }, null];
+  }
+
   console.log('UNHANDLED MOCK QUERY:', sql, params);
   return [[], null];
 }
