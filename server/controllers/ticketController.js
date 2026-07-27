@@ -40,7 +40,6 @@ const createTicket = async (req, res) => {
     }
 
     const targetJid = process.env.WA_TARGET_JID || '120363xxxxx@g.us';
-    const waEndpoint = 'https://kroomhook.kroombox.com/notify';
     const messageContent = `🎫 *Tiket Keluhan Baru #${ticketId}*
 *Nama:* ${userNama}
 *Email:* ${userEmail}
@@ -48,27 +47,22 @@ const createTicket = async (req, res) => {
 *Deskripsi:* ${deskripsi}
 *Prioritas:* ${is_priority ? 'Tinggi (High)' : 'Normal'}`;
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
-
-    fetch(waEndpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        to: targetJid,
-        message: messageContent
-      }),
-      signal: controller.signal
-    })
-      .then(async (response) => {
-        clearTimeout(timeoutId);
-        const text = await response.text();
-        console.log(`WhatsApp notification status: ${response.status}, response: ${text}`);
+    // Antrekan notifikasi dan lakukan pengiriman awal secara asinkron
+    const { queueNotification, sendNotification, updateNotificationStatus } = require('../utils/notificationQueue');
+    queueNotification(targetJid, messageContent)
+      .then(async (queueId) => {
+        if (!queueId) return;
+        const result = await sendNotification(targetJid, messageContent);
+        if (result.success) {
+          await updateNotificationStatus(queueId, 'sent');
+        } else {
+          await updateNotificationStatus(queueId, 'failed', 1);
+        }
       })
       .catch((err) => {
-        clearTimeout(timeoutId);
-        console.error('WhatsApp notification error (timeout or network):', err.message);
+        console.error('Failed to trigger initial notification send:', err.message);
       });
+
 
     res.status(201).json({
       success: true,
