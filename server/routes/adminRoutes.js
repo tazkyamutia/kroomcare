@@ -7,7 +7,9 @@ const {
   deleteUser, 
   getUserPointHistoryAdmin,
   getStaffDashboardStats,
-  resetUserPoints
+  resetUserPoints,
+  getApiKey,
+  generateApiKey
 } = require('../controllers/adminController');
 
 // Route untuk mendapatkan seluruh data statistik admin dashboard
@@ -22,6 +24,10 @@ router.post('/users', createUser);
 router.delete('/users/:id', deleteUser);
 router.get('/users/:id/points', getUserPointHistoryAdmin);
 router.put('/users/:id/reset-points', resetUserPoints);
+
+// Route pengaturan integrasi API Key
+router.get('/api-key', getApiKey);
+router.post('/api-key/generate', generateApiKey);
 
 module.exports = router;
 

@@ -1,4 +1,30 @@
 const db = require('../config/db');
+const https = require('https');
+const http = require('http');
+
+const sendWebhook = (webhookUrl, payload) => {
+    try {
+        const urlObj = new URL(webhookUrl);
+        const protocol = urlObj.protocol === 'https:' ? https : http;
+        const options = {
+            hostname: urlObj.hostname,
+            port: urlObj.port,
+            path: urlObj.pathname + urlObj.search,
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-api-key': process.env.KROOMCARE_API_KEY
+            }
+        };
+        const req = protocol.request(options);
+        req.on('error', (e) => console.error('[Webhook] Failed:', e.message));
+        req.write(JSON.stringify(payload));
+        req.end();
+    } catch(err) {
+        console.error('[Webhook] setup error:', err.message);
+    }
+};
+
 
 // Create Ticket
 const createTicket = async (req, res) => {
@@ -289,6 +315,20 @@ const updateStatus = async (req, res) => {
       });
     }
 
+    // Sync status to KolabPanel if external_ticket_id exists
+    try {
+      const [ticketRows] = await db.query('SELECT external_ticket_id FROM tickets WHERE id = ?', [id]);
+      if (ticketRows.length > 0 && ticketRows[0].external_ticket_id && process.env.KOLABPANEL_WEBHOOK_URL) {
+          const webhookUrl = process.env.KOLABPANEL_WEBHOOK_URL.replace('/external-reply', '/external-status');
+          sendWebhook(webhookUrl, {
+              external_ticket_id: ticketRows[0].external_ticket_id,
+              status: status
+          });
+      }
+    } catch (syncErr) {
+      console.error('[Kroomcare] Error fetching ticket for sync:', syncErr.message);
+    }
+
     res.status(200).json({
       success: true,
       message: 'Status tiket berhasil diperbarui.',
@@ -375,6 +415,21 @@ const addTicketReply = async (req, res) => {
     // Jika pengirim adalah staff, secara otomatis assign tiket ke staff ini dan ubah status menjadi 'diproses'
     if (user.role === 'staff') {
       await db.query("UPDATE tickets SET staff_id = ?, status = 'diproses' WHERE id = ?", [user_id, id]);
+
+      // --- Sync reply to KolabPanel if this is an external ticket ---
+      try {
+        const [tktRows] = await db.query('SELECT external_ticket_id FROM tickets WHERE id = ?', [id]);
+        const extTicketId = tktRows.length > 0 ? tktRows[0].external_ticket_id : null;
+        if (extTicketId && process.env.KOLABPANEL_WEBHOOK_URL) {
+            sendWebhook(process.env.KOLABPANEL_WEBHOOK_URL, {
+                external_ticket_id: extTicketId,
+                sender_name: user.nama,
+                text: konten
+            });
+        }
+      } catch(err) {
+        console.error('Failed to process KolabPanel webhook:', err.message);
+      }
     }
 
     res.status(201).json({

@@ -25,7 +25,7 @@ export const RewardsPage = () => {
     if (!user?.id) return;
     setIsLoadingHistory(true);
     try {
-      const response = await fetch(`http://localhost:5000/api/points/history/${user.id}`);
+      const response = await fetch(`/api/points/history/${user.id}`);
       const result = await response.json();
       if (response.ok && result.success) {
         // Ambil maksimal 3 transaksi terakhir untuk panel samping
@@ -67,7 +67,7 @@ export const RewardsPage = () => {
     setShowConfirmModal(false);
 
     try {
-      const response = await fetch('http://localhost:5000/api/points/redeem', {
+      const response = await fetch('/api/points/redeem', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

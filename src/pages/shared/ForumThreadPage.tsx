@@ -33,13 +33,13 @@ export const ForumThreadPage: React.FC<ForumThreadProps> = ({ userRole }) => {
     try {
       const typePath = isTicketPath ? 'tickets' : 'forums';
       
-      const resDetail = await fetch(`http://localhost:5000/api/${typePath}/${id}`);
+      const resDetail = await fetch(`/api/${typePath}/${id}`);
       const detailResult = await resDetail.json();
       if (resDetail.ok && detailResult.success) {
         setTicket(detailResult.data);
       }
 
-      const resReplies = await fetch(`http://localhost:5000/api/${typePath}/${id}/replies`);
+      const resReplies = await fetch(`/api/${typePath}/${id}/replies`);
       const repliesResult = await resReplies.json();
       if (resReplies.ok && repliesResult.success) {
         setMessages(repliesResult.data);
@@ -69,7 +69,7 @@ export const ForumThreadPage: React.FC<ForumThreadProps> = ({ userRole }) => {
     if (!ticket) return;
     const newPriority = !ticket.isPriority;
     try {
-      const res = await fetch(`http://localhost:5000/api/tickets/${id}/priority`, {
+      const res = await fetch(`/api/tickets/${id}/priority`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ is_priority: newPriority })
@@ -89,7 +89,7 @@ export const ForumThreadPage: React.FC<ForumThreadProps> = ({ userRole }) => {
   const handleTransferMaintenance = async () => {
     if (!ticket) return;
     try {
-      const res = await fetch(`http://localhost:5000/api/tickets/${id}/escalate`, {
+      const res = await fetch(`/api/tickets/${id}/escalate`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ staff_id: user?.id })
@@ -111,7 +111,7 @@ export const ForumThreadPage: React.FC<ForumThreadProps> = ({ userRole }) => {
   const handleStatusChange = async (newStatus: 'Open' | 'In Progress' | 'Resolved') => {
     if (!ticket) return;
     try {
-      const res = await fetch(`http://localhost:5000/api/tickets/${id}/status`, {
+      const res = await fetch(`/api/tickets/${id}/status`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -141,7 +141,7 @@ export const ForumThreadPage: React.FC<ForumThreadProps> = ({ userRole }) => {
     if (!ticket) return;
     setIsGivingReward(true);
     try {
-      const res = await fetch(`http://localhost:5000/api/tickets/${id}/reward`, {
+      const res = await fetch(`/api/tickets/${id}/reward`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ points: rewardPoints })
@@ -168,13 +168,13 @@ export const ForumThreadPage: React.FC<ForumThreadProps> = ({ userRole }) => {
     try {
       let res;
       if (isTicketPath) {
-        res = await fetch(`http://localhost:5000/api/tickets/${id}/replies`, {
+        res = await fetch(`/api/tickets/${id}/replies`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ user_id: user.id, konten: contentToSend })
         });
       } else {
-        res = await fetch(`http://localhost:5000/api/forums/replies`, {
+        res = await fetch(`/api/forums/replies`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ forum_id: id, user_id: user.id, konten: contentToSend })
@@ -455,7 +455,7 @@ export const ForumThreadPage: React.FC<ForumThreadProps> = ({ userRole }) => {
                                 onClick={async () => {
                                   if (window.confirm('Apakah Anda yakin ingin menghapus balasan ini?')) {
                                     try {
-                                      const res = await fetch(`http://localhost:5000/api/forums/replies/${msg.id}`, {
+                                      const res = await fetch(`/api/forums/replies/${msg.id}`, {
                                         method: 'DELETE'
                                       });
                                       const result = await res.json();

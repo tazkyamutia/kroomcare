@@ -18,7 +18,7 @@ const receiveExternalTicket = async (req, res) => {
     }
 
     // ── 2. Validasi Payload ──────────────────────────────────────────────────
-    const { email, nama, judul, kategori, prioritas, deskripsi } = req.body;
+    const { external_ticket_id, email, nama, judul, kategori, prioritas, deskripsi } = req.body;
     if (!email || !judul || !deskripsi) {
       return res.status(400).json({
         success: false,
@@ -54,10 +54,11 @@ const receiveExternalTicket = async (req, res) => {
     const finalKategori = kategori || 'General';
 
     const insertTicket = `
-      INSERT INTO tickets (user_id, judul, deskripsi, is_priority, kategori)
-      VALUES (?, ?, ?, ?, ?)
+      INSERT INTO tickets (external_ticket_id, user_id, judul, deskripsi, is_priority, kategori)
+      VALUES (?, ?, ?, ?, ?, ?)
     `;
     const [ticketResult] = await db.query(insertTicket, [
+      external_ticket_id || null,
       userId,
       judul,
       deskripsi,
@@ -132,4 +133,28 @@ const receiveExternalTicket = async (req, res) => {
   }
 };
 
-module.exports = { receiveExternalTicket };
+const receiveExternalStatus = async (req, res) => {
+  try {
+    const apiKey = req.headers['x-api-key'];
+    if (!apiKey || apiKey !== process.env.KROOMCARE_API_KEY) {
+      return res.status(401).json({ success: false, message: 'Invalid API Key' });
+    }
+
+    const { external_ticket_id, status } = req.body;
+    if (!external_ticket_id || !status) {
+      return res.status(400).json({ success: false, message: 'Missing fields' });
+    }
+
+    // Map KolabPanel status to Kroomcare status
+    const dbStatus = (status === 'CLOSED' || status === 'Closed' || status === 'Resolved') ? 'selesai' : 'menunggu';
+
+    await db.query('UPDATE tickets SET status = ? WHERE external_ticket_id = ?', [dbStatus, external_ticket_id]);
+
+    res.status(200).json({ success: true });
+  } catch (error) {
+    console.error('[ExternalController] receiveExternalStatus Error:', error);
+    res.status(500).json({ success: false, message: 'Internal error' });
+  }
+};
+
+module.exports = { receiveExternalTicket, receiveExternalStatus };

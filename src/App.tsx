@@ -13,6 +13,7 @@ import { SettingsPage } from './pages/shared/SettingsPage';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { UserManagementPage } from './pages/admin/UserManagementPage';
 import { TicketSettingsPage } from './pages/admin/TicketSettingsPage';
+import { ApiIntegrationPage } from './pages/admin/ApiIntegrationPage';
 import { StaffDashboard } from './pages/staff/StaffDashboard';
 import { TicketQueuePage } from './pages/staff/TicketQueuePage';
 import { ForumThreadPage } from './pages/shared/ForumThreadPage';
@@ -87,6 +88,7 @@ export default function App() {
                     <Route path="/forum/:id" element={<ForumThreadPage userRole="admin" />} />
                     <Route path="/admin/users" element={<UserManagementPage />} />
                     <Route path="/admin/tickets" element={<TicketSettingsPage />} />
+                    <Route path="/admin/api" element={<ApiIntegrationPage />} />
                     <Route path="/profile" element={<ProfilePage />} />
                     <Route path="/settings" element={<SettingsPage />} />
                   </>

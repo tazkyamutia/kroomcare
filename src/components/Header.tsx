@@ -30,8 +30,8 @@ export const Header: React.FC = () => {
 
       if (user.role === 'customer') {
         const [ticketsRes, pointsRes] = await Promise.all([
-          fetch(`http://localhost:5000/api/tickets?user_id=${user.id}`),
-          fetch(`http://localhost:5000/api/points/history/${user.id}`)
+          fetch(`/api/tickets?user_id=${user.id}`),
+          fetch(`/api/points/history/${user.id}`)
         ]);
 
         const ticketsData = await ticketsRes.json();
@@ -85,7 +85,7 @@ export const Header: React.FC = () => {
           });
         }
       } else if (user.role === 'staff') {
-        const ticketsRes = await fetch('http://localhost:5000/api/tickets');
+        const ticketsRes = await fetch('/api/tickets');
         const ticketsData = await ticketsRes.json();
         if (ticketsRes.ok && ticketsData.success) {
           ticketsData.data.forEach((ticket: any) => {

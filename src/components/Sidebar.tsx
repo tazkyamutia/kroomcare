@@ -46,6 +46,7 @@ export const Sidebar: React.FC = () => {
           { name: t('nav.forum'), path: '/forum', icon: MessageSquare },
           { name: t('nav.user_management'), path: '/admin/users', icon: Users },
           { name: t('nav.ticket_settings'), path: '/admin/tickets', icon: Settings },
+          { name: 'Integrasi API', path: '/admin/api', icon: ShieldCheck },
           { name: t('nav.profile'), path: '/profile', icon: User },
           { name: t('nav.settings'), path: '/settings', icon: Settings },
         ];

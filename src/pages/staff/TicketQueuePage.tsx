@@ -15,7 +15,7 @@ export const TicketQueuePage = () => {
     const fetchAllTickets = async () => {
       setIsLoading(true);
       try {
-        const response = await fetch('http://localhost:5000/api/tickets');
+        const response = await fetch('/api/tickets');
         const result = await response.json();
         if (response.ok && result.success) {
           setTickets(result.data);

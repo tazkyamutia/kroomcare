@@ -28,7 +28,7 @@ export const UserManagementPage = () => {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:5000/api/admin/users');
+      const response = await fetch('/api/admin/users');
       const result = await response.json();
       if (response.ok && result.success) {
         setUsers(result.data);
@@ -46,7 +46,7 @@ export const UserManagementPage = () => {
   const fetchPointHistory = async (userId: string) => {
     setLoadingPoints(true);
     try {
-      const response = await fetch(`http://localhost:5000/api/admin/users/${userId}/points`);
+      const response = await fetch(`/api/admin/users/${userId}/points`);
       const result = await response.json();
       if (response.ok && result.success) {
         setPointHistory(result.data);
@@ -73,7 +73,7 @@ export const UserManagementPage = () => {
   const handleDeleteUser = async (userId: string, userName: string) => {
     if (window.confirm(`Apakah Anda yakin ingin menghapus pengguna "${userName}"? Seluruh data tiket, forum, dan riwayat koin miliknya juga akan dibersihkan.`)) {
       try {
-        const response = await fetch(`http://localhost:5000/api/admin/users/${userId}`, {
+        const response = await fetch(`/api/admin/users/${userId}`, {
           method: 'DELETE'
         });
         const result = await response.json();
@@ -92,7 +92,7 @@ export const UserManagementPage = () => {
 
   const handleResetPoints = async (userId: string) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/admin/users/${userId}/reset-points`, {
+      const response = await fetch(`/api/admin/users/${userId}/reset-points`, {
         method: 'PUT'
       });
       const result = await response.json();
@@ -118,7 +118,7 @@ export const UserManagementPage = () => {
 
     setSubmitting(true);
     try {
-      const response = await fetch('http://localhost:5000/api/admin/users', {
+      const response = await fetch('/api/admin/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

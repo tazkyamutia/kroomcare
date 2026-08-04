@@ -26,7 +26,7 @@ export const StaffDashboard = () => {
       setLoading(true);
       try {
         const staffId = user?.id || '';
-        const response = await fetch(`http://localhost:5000/api/admin/stats/staff?staffId=${staffId}&shift=${shift}`);
+        const response = await fetch(`/api/admin/stats/staff?staffId=${staffId}&shift=${shift}`);
         const result = await response.json();
         if (response.ok && result.success) {
           setStats(result.data);

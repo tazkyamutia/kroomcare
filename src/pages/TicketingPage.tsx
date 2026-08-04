@@ -17,7 +17,7 @@ export const TicketingPage = () => {
     
     const fetchTickets = async () => {
       try {
-        const response = await fetch(`http://localhost:5000/api/tickets?user_id=${user.id}`);
+        const response = await fetch(`/api/tickets?user_id=${user.id}`);
         const result = await response.json();
         if (response.ok && result.success) {
           setTickets(result.data);

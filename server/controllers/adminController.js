@@ -524,6 +524,64 @@ const resetUserPoints = async (req, res) => {
   }
 };
 
+// Get API Key
+const getApiKey = async (req, res) => {
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const envPath = path.join(__dirname, '../../.env');
+    let envContent = '';
+    if (fs.existsSync(envPath)) {
+      envContent = fs.readFileSync(envPath, 'utf8');
+    }
+    const match = envContent.match(/^KROOMCARE_API_KEY=(.*)$/m);
+    const apiKey = match ? match[1] : '';
+    res.status(200).json({ success: true, apiKey });
+  } catch (error) {
+    console.error('Error fetching API key:', error);
+    res.status(500).json({ success: false, message: 'Gagal mengambil API Key.' });
+  }
+};
+
+// Generate API Key
+const generateApiKey = async (req, res) => {
+  try {
+    const crypto = require('crypto');
+    const newKey = 'KC_' + crypto.randomBytes(24).toString('hex');
+    
+    const fs = require('fs');
+    const path = require('path');
+    const envPath = path.join(__dirname, '../../.env');
+    const envServerPath = path.join(__dirname, '../.env');
+
+    const updateEnvFile = (filePath) => {
+      if (!fs.existsSync(filePath)) return;
+      let content = fs.readFileSync(filePath, 'utf8');
+      if (content.match(/^KROOMCARE_API_KEY=/m)) {
+        content = content.replace(/^KROOMCARE_API_KEY=.*$/m, `KROOMCARE_API_KEY=${newKey}`);
+      } else {
+        content += `\nKROOMCARE_API_KEY=${newKey}\n`;
+      }
+      fs.writeFileSync(filePath, content);
+    };
+
+    updateEnvFile(envPath);
+    updateEnvFile(envServerPath);
+
+    // Langsung terapkan di memori agar tidak butuh PM2 restart instan
+    process.env.KROOMCARE_API_KEY = newKey;
+
+    res.status(200).json({ 
+      success: true, 
+      apiKey: newKey, 
+      message: 'API Key berhasil diperbarui!' 
+    });
+  } catch (error) {
+    console.error('Error generating API key:', error);
+    res.status(500).json({ success: false, message: 'Gagal membuat API Key baru.' });
+  }
+};
+
 module.exports = {
   getAdminStats,
   getAllUsers,
@@ -531,6 +589,8 @@ module.exports = {
   deleteUser,
   getUserPointHistoryAdmin,
   getStaffDashboardStats,
-  resetUserPoints
+  resetUserPoints,
+  getApiKey,
+  generateApiKey
 };
 

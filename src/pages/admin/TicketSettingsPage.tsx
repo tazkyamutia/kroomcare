@@ -16,7 +16,7 @@ export const TicketSettingsPage = () => {
   const fetchTickets = async () => {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:5000/api/tickets');
+      const response = await fetch('/api/tickets');
       const result = await response.json();
       if (response.ok && result.success) {
         setTickets(result.data);
@@ -39,7 +39,7 @@ export const TicketSettingsPage = () => {
     const isPriority = value === 'High';
     setUpdatingId(ticketId);
     try {
-      const response = await fetch(`http://localhost:5000/api/tickets/${ticketId}/priority`, {
+      const response = await fetch(`/api/tickets/${ticketId}/priority`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ is_priority: isPriority })
@@ -64,7 +64,7 @@ export const TicketSettingsPage = () => {
   const handleStatusChange = async (ticketId: string, status: string) => {
     setUpdatingId(ticketId);
     try {
-      const response = await fetch(`http://localhost:5000/api/tickets/${ticketId}/status`, {
+      const response = await fetch(`/api/tickets/${ticketId}/status`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status })

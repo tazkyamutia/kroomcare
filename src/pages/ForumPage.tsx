@@ -22,7 +22,7 @@ export const ForumPage = () => {
   const fetchForums = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('http://localhost:5000/api/forums');
+      const response = await fetch('/api/forums');
       const result = await response.json();
       if (response.ok && result.success) {
         setThreads(result.data);
@@ -51,7 +51,7 @@ export const ForumPage = () => {
 
     setIsSubmitting(true);
     try {
-      const response = await fetch('http://localhost:5000/api/forums', {
+      const response = await fetch('/api/forums', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -171,7 +171,7 @@ export const ForumPage = () => {
                           e.stopPropagation();
                           if (window.confirm('Apakah Anda yakin ingin menghapus diskusi ini beserta seluruh balasannya?')) {
                             try {
-                              const response = await fetch(`http://localhost:5000/api/forums/${thread.id}`, {
+                              const response = await fetch(`/api/forums/${thread.id}`, {
                                 method: 'DELETE'
                               });
                               const result = await response.json();

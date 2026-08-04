@@ -16,7 +16,7 @@ export const PointHistoryPage = () => {
     const fetchPointHistory = async () => {
       setIsLoading(true);
       try {
-        const response = await fetch(`http://localhost:5000/api/points/history/${user.id}`);
+        const response = await fetch(`/api/points/history/${user.id}`);
         const result = await response.json();
         if (response.ok && result.success) {
           setTransactions(result.data);

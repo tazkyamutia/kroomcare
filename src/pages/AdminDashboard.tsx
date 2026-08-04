@@ -26,7 +26,7 @@ export const AdminDashboard = () => {
 
   const fetchAdminData = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/admin/stats');
+      const response = await fetch('/api/admin/stats');
       const result = await response.json();
       if (response.ok && result.success) {
         setData(result);

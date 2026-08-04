@@ -85,7 +85,7 @@ export const ProfilePage: React.FC = () => {
     
     try {
       // 1. Simpan data profil dasar
-      const res = await fetch(`http://localhost:5000/api/auth/profile/${user.id}`, {
+      const res = await fetch(`/api/auth/profile/${user.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -120,7 +120,7 @@ export const ProfilePage: React.FC = () => {
           return;
         }
 
-        const passwordRes = await fetch(`http://localhost:5000/api/auth/profile/${user.id}/password`, {
+        const passwordRes = await fetch(`/api/auth/profile/${user.id}/password`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -162,7 +162,7 @@ export const ProfilePage: React.FC = () => {
     if (!user?.id) return;
     const fetchHistory = async () => {
       try {
-        const response = await fetch(`http://localhost:5000/api/points/history/${user.id}`);
+        const response = await fetch(`/api/points/history/${user.id}`);
         const result = await response.json();
         if (response.ok && result.success) {
           setRecentTransactions(result.data.slice(0, 3));
@@ -196,7 +196,7 @@ export const ProfilePage: React.FC = () => {
       if (!confirmDisable) return;
 
       try {
-        const response = await fetch('http://localhost:5000/api/auth/2fa/disable', {
+        const response = await fetch('/api/auth/2fa/disable', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ id: user.id })
@@ -216,7 +216,7 @@ export const ProfilePage: React.FC = () => {
     } else {
       setModalLoading(true);
       try {
-        const response = await fetch('http://localhost:5000/api/auth/2fa/setup', {
+        const response = await fetch('/api/auth/2fa/setup', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ id: user.id })
@@ -242,7 +242,7 @@ export const ProfilePage: React.FC = () => {
     if (!user?.id || !setupSecret || !otpCode) return;
     setModalLoading(true);
     try {
-      const response = await fetch('http://localhost:5000/api/auth/2fa/verify', {
+      const response = await fetch('/api/auth/2fa/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

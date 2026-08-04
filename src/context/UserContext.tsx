@@ -30,7 +30,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const syncUserProfile = async () => {
       try {
-        const response = await fetch(`http://localhost:5000/api/auth/profile/${user.id}`);
+        const response = await fetch(`/api/auth/profile/${user.id}`);
         const result = await response.json();
         if (response.ok && result.success) {
           const dbUser = result.data;
