@@ -421,12 +421,15 @@ const login2FA = async (req, res) => {
 };
 
 const nodemailer = require('nodemailer');
+const dns = require('dns');
 
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: process.env.MAIL_HOST || 'smtp.gmail.com',
+  port: parseInt(process.env.MAIL_PORT) || 587,
+  secure: process.env.MAIL_PORT == 465, // true for 465, false for other ports
   auth: {
-    user: 'krooomcare@gmail.com',
-    pass: 'arub dkir jegn lvsh'
+    user: process.env.MAIL_USERNAME,
+    pass: process.env.MAIL_PASSWORD
   }
 });
 
@@ -453,10 +456,10 @@ const forgotPassword = async (req, res) => {
 
     // Kirim email
     const mailOptions = {
-      from: '"KroomCare Support" <krooomcare@gmail.com>',
+      from: `"${process.env.MAIL_FROM_NAME || 'KroomCare Support'}" <${process.env.MAIL_FROM_ADDRESS || process.env.MAIL_USERNAME}>`,
       to: email,
       subject: 'Kode OTP Reset Password KroomCare',
-      text: `Halo ${user.nama},\n\nKami menerima permintaan untuk mereset kata sandi akun Anda. Silakan gunakan kode OTP berikut untuk melanjutkan proses reset password:\n\n${otp}\n\nKode OTP ini hanya berlaku selama 10 menit. Jika Anda tidak merasa mengajukan permintaan ini, silakan abaikan email ini dengan aman.\n\nSalam,\nKroomCare Support`,
+      text: `Halo ${user.nama},\n\nKami menerima permintaan untuk mereset kata sandi akun Anda. Silakan gunakan kode OTP berikut untuk melanjutkan proses reset password:\n\n${otp}\n\nKode OTP ini hanya berlaku selama 10 menit. Jika Anda tidak merasa mengajukan permintaan ini, silakan abaikan email ini dengan aman.\n\nSalam,\n${process.env.MAIL_FROM_NAME || 'KroomCare Support'}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 30px; border: 1px solid #e2e8f0; border-radius: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
           <div style="text-align: center; margin-bottom: 20px;">
@@ -483,17 +486,10 @@ const forgotPassword = async (req, res) => {
     });
   } catch (error) {
     console.error('Error in forgotPassword:', error);
-    
-    // Fallback untuk developer di lingkungan lokal jika jaringan memblokir port SMTP
-    console.log(`\n======================================================`);
-    console.log(`⚠️  [DEVELOPER FALLBACK - OTP GENERATED]`);
-    console.log(`Tujuan Email: ${email}`);
-    console.log(`Kode OTP Anda: ${otp}`);
-    console.log(`======================================================\n`);
-
-    res.status(200).json({
-      success: true,
-      message: 'Kode OTP telah diproses. (Periksa terminal server/VS Code Anda untuk melihat kode OTP).'
+    res.status(500).json({ 
+      success: false, 
+      message: 'Gagal mengirim email OTP. Silakan periksa konfigurasi email atau coba lagi nanti.',
+      error: error.message 
     });
   }
 };

@@ -16,6 +16,7 @@
     "nodemailer": "^8.0.7",
     "qrcode": "^1.5.4",
     "react-example": "file:..",
+    "resend": "^6.18.1",
     "swagger-ui-express": "^5.0.1",
     "yamljs": "^0.3.0"
   },
