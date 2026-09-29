@@ -38,16 +38,20 @@ app.use('/api/external', externalRoutes);
 const swaggerDocument = YAML.load(path.join(__dirname, 'swagger_spec.yaml'));
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
-// Rute tes utama
-app.get('/', (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: 'Backend API KroomCare is running.'
-  });
+// Serve Frontend Static Files (Production Build)
+const distPath = path.join(__dirname, '../dist');
+app.use(express.static(distPath));
+
+// SPA Fallback: semua rute non-API diarahkan ke dist/index.html
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api') || req.path.startsWith('/api-docs')) {
+    return next();
+  }
+  res.sendFile(path.join(distPath, 'index.html'));
 });
 
-// Middleware penanganan route yang tidak ditemukan (404)
-app.use((req, res, next) => {
+// Middleware penanganan route API yang tidak ditemukan (404)
+app.use('/api/*', (req, res) => {
   res.status(404).json({
     success: false,
     message: 'Endpoint tidak ditemukan.'
@@ -64,7 +68,7 @@ app.use((err, req, res, next) => {
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server is running on http://0.0.0.0:${PORT}`);
   startNotificationWorker();
 });
