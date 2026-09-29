@@ -14,9 +14,13 @@ export const SSOPage: React.FC = () => {
   useEffect(() => {
     let isMounted = true;
     const ticket = searchParams.get('ticket');
-    const redirectPath = searchParams.get('redirect') || '/';
+    const redirectPath = searchParams.get('redirect') || '/tickets';
 
     if (!ticket) {
+      if (user) {
+        navigate(redirectPath, { replace: true });
+        return;
+      }
       setStatus('error');
       setErrorMessage('Tiket autentikasi SSO tidak ditemukan dalam URL.');
       return;

@@ -572,6 +572,130 @@ const register = async (req, res) => {
   }
 };
 
+// Pertukaran Tiket Single Sign-On (SSO) dari Kroombox Panel
+const ssoExchange = async (req, res) => {
+  try {
+    const { ticket } = req.body;
+    if (!ticket || typeof ticket !== 'string') {
+      return res.status(400).json({
+        success: false,
+        message: 'Tiket autentikasi SSO wajib disertakan.'
+      });
+    }
+
+    const parts = ticket.split('.');
+    if (parts.length !== 3) {
+      return res.status(400).json({
+        success: false,
+        message: 'Format token SSO tidak valid.'
+      });
+    }
+
+    const [headerB64, payloadB64, signature] = parts;
+
+    // Kunci rahasia untuk verifikasi HMAC-SHA256
+    const secrets = [
+      process.env.KROOMCARE_API_KEY,
+      process.env.JWT_SECRET,
+      'KC_2aa4c37a3c8647133a9ee1177a86cd2e87936e2dcb7f96dc',
+      'bda16eead8ea629aac1255feb031dd70be2c774b1be4f1a738487faf4b9c67df'
+    ].filter(Boolean);
+
+    let isValid = false;
+    for (const secret of secrets) {
+      const expectedSig = crypto.createHmac('sha256', secret).update(`${headerB64}.${payloadB64}`).digest('base64url');
+      if (expectedSig === signature) {
+        isValid = true;
+        break;
+      }
+    }
+
+    if (!isValid) {
+      return res.status(401).json({
+        success: false,
+        message: 'Verifikasi tanda tangan tiket SSO gagal. Token tidak sah.'
+      });
+    }
+
+    let payload;
+    try {
+      payload = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8'));
+    } catch (e) {
+      return res.status(400).json({
+        success: false,
+        message: 'Gagal mendekode data tiket SSO.'
+      });
+    }
+
+    if (payload.exp && Date.now() / 1000 > payload.exp) {
+      return res.status(401).json({
+        success: false,
+        message: 'Tiket SSO telah kedaluwarsa. Silakan muat ulang halaman.'
+      });
+    }
+
+    const email = payload.email;
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: 'Identitas email tidak ditemukan dalam tiket SSO.'
+      });
+    }
+
+    // Cari pengguna di database
+    const [existingUsers] = await db.query('SELECT * FROM users WHERE email = ?', [email]);
+    let user;
+
+    if (existingUsers.length > 0) {
+      user = existingUsers[0];
+    } else {
+      // JIT Provisioning akun baru jika belum ada
+      const targetRole = payload.role === 'admin' ? 'admin' : (payload.role === 'staff' ? 'staff' : 'member');
+      const defaultPassword = 'SSO_' + Date.now();
+      const insertQuery = `
+        INSERT INTO users (nama, email, password, role, koin_reward)
+        VALUES (?, ?, ?, ?, ?)
+      `;
+      const [insertResult] = await db.query(insertQuery, [
+        payload.name || payload.username || email.split('@')[0],
+        email,
+        defaultPassword,
+        targetRole,
+        0
+      ]);
+
+      const [newUsers] = await db.query('SELECT * FROM users WHERE id = ?', [insertResult.insertId]);
+      user = newUsers[0];
+    }
+
+    const roleMapped = user.role === 'member' ? 'customer' : user.role;
+
+    // Buat token sesi SSO
+    const sessionToken = 'sso_token_' + Buffer.from(`${user.id}:${Date.now()}:${payload.nonce || '0'}`).toString('base64url');
+
+    res.status(200).json({
+      success: true,
+      message: 'Autentikasi SSO berhasil.',
+      token: sessionToken,
+      data: {
+        id: user.id.toString(),
+        name: user.nama,
+        email: user.email,
+        role: roleMapped,
+        points: user.koin_reward || 0,
+        avatar: user.foto || ''
+      }
+    });
+  } catch (error) {
+    console.error('Error in ssoExchange:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Terjadi kesalahan server saat memproses SSO.',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   login,
   register,
@@ -583,5 +707,6 @@ module.exports = {
   disable2FA,
   login2FA,
   forgotPassword,
-  resetPassword
+  resetPassword,
+  ssoExchange
 };

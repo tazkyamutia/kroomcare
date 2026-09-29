@@ -11,8 +11,12 @@ const {
   disable2FA,
   login2FA,
   forgotPassword,
-  resetPassword
+  resetPassword,
+  ssoExchange
 } = require('../controllers/authController');
+
+// Route untuk Single Sign-On (SSO) Kroombox Panel
+router.post('/sso-exchange', ssoExchange);
 
 // Route untuk login & register
 router.post('/login', login);

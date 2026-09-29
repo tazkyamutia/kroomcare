@@ -19,6 +19,7 @@ import { TicketQueuePage } from './pages/staff/TicketQueuePage';
 import { ForumThreadPage } from './pages/shared/ForumThreadPage';
 import { LoginPage } from './pages/auth/LoginPage';
 import { RegisterPage } from './pages/auth/RegisterPage';
+import { SSOPage } from './pages/auth/SSOPage';
 import { LandingPage } from './pages/LandingPage';
 import { AnimatePresence } from 'motion/react';
 import { useUser } from './context/UserContext';
@@ -35,6 +36,8 @@ export default function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/sso" element={<SSOPage />} />
+          <Route path="/auth/sso" element={<SSOPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Router>
@@ -93,6 +96,10 @@ export default function App() {
                     <Route path="/settings" element={<SettingsPage />} />
                   </>
                 )}
+
+                {/* SSO Refresh Routes */}
+                <Route path="/sso" element={<SSOPage />} />
+                <Route path="/auth/sso" element={<SSOPage />} />
 
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
