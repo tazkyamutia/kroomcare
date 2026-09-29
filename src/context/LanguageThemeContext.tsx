@@ -1,13 +1,16 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 
-type Language = 'id' | 'en';
-type Theme = 'light' | 'dark';
+export type Language = 'id' | 'en';
+export type ThemeMode = 'system' | 'light' | 'dark';
+export type Theme = 'light' | 'dark';
 
-interface LanguageThemeContextType {
+export interface LanguageThemeContextType {
   language: Language;
   setLanguage: (lang: Language) => void;
   theme: Theme;
-  setTheme: (theme: Theme) => void;
+  themeMode: ThemeMode;
+  setTheme: (theme: ThemeMode) => void;
+  toggleTheme: () => void;
   t: (key: string) => string;
 }
 
@@ -28,14 +31,15 @@ const translations = {
 
     // Settings Page
     'settings.title': 'Pengaturan Sistem',
-    'settings.subtitle': 'Sesuaikan bahasa dan tema aplikasi KroomCare Anda.',
+    'settings.subtitle': 'Sesuaikan preferensi tampilan dan tema aplikasi KroomCare Anda.',
     'settings.language_section': 'Pilih Bahasa',
     'settings.language_desc': 'Ubah bahasa antarmuka aplikasi.',
     'settings.theme_section': 'Pilih Tema Tampilan',
-    'settings.theme_desc': 'Pilih tema gelap atau terang sesuai kenyamanan mata Anda.',
+    'settings.theme_desc': 'Pilih tema gelap, terang, atau otomatis mengikuti sistem/panel.',
+    'settings.theme_system': 'Otomatis (Sistem / Panel)',
     'settings.theme_light': 'Tema Terang',
     'settings.theme_dark': 'Tema Gelap',
-    'settings.save_success': 'Pengaturan berhasil disimpan!',
+    'settings.save_success': 'Pengaturan tema berhasil diperbarui!',
 
     // Profile Page
     'profile.title': 'Profil Pengguna',
@@ -85,14 +89,15 @@ const translations = {
 
     // Settings Page
     'settings.title': 'System Settings',
-    'settings.subtitle': 'Customize KroomCare application language and theme.',
+    'settings.subtitle': 'Customize KroomCare application appearance and theme.',
     'settings.language_section': 'Choose Language',
     'settings.language_desc': 'Change the application interface language.',
     'settings.theme_section': 'Choose Theme Mode',
-    'settings.theme_desc': 'Choose light or dark theme for your visual comfort.',
+    'settings.theme_desc': 'Choose light, dark, or automatic system/panel theme.',
+    'settings.theme_system': 'Auto (System / Panel)',
     'settings.theme_light': 'Light Theme',
     'settings.theme_dark': 'Dark Theme',
-    'settings.save_success': 'Settings saved successfully!',
+    'settings.save_success': 'Theme settings saved successfully!',
 
     // Profile Page
     'profile.title': 'User Profile',
@@ -128,34 +133,212 @@ const translations = {
   }
 };
 
+function detectParentTheme(): Theme | null {
+  try {
+    if (typeof window !== 'undefined' && window.parent && window.parent !== window) {
+      const pDoc = window.parent.document;
+      const pHtml = pDoc.documentElement;
+      const pBody = pDoc.body;
+
+      if (
+        pHtml.classList.contains('dark') ||
+        pBody.classList.contains('dark') ||
+        pHtml.getAttribute('data-theme') === 'dark' ||
+        pHtml.getAttribute('data-mode') === 'dark' ||
+        pBody.getAttribute('data-theme') === 'dark' ||
+        pBody.classList.contains('night')
+      ) {
+        return 'dark';
+      }
+
+      if (
+        pHtml.classList.contains('light') ||
+        pHtml.getAttribute('data-theme') === 'light'
+      ) {
+        return 'light';
+      }
+
+      const bg = window.parent.getComputedStyle(pBody).backgroundColor;
+      if (bg && bg !== 'transparent' && bg !== 'rgba(0, 0, 0, 0)') {
+        const rgb = bg.match(/\d+/g);
+        if (rgb && rgb.length >= 3) {
+          const brightness = (parseInt(rgb[0]) * 299 + parseInt(rgb[1]) * 587 + parseInt(rgb[2]) * 114) / 1000;
+          return brightness < 128 ? 'dark' : 'light';
+        }
+      }
+    }
+  } catch (_) {
+    // Cross-origin restriction
+  }
+  return null;
+}
+
+function resolveSystemTheme(): Theme {
+  // 1. Check URL Parameter ?theme=dark / ?theme=light / ?mode=dark / ?mode=light
+  try {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const urlTheme = params.get('theme') || params.get('mode');
+      if (urlTheme === 'dark' || urlTheme === 'light') {
+        return urlTheme;
+      }
+    }
+  } catch (_) {}
+
+  // 2. Check parent iframe theme (Kroombox Panel)
+  const parentTheme = detectParentTheme();
+  if (parentTheme) {
+    return parentTheme;
+  }
+
+  // 3. Check system media query
+  if (typeof window !== 'undefined' && window.matchMedia) {
+    if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      return 'dark';
+    }
+  }
+
+  return 'light';
+}
+
 const LanguageThemeContext = createContext<LanguageThemeContextType | undefined>(undefined);
 
 export const LanguageThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [language, setLanguageState] = useState<Language>(() => {
-    return 'en';
+  const [language, setLanguageState] = useState<Language>('en');
+
+  // User preference: 'system' | 'light' | 'dark'
+  const [themeMode, setThemeModeState] = useState<ThemeMode>(() => {
+    const savedMode = localStorage.getItem('kroomcare_theme_mode');
+    if (savedMode === 'system' || savedMode === 'light' || savedMode === 'dark') {
+      return savedMode as ThemeMode;
+    }
+    // Default to 'system' so it follows Kroombox Panel and OS automatically
+    return 'system';
   });
-  const [theme, setThemeState] = useState<Theme>(() => {
-    return (localStorage.getItem('kroomcare_theme') as Theme) || 'light';
+
+  // Current active resolved theme: 'light' | 'dark'
+  const [resolvedTheme, setResolvedTheme] = useState<Theme>(() => {
+    const savedMode = localStorage.getItem('kroomcare_theme_mode') || 'system';
+    if (savedMode === 'dark') return 'dark';
+    if (savedMode === 'light') return 'light';
+    return resolveSystemTheme();
   });
+
+  const applyThemeToDOM = useCallback((t: Theme) => {
+    const root = window.document.documentElement;
+    if (t === 'dark') {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+  }, []);
 
   const setLanguage = (lang: Language) => {
     setLanguageState('en');
     localStorage.setItem('kroomcare_lang', 'en');
   };
 
-  const setTheme = (newTheme: Theme) => {
-    setThemeState(newTheme);
-    localStorage.setItem('kroomcare_theme', newTheme);
+  const setTheme = (mode: ThemeMode) => {
+    setThemeModeState(mode);
+    localStorage.setItem('kroomcare_theme_mode', mode);
+    if (mode === 'dark') {
+      setResolvedTheme('dark');
+      applyThemeToDOM('dark');
+    } else if (mode === 'light') {
+      setResolvedTheme('light');
+      applyThemeToDOM('light');
+    } else {
+      const sys = resolveSystemTheme();
+      setResolvedTheme(sys);
+      applyThemeToDOM(sys);
+    }
   };
 
-  useEffect(() => {
-    const root = window.document.documentElement;
-    if (theme === 'dark') {
-      root.classList.add('dark');
+  const toggleTheme = () => {
+    if (resolvedTheme === 'dark') {
+      setTheme('light');
     } else {
-      root.classList.remove('dark');
+      setTheme('dark');
     }
-  }, [theme]);
+  };
+
+  // Re-sync with system or parent when in 'system' mode
+  useEffect(() => {
+    if (themeMode !== 'system') {
+      applyThemeToDOM(themeMode);
+      setResolvedTheme(themeMode);
+      return;
+    }
+
+    // Initial check
+    const currentSys = resolveSystemTheme();
+    setResolvedTheme(currentSys);
+    applyThemeToDOM(currentSys);
+
+    // 1. Listen to system preference changes
+    const mediaQuery = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+    const handleMediaChange = () => {
+      const nextTheme = resolveSystemTheme();
+      setResolvedTheme(nextTheme);
+      applyThemeToDOM(nextTheme);
+    };
+
+    if (mediaQuery?.addEventListener) {
+      mediaQuery.addEventListener('change', handleMediaChange);
+    }
+
+    // 2. Listen to postMessage from parent (Kroombox Panel theme broadcast)
+    const handleMessage = (event: MessageEvent) => {
+      const data = event.data;
+      if (!data) return;
+      let incomingTheme: Theme | null = null;
+      if (data === 'dark' || data === 'light') {
+        incomingTheme = data;
+      } else if (typeof data === 'object') {
+        if (data.theme === 'dark' || data.theme === 'light') {
+          incomingTheme = data.theme;
+        } else if (data.mode === 'dark' || data.mode === 'light') {
+          incomingTheme = data.mode;
+        } else if (data.type === 'THEME_CHANGE' && (data.payload === 'dark' || data.payload === 'light')) {
+          incomingTheme = data.payload;
+        }
+      }
+      if (incomingTheme) {
+        setResolvedTheme(incomingTheme);
+        applyThemeToDOM(incomingTheme);
+      }
+    };
+    window.addEventListener('message', handleMessage);
+
+    // 3. Polling interval to check parent iframe theme (handles real-time toggle in Kroombox Panel)
+    const interval = setInterval(() => {
+      const latest = resolveSystemTheme();
+      setResolvedTheme(prev => {
+        if (prev !== latest) {
+          applyThemeToDOM(latest);
+          return latest;
+        }
+        return prev;
+      });
+    }, 1000);
+
+    // 4. Focus listener
+    const handleFocus = () => {
+      const latest = resolveSystemTheme();
+      setResolvedTheme(latest);
+      applyThemeToDOM(latest);
+    };
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      if (mediaQuery?.removeEventListener) {
+        mediaQuery.removeEventListener('change', handleMediaChange);
+      }
+      window.removeEventListener('message', handleMessage);
+      clearInterval(interval);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [themeMode, applyThemeToDOM]);
 
   const t = (key: string): string => {
     const langDict = translations[language] as Record<string, string>;
@@ -163,7 +346,7 @@ export const LanguageThemeProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   return (
-    <LanguageThemeContext.Provider value={{ language, setLanguage, theme, setTheme, t }}>
+    <LanguageThemeContext.Provider value={{ language, setLanguage, theme: resolvedTheme, themeMode, setTheme, toggleTheme, t }}>
       {children}
     </LanguageThemeContext.Provider>
   );

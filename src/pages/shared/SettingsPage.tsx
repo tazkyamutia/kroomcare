@@ -1,14 +1,14 @@
 import React from 'react';
 import { useLanguageTheme } from '../../context/LanguageThemeContext';
-import { Sun, Moon, CheckCircle2, Palette } from 'lucide-react';
+import { Sun, Moon, Laptop, CheckCircle2, Palette } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../../lib/utils';
 
 export const SettingsPage: React.FC = () => {
-  const { theme, setTheme, t } = useLanguageTheme();
+  const { themeMode, setTheme, t } = useLanguageTheme();
   const [savedNotify, setSavedNotify] = React.useState(false);
 
-  const handleThemeChange = (newTheme: 'light' | 'dark') => {
+  const handleThemeChange = (newTheme: 'system' | 'light' | 'dark') => {
     setTheme(newTheme);
     triggerNotify();
   };
@@ -49,29 +49,41 @@ export const SettingsPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 pt-1">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
             <button
-              onClick={() => handleThemeChange('light')}
+              onClick={() => handleThemeChange('system')}
               className={cn(
-                "p-3.5 rounded-xl border flex flex-col items-center justify-center gap-2 transition-all font-semibold text-xs sm:text-sm",
-                theme === 'light'
-                  ? "border-blue-600 bg-blue-50/50 text-blue-700 dark:border-blue-500 dark:bg-blue-950/20 dark:text-blue-400 shadow-xs"
+                "p-3 rounded-xl border flex sm:flex-col items-center justify-center gap-2 transition-all font-semibold text-xs sm:text-sm",
+                themeMode === 'system'
+                  ? "border-blue-600 bg-blue-50/50 text-blue-700 dark:border-blue-500 dark:bg-blue-950/20 dark:text-blue-400 shadow-xs ring-2 ring-blue-500/20"
                   : "border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-400"
               )}
             >
-              <Sun size={20} className="text-amber-500" />
+              <Laptop size={18} className="text-blue-500" />
+              <span>{t('settings.theme_system')}</span>
+            </button>
+            <button
+              onClick={() => handleThemeChange('light')}
+              className={cn(
+                "p-3 rounded-xl border flex sm:flex-col items-center justify-center gap-2 transition-all font-semibold text-xs sm:text-sm",
+                themeMode === 'light'
+                  ? "border-blue-600 bg-blue-50/50 text-blue-700 dark:border-blue-500 dark:bg-blue-950/20 dark:text-blue-400 shadow-xs ring-2 ring-blue-500/20"
+                  : "border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-400"
+              )}
+            >
+              <Sun size={18} className="text-amber-500" />
               <span>{t('settings.theme_light')}</span>
             </button>
             <button
               onClick={() => handleThemeChange('dark')}
               className={cn(
-                "p-3.5 rounded-xl border flex flex-col items-center justify-center gap-2 transition-all font-semibold text-xs sm:text-sm",
-                theme === 'dark'
-                  ? "border-blue-600 bg-blue-50/50 text-blue-700 dark:border-blue-500 dark:bg-blue-950/20 dark:text-blue-400 shadow-xs"
+                "p-3 rounded-xl border flex sm:flex-col items-center justify-center gap-2 transition-all font-semibold text-xs sm:text-sm",
+                themeMode === 'dark'
+                  ? "border-blue-600 bg-blue-50/50 text-blue-700 dark:border-blue-500 dark:bg-blue-950/20 dark:text-blue-400 shadow-xs ring-2 ring-blue-500/20"
                   : "border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-400"
               )}
             >
-              <Moon size={20} className="text-blue-400" />
+              <Moon size={18} className="text-indigo-400" />
               <span>{t('settings.theme_dark')}</span>
             </button>
           </div>

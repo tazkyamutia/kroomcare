@@ -1,10 +1,11 @@
 import React from 'react';
-import { Sparkles, Bell, User, Settings, LogOut, ChevronDown, Ticket, Gift } from 'lucide-react';
+import { Sparkles, Bell, User, Settings, LogOut, ChevronDown, Ticket, Gift, Sun, Moon } from 'lucide-react';
 import { UserRole } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '../lib/utils';
 import { useUser } from '../context/UserContext';
+import { useLanguageTheme } from '../context/LanguageThemeContext';
 
 interface AppNotification {
   id: string;
@@ -17,6 +18,7 @@ interface AppNotification {
 
 export const Header: React.FC = () => {
   const { user, logout } = useUser();
+  const { theme, toggleTheme } = useLanguageTheme();
   const [showDropdown, setShowDropdown] = React.useState(false);
   const [showNotifications, setShowNotifications] = React.useState(false);
   const [notifications, setNotifications] = React.useState<AppNotification[]>([]);
@@ -223,6 +225,15 @@ export const Header: React.FC = () => {
             )}
           </AnimatePresence>
         </div>
+
+        {/* Theme Quick Toggle */}
+        <button
+          onClick={toggleTheme}
+          title={theme === 'dark' ? 'Ganti ke tema terang' : 'Ganti ke tema gelap'}
+          className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-200 dark:hover:border-slate-700 transition-colors shadow-xs"
+        >
+          {theme === 'dark' ? <Sun size={16} className="text-amber-400" /> : <Moon size={16} />}
+        </button>
 
         {/* Interactive Avatar */}
         <div className="relative">
