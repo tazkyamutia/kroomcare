@@ -1,5 +1,5 @@
 import React from 'react';
-import { Users, UserPlus, Search, Edit2, Trash2, Shield, User as UserIcon, Coins, X, ArrowUpRight, ArrowDownLeft, History, Loader2, RefreshCw, CheckCircle2 } from 'lucide-react';
+import { UserPlus, Search, Trash2, Shield, User as UserIcon, Coins, X, ArrowUpRight, ArrowDownLeft, History, Loader2, RefreshCw, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../../lib/utils';
 
@@ -151,156 +151,154 @@ export const UserManagementPage = () => {
   };
 
   const filteredUsers = users.filter(u => {
-    const matchesSearch = u.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          u.email.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = (u.name || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          (u.email || '').toLowerCase().includes(searchQuery.toLowerCase());
     
     const matchesRole = selectedRole === 'All' || 
-                        u.role.toLowerCase() === selectedRole.toLowerCase();
+                        (u.role || '').toLowerCase() === selectedRole.toLowerCase();
 
     return matchesSearch && matchesRole;
   });
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="space-y-5">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-display font-bold text-slate-900">User Management</h1>
-          <p className="text-slate-500 mt-1">Kelola data Customer, Staff, dan Administrator langsung dari Database MySQL.</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">User Management</h1>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">Kelola data Customer, Staff, dan Administrator secara terpusat.</p>
         </div>
         <button 
           onClick={() => setIsAddModalOpen(true)}
-          className="flex items-center justify-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-all font-bold shadow-lg"
+          className="flex items-center justify-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-xs self-start sm:self-auto transition-colors"
         >
-          <UserPlus size={20} />
-          Tambah User Baru
+          <UserPlus size={16} />
+          Tambah Pengguna
         </button>
       </div>
 
-      <div className="glass-card rounded-3xl overflow-hidden shadow-xl border border-slate-200 bg-white">
-        <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <h3 className="font-bold text-slate-900">Daftar Pengguna</h3>
-            <div className="flex bg-slate-100 p-0.5 rounded-lg">
-              {['All', 'Customer', 'Staff', 'Admin'].map(r => (
-                <button 
-                  key={r} 
-                  onClick={() => setSelectedRole(r)}
-                  className={cn(
-                    "text-[10px] px-3 py-1 rounded-md font-bold transition-all",
-                    selectedRole === r 
-                      ? "bg-white text-slate-950 shadow-sm" 
-                      : "text-slate-500 hover:text-slate-800"
-                  )}
-                >
-                  {r}
-                </button>
-              ))}
-            </div>
+      <div className="bg-white dark:bg-slate-900 rounded-xl sm:rounded-2xl overflow-hidden shadow-xs border border-slate-200/80 dark:border-slate-800">
+        <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl self-start sm:self-auto overflow-x-auto max-w-full">
+            {['All', 'Customer', 'Staff', 'Admin'].map(r => (
+              <button 
+                key={r} 
+                onClick={() => setSelectedRole(r)}
+                className={cn(
+                  "text-xs px-3 py-1.5 rounded-lg font-semibold transition-all whitespace-nowrap",
+                  selectedRole === r 
+                    ? "bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs" 
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
+                )}
+              >
+                {r === 'All' ? 'Semua' : r}
+              </button>
+            ))}
           </div>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+          <div className="relative w-full sm:w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
             <input 
               type="text" 
               placeholder="Cari nama atau email..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-500/20"
+              className="w-full pl-9 pr-3 py-1.5 sm:py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-800 dark:text-slate-200 placeholder:text-slate-400"
             />
           </div>
         </div>
 
         {loading ? (
-          <div className="flex justify-center items-center py-20">
-            <Loader2 className="animate-spin text-slate-900" size={32} />
+          <div className="flex justify-center items-center py-12">
+            <Loader2 className="animate-spin text-blue-600" size={24} />
           </div>
         ) : error ? (
-          <div className="p-8 text-center text-red-500 font-medium">{error}</div>
+          <div className="p-6 text-center text-red-500 text-xs sm:text-sm">{error}</div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left">
+            <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-slate-50 text-[10px] uppercase tracking-wider text-slate-500 font-bold border-b border-slate-100">
-                  <th className="px-6 py-4">User</th>
-                  <th className="px-6 py-4">Role</th>
-                  <th className="px-6 py-4">Points</th>
-                  <th className="px-6 py-4">Email</th>
-                  <th className="px-6 py-4">Aksi</th>
+                <tr className="bg-slate-50/70 dark:bg-slate-800/50 text-[11px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-semibold border-b border-slate-100 dark:border-slate-800">
+                  <th className="px-4 py-3 sm:px-5">Pengguna</th>
+                  <th className="px-4 py-3 sm:px-5">Role</th>
+                  <th className="px-4 py-3 sm:px-5">Poin</th>
+                  <th className="px-4 py-3 sm:px-5">Email</th>
+                  <th className="px-4 py-3 sm:px-5 text-right">Aksi</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {filteredUsers.length > 0 ? (
                   filteredUsers.map((u) => (
-                    <tr key={u.id} className="hover:bg-slate-50/50 transition-colors">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
+                    <tr key={u.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors text-xs sm:text-sm">
+                      <td className="px-4 py-3 sm:px-5">
+                        <div className="flex items-center gap-2.5">
                           <div 
                             onClick={() => handleOpenHistory(u)}
                             className={cn(
-                              "w-10 h-10 rounded-xl flex items-center justify-center cursor-pointer hover:scale-105 transition-all shadow-sm overflow-hidden",
-                              u.role === 'admin' ? "bg-slate-900 text-white" : 
-                              u.role === 'staff' ? "bg-indigo-100 text-indigo-700" : 
-                              "bg-slate-100 text-slate-500"
+                              "w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity overflow-hidden shrink-0",
+                              u.role === 'admin' ? "bg-slate-900 text-white dark:bg-slate-800" : 
+                              u.role === 'staff' ? "bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400" : 
+                              "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"
                             )}
                           >
                             {u.avatar ? (
                               <img src={u.avatar} alt={u.name} className="w-full h-full object-cover" />
                             ) : u.role === 'admin' ? (
-                              <Shield size={20} />
+                              <Shield size={16} />
                             ) : (
-                              <UserIcon size={20} />
+                              <UserIcon size={16} />
                             )}
                           </div>
-                          <div className="flex flex-col">
-                            <span className="text-sm font-bold text-slate-900 leading-tight">{u.name}</span>
+                          <div className="flex flex-col min-w-0">
+                            <span className="font-semibold text-slate-900 dark:text-white leading-snug truncate">{u.name}</span>
                             <button 
                               onClick={() => handleOpenHistory(u)}
-                              className="text-[10px] text-brand-600 font-bold hover:underline text-left mt-0.5"
+                              className="text-[10px] text-blue-600 dark:text-blue-400 font-medium hover:underline text-left"
                             >
-                              Lihat Profil
+                              Lihat Riwayat
                             </button>
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-3 sm:px-5">
                         <span className={cn(
-                          "text-[10px] px-2.5 py-1 rounded-md font-bold uppercase tracking-wider",
-                          u.role === 'admin' ? "bg-slate-900 text-white" : 
-                          u.role === 'staff' ? "bg-indigo-100 text-indigo-700" : 
-                          "bg-slate-100 text-slate-500"
+                          "text-[10px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider",
+                          u.role === 'admin' ? "bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200" : 
+                          u.role === 'staff' ? "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 border border-blue-200 dark:border-blue-800" : 
+                          "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400"
                         )}>
                           {u.role}
                         </span>
                       </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-1.5 font-bold text-slate-700">
-                          <Coins size={14} className="text-amber-500" />
+                      <td className="px-4 py-3 sm:px-5">
+                        <div className="flex items-center gap-1 font-semibold text-slate-700 dark:text-slate-300">
+                          <Coins size={13} className="text-amber-500" />
                           {u.points}
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-sm text-slate-500">{u.email}</td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
+                      <td className="px-4 py-3 sm:px-5 text-slate-500 dark:text-slate-400">{u.email}</td>
+                      <td className="px-4 py-3 sm:px-5 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
                           <button 
                             onClick={() => handleOpenHistory(u)}
-                            className="px-3 py-1.5 bg-brand-50 hover:bg-brand-100 text-brand-600 rounded-lg transition-all font-bold text-[10px] uppercase tracking-wider"
+                            className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400 dark:hover:bg-blue-950/60 rounded-lg transition-colors font-semibold text-[11px]"
                           >
-                            History
+                            Riwayat
                           </button>
                           {u.role === 'customer' && (
                             <button 
                               onClick={() => handleResetPoints(u.id)}
-                              className="p-2 hover:bg-blue-50 text-blue-500 hover:text-blue-600 rounded-lg transition-all btn_reset_points_user"
+                              className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-blue-600 rounded-lg transition-colors btn_reset_points_user"
                               title="Reset Points"
                             >
-                              <RefreshCw size={14} />
+                              <RefreshCw size={13} />
                             </button>
                           )}
                           <button 
                             onClick={() => handleDeleteUser(u.id, u.name)}
-                            className="p-2 hover:bg-red-50 text-slate-400 hover:text-red-600 rounded-lg transition-all"
+                            className="p-1.5 hover:bg-red-50 dark:hover:bg-red-950/40 text-slate-400 hover:text-red-600 rounded-lg transition-colors"
                             title="Hapus Pengguna"
                           >
-                            <Trash2 size={14} />
+                            <Trash2 size={13} />
                           </button>
                         </div>
                       </td>
@@ -308,7 +306,7 @@ export const UserManagementPage = () => {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={5} className="text-center py-8 text-slate-400 text-sm font-medium">
+                    <td colSpan={5} className="text-center py-8 text-slate-400 text-xs sm:text-sm">
                       Pengguna tidak ditemukan.
                     </td>
                   </tr>
@@ -328,67 +326,67 @@ export const UserManagementPage = () => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsAddModalOpen(false)}
-              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-xs"
             />
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl overflow-hidden border border-slate-200 p-8 space-y-6"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-xl overflow-hidden border border-slate-200 dark:border-slate-800 p-5 sm:p-6 space-y-4"
             >
-              <div className="flex items-center justify-between">
-                <h3 className="text-2xl font-display font-bold text-slate-900">Tambah Pengguna Baru</h3>
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">Tambah Pengguna Baru</h3>
                 <button 
                   onClick={() => setIsAddModalOpen(false)}
-                  className="p-2 hover:bg-slate-100 rounded-xl transition-colors"
+                  className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 transition-colors"
                 >
-                  <X size={20} className="text-slate-400" />
+                  <X size={18} />
                 </button>
               </div>
 
-              <form onSubmit={handleCreateUser} className="space-y-4">
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700">Nama Lengkap</label>
+              <form onSubmit={handleCreateUser} className="space-y-3 text-xs sm:text-sm">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Nama Lengkap</label>
                   <input 
                     required
                     type="text"
                     placeholder="Nama Lengkap"
                     value={nama}
                     onChange={(e) => setNama(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/20 text-sm"
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-800 dark:text-slate-200"
                   />
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700">Alamat Email</label>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Alamat Email</label>
                   <input 
                     required
                     type="email"
                     placeholder="email@domain.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/20 text-sm"
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-800 dark:text-slate-200"
                   />
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700">Password</label>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Password</label>
                   <input 
                     required
                     type="password"
                     placeholder="Password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/20 text-sm"
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-800 dark:text-slate-200"
                   />
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700">Role</label>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Role</label>
                   <select 
                     value={role}
                     onChange={(e) => setRole(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/20 text-sm"
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-800 dark:text-slate-200"
                   >
                     <option value="customer">Customer (Member)</option>
                     <option value="staff">Staff</option>
@@ -396,30 +394,30 @@ export const UserManagementPage = () => {
                   </select>
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700">Koin Reward Awal</label>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Koin Reward Awal</label>
                   <input 
                     type="number"
                     placeholder="0"
                     value={points}
                     onChange={(e) => setPoints(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/20 text-sm"
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-800 dark:text-slate-200"
                   />
                 </div>
 
                 <button 
                   type="submit"
                   disabled={submitting}
-                  className="w-full py-3.5 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 disabled:opacity-75 transition-all shadow-lg flex items-center justify-center gap-2 text-sm mt-6"
+                  className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold transition-all shadow-xs flex items-center justify-center gap-1.5 text-xs sm:text-sm mt-4"
                 >
                   {submitting ? (
                     <>
-                      <Loader2 className="animate-spin" size={18} />
+                      <Loader2 className="animate-spin" size={16} />
                       Menyimpan...
                     </>
                   ) : (
                     <>
-                      <UserPlus size={18} />
+                      <UserPlus size={16} />
                       Simpan Pengguna
                     </>
                   )}
@@ -439,111 +437,112 @@ export const UserManagementPage = () => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setSelectedUser(null)}
-              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-xs"
             />
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-2xl bg-white rounded-[2.5rem] shadow-2xl overflow-hidden border border-slate-200"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="relative w-full max-w-lg bg-white dark:bg-slate-900 rounded-2xl shadow-xl overflow-hidden border border-slate-200 dark:border-slate-800"
             >
               {/* Modal Header */}
-              <div className="p-8 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 bg-slate-900 text-white rounded-2xl flex items-center justify-center shadow-lg">
-                    <Coins size={32} />
+              <div className="p-4 sm:p-5 bg-slate-50 dark:bg-slate-800/60 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-blue-600 text-white rounded-xl flex items-center justify-center shrink-0">
+                    <Coins size={20} />
                   </div>
                   <div>
-                    <h3 className="text-2xl font-display font-bold text-slate-900">Riwayat Poin Detail</h3>
-                    <p className="text-sm font-medium text-slate-500">{selectedUser.name} ({selectedUser.email})</p>
+                    <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">Riwayat Poin Detail</h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">{selectedUser.name} ({selectedUser.email})</p>
                   </div>
                 </div>
                 <button 
                   onClick={() => setSelectedUser(null)}
-                  className="p-3 hover:bg-white rounded-2xl text-slate-400 hover:text-slate-600 transition-all border border-transparent hover:border-slate-200 shadow-sm"
+                  className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-slate-400 transition-colors"
                 >
-                  <X size={24} />
+                  <X size={18} />
                 </button>
               </div>
 
               {/* Modal Content */}
-              <div className="p-8 max-h-[60vh] overflow-y-auto">
-                <div className="grid grid-cols-2 gap-4 mb-8">
-                  <div className="bg-emerald-50 p-6 rounded-3xl border border-emerald-100">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600 mb-1">Total Poin Masuk</p>
-                    <p className="text-3xl font-display font-bold text-emerald-700">
-                      +{pointHistory.filter(tx => tx.type === 'Earned').reduce((acc, curr) => acc + curr.amount, 0)}
+              <div className="p-4 sm:p-5 max-h-[60vh] overflow-y-auto space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-emerald-50 dark:bg-emerald-950/30 p-3.5 rounded-xl border border-emerald-100 dark:border-emerald-900">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 mb-0.5">Poin Masuk</p>
+                    <p className="text-lg sm:text-xl font-bold text-emerald-700 dark:text-emerald-300">
+                      +{pointHistory.filter(tx => tx.type === 'Earned').reduce((acc, curr) => acc + (curr.amount || 0), 0)}
                     </p>
                   </div>
-                  <div className="bg-red-50 p-6 rounded-3xl border border-red-100">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-red-600 mb-1">Total Poin Keluar</p>
-                    <p className="text-3xl font-display font-bold text-red-700">
-                      -{pointHistory.filter(tx => tx.type === 'Spent').reduce((acc, curr) => acc + curr.amount, 0)}
+                  <div className="bg-red-50 dark:bg-red-950/30 p-3.5 rounded-xl border border-red-100 dark:border-red-900">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-red-700 dark:text-red-400 mb-0.5">Poin Keluar</p>
+                    <p className="text-lg sm:text-xl font-bold text-red-700 dark:text-red-300">
+                      -{pointHistory.filter(tx => tx.type === 'Spent').reduce((acc, curr) => acc + (curr.amount || 0), 0)}
                     </p>
                   </div>
                 </div>
 
-                <div className="space-y-3">
-                  <h4 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-4">Log Transaksi Terbaru</h4>
+                <div className="space-y-2">
+                  <h4 className="text-xs font-semibold text-slate-500 dark:text-slate-400">Log Transaksi</h4>
                   {loadingPoints ? (
-                    <div className="flex justify-center py-8">
-                      <Loader2 className="animate-spin text-slate-900" size={24} />
+                    <div className="flex justify-center py-6">
+                      <Loader2 className="animate-spin text-blue-600" size={20} />
                     </div>
                   ) : pointHistory.length > 0 ? (
                     pointHistory.map(tx => (
-                      <div key={tx.id} className="flex items-center justify-between p-5 bg-white border border-slate-100 rounded-2xl hover:border-brand-200 transition-all shadow-sm">
-                        <div className="flex items-center gap-4">
+                      <div key={tx.id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 rounded-xl text-xs">
+                        <div className="flex items-center gap-2.5">
                           <div className={cn(
-                            "w-12 h-12 rounded-xl flex items-center justify-center",
-                            tx.type === 'Earned' ? "bg-emerald-100 text-emerald-600" : "bg-red-100 text-red-600"
+                            "w-8 h-8 rounded-lg flex items-center justify-center shrink-0",
+                            tx.type === 'Earned' ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400" : "bg-red-100 text-red-600 dark:bg-red-950 dark:text-red-400"
                           )}>
-                            {tx.type === 'Earned' ? <ArrowUpRight size={20} /> : <ArrowDownLeft size={20} />}
+                            {tx.type === 'Earned' ? <ArrowUpRight size={16} /> : <ArrowDownLeft size={16} />}
                           </div>
                           <div>
-                            <p className="font-bold text-slate-900 text-sm">{tx.description}</p>
-                            <p className="text-[10px] text-slate-400 font-medium">
-                              {new Date(tx.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                            <p className="font-semibold text-slate-900 dark:text-white">{tx.description}</p>
+                            <p className="text-[10px] text-slate-400">
+                              {new Date(tx.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
                             </p>
                           </div>
                         </div>
                         <div className={cn(
-                          "text-base font-black font-display",
-                          tx.type === 'Earned' ? "text-emerald-600" : "text-red-600"
+                          "font-semibold",
+                          tx.type === 'Earned' ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"
                         )}>
                           {tx.type === 'Earned' ? '+' : '-'}{tx.amount}
                         </div>
                       </div>
                     ))
                   ) : (
-                    <div className="py-12 flex flex-col items-center text-center opacity-40">
-                      <History className="w-12 h-12 mb-4" />
-                      <p className="text-sm font-bold">Belum ada riwayat transaksi poin</p>
+                    <div className="py-8 flex flex-col items-center text-center text-slate-400">
+                      <History className="w-8 h-8 mb-2 opacity-50" />
+                      <p className="text-xs">Belum ada riwayat transaksi poin</p>
                     </div>
                   )}
                 </div>
               </div>
 
               {/* Modal Footer */}
-              <div className="p-6 bg-white border-t border-slate-100 flex justify-end">
+              <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 border-t border-slate-100 dark:border-slate-800 flex justify-end">
                 <button 
                   onClick={() => setSelectedUser(null)}
-                  className="px-8 py-3 bg-slate-900 text-white rounded-2xl font-bold hover:bg-slate-800 transition-all text-sm"
+                  className="px-4 py-1.5 bg-slate-900 dark:bg-slate-700 text-white rounded-xl font-semibold text-xs transition-colors"
                 >
-                  Selesai
+                  Tutup
                 </button>
               </div>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
+
       {/* Toast Reset Points Success */}
       {showToastReset && (
         <div 
           id="toast_reset_success"
-          className="toast_reset_success fixed bottom-24 right-8 bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl border border-slate-800 flex items-center gap-3 z-50 animate-bounce"
+          className="toast_reset_success fixed bottom-20 right-6 bg-slate-900 text-white px-4 py-2.5 rounded-xl shadow-lg border border-slate-800 flex items-center gap-2 z-50 text-xs font-semibold animate-bounce"
         >
-          <CheckCircle2 size={20} className="text-emerald-500" />
-          <span className="text-xs font-bold">Poin loyalitas koin customer berhasil direset ke angka 0</span>
+          <CheckCircle2 size={16} className="text-emerald-400" />
+          <span>Poin customer berhasil direset ke 0</span>
         </div>
       )}
     </div>

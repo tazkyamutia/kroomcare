@@ -123,31 +123,31 @@ export const Header: React.FC = () => {
   const { role, name: userName, points = 0, avatar } = user;
 
   return (
-    <header className="flex items-center justify-between mb-8 relative z-50">
-      {/* Brand Logo & Name */}
-      <div className="flex items-center gap-2 lg:hidden">
+    <header className="flex items-center justify-between mb-5 sm:mb-6 relative z-50">
+      {/* Brand Logo & Name (Mobile/Embedded) */}
+      <div className="flex items-center gap-2 lg:hidden pl-12">
         <img 
           src="https://i.ibb.co.com/fGPRy8Jt/Gemini-Generated-Image-yss7sryss7sryss7-removebg-preview.png" 
           alt="Logo KroomCare" 
-          className="h-10 w-auto object-contain" 
+          className="h-7 sm:h-8 w-auto object-contain" 
         />
-        <span className="text-xl font-display font-bold tracking-tight text-slate-900">KroomCare</span>
+        <span className="text-base sm:text-lg font-bold tracking-tight text-slate-800 dark:text-white">KroomCare</span>
       </div>
       <div className="flex-1" />
       
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 sm:gap-3">
         {role === 'customer' && (
           <motion.div 
-            whileHover={{ scale: 1.02 }}
-            className="flex items-center gap-2 px-4 py-2 bg-white rounded-2xl border border-slate-200 shadow-sm transition-all hover:shadow-md group cursor-pointer"
+            whileHover={{ scale: 1.01 }}
+            className="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-xs transition-all hover:border-blue-300 group cursor-pointer"
             onClick={() => navigate('/points-history')}
           >
-            <div className="w-8 h-8 bg-amber-50 rounded-xl flex items-center justify-center text-amber-500 group-hover:scale-110 transition-transform">
-              <Sparkles size={18} fill="currentColor" />
+            <div className="w-6 h-6 bg-amber-50 dark:bg-amber-950/40 rounded-lg flex items-center justify-center text-amber-500">
+              <Sparkles size={14} fill="currentColor" />
             </div>
             <div className="flex flex-col">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider leading-none">Loyalty</span>
-              <span className="text-sm font-bold text-slate-900 leading-none mt-1">🪙 {points.toLocaleString()} <span className="text-slate-500 font-medium">Points</span></span>
+              <span className="text-[9px] font-semibold text-slate-400 uppercase tracking-wider leading-none">Loyalty</span>
+              <span className="text-xs font-bold text-slate-800 dark:text-slate-100 leading-none mt-0.5">🪙 {points.toLocaleString()} <span className="text-slate-400 font-medium">pts</span></span>
             </div>
           </motion.div>
         )}
@@ -156,11 +156,11 @@ export const Header: React.FC = () => {
         <div className="relative">
           <button 
             onClick={() => setShowNotifications(!showNotifications)}
-            className="w-11 h-11 bg-white border border-slate-200 rounded-2xl flex items-center justify-center text-slate-400 hover:text-brand-600 transition-all hover:shadow-md relative"
+            className="w-8 h-8 sm:w-9 sm:h-9 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-xl flex items-center justify-center text-slate-500 hover:text-blue-600 transition-all shadow-xs relative"
           >
-            <Bell size={20} />
+            <Bell size={17} />
             {notifications.length > 0 && (
-              <span className="absolute top-3 right-3 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white shadow-sm" />
+              <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border border-white" />
             )}
           </button>
 
@@ -178,12 +178,12 @@ export const Header: React.FC = () => {
                   initial={{ opacity: 0, scale: 0.95, y: 10 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                  className="absolute right-0 mt-3 w-80 sm:w-96 bg-white rounded-[2rem] border border-slate-200 shadow-2xl p-4 z-50 overflow-hidden"
+                  className="absolute right-0 mt-2 w-80 sm:w-96 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xl p-3 z-50 overflow-hidden"
                 >
-                  <div className="flex items-center justify-between px-3 py-2 border-b border-slate-100 mb-2">
-                    <h3 className="font-bold text-slate-900 text-sm">Notifications</h3>
-                    <span className="text-[10px] font-black uppercase bg-brand-50 text-brand-600 px-2 py-1 rounded-lg">
-                      {notifications.length} New Info
+                  <div className="flex items-center justify-between px-2 py-1.5 border-b border-slate-100 dark:border-slate-800 mb-2">
+                    <h3 className="font-semibold text-slate-800 dark:text-slate-100 text-xs">Notifications</h3>
+                    <span className="text-[10px] font-bold bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded-md">
+                      {notifications.length} Info
                     </span>
                   </div>
                   <div className="max-h-[300px] overflow-y-auto space-y-1">
@@ -195,27 +195,27 @@ export const Header: React.FC = () => {
                             setShowNotifications(false);
                             navigate(notif.link);
                           }}
-                          className="flex items-start gap-3 p-3 rounded-2xl hover:bg-slate-50 transition-colors cursor-pointer"
+                          className="flex items-start gap-2.5 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors cursor-pointer"
                         >
                           <div className={cn(
-                            "w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0",
-                            notif.type === 'ticket' ? "bg-blue-50 text-blue-600" :
-                            notif.type === 'point_in' ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600"
+                            "w-7 h-7 rounded-lg flex items-center justify-center shrink-0",
+                            notif.type === 'ticket' ? "bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400" :
+                            notif.type === 'point_in' ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400" : "bg-red-50 text-red-600 dark:bg-red-950/40 dark:text-red-400"
                           )}>
-                            {notif.type === 'ticket' ? <Ticket size={16} /> :
-                             notif.type === 'point_in' ? <Sparkles size={16} /> : <Gift size={16} />}
+                            {notif.type === 'ticket' ? <Ticket size={14} /> :
+                             notif.type === 'point_in' ? <Sparkles size={14} /> : <Gift size={14} />}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-xs font-bold text-slate-900 leading-tight">{notif.title}</p>
-                            <p className="text-[11px] text-slate-500 mt-1 leading-snug break-all">{notif.description}</p>
+                            <p className="text-xs font-semibold text-slate-800 dark:text-slate-100 leading-tight">{notif.title}</p>
+                            <p className="text-[11px] text-slate-500 mt-0.5 leading-snug break-all">{notif.description}</p>
                             <p className="text-[9px] text-slate-400 mt-1 font-medium">
-                              {new Date(notif.time).toLocaleDateString('en-US', { hour: '2-digit', minute: '2-digit' }) + ' - ' + new Date(notif.time).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}
+                              {new Date(notif.time).toLocaleDateString('en-US', { hour: '2-digit', minute: '2-digit' }) + ' • ' + new Date(notif.time).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}
                             </p>
                           </div>
                         </div>
                       ))
                     ) : (
-                      <p className="text-xs text-slate-400 text-center py-8">No new notifications.</p>
+                      <p className="text-xs text-slate-400 text-center py-6">No new notifications.</p>
                     )}
                   </div>
                 </motion.div>
@@ -228,16 +228,16 @@ export const Header: React.FC = () => {
         <div className="relative">
           <button 
             onClick={() => setShowDropdown(!showDropdown)}
-            className="flex items-center gap-2 p-1 bg-white border border-slate-200 rounded-2xl hover:border-brand-300 transition-all shadow-sm hover:shadow-md"
+            className="flex items-center gap-1.5 p-1 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-xl hover:border-slate-300 transition-all shadow-xs"
           >
-            <div className="w-9 h-9 bg-brand-600 text-white rounded-xl flex items-center justify-center font-bold text-sm shadow-inner overflow-hidden border-2 border-white ring-2 ring-brand-50">
+            <div className="w-7 h-7 sm:w-8 sm:h-8 bg-blue-600 text-white rounded-lg flex items-center justify-center font-bold text-xs shadow-inner overflow-hidden">
               {avatar ? (
                 <img src={avatar} alt={userName} className="w-full h-full object-cover" />
               ) : (
                 userName.split(' ').map(n => n[0]).join('')
               )}
             </div>
-            <ChevronDown size={14} className={cn("text-slate-400 transition-transform hidden md:block", showDropdown && "rotate-180")} />
+            <ChevronDown size={13} className={cn("text-slate-400 transition-transform hidden sm:block", showDropdown && "rotate-180")} />
           </button>
 
           <AnimatePresence>
@@ -251,46 +251,45 @@ export const Header: React.FC = () => {
                   onClick={() => setShowDropdown(false)}
                 />
                 <motion.div 
-                  initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                  initial={{ opacity: 0, scale: 0.95, y: 8 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                  className="absolute right-0 mt-3 w-64 bg-white rounded-[2rem] border border-slate-200 shadow-2xl p-4 z-50 overflow-hidden"
+                  exit={{ opacity: 0, scale: 0.95, y: 8 }}
+                  className="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xl p-2.5 z-50 overflow-hidden"
                 >
-                  <div className="p-4 bg-slate-50/50 rounded-2xl mb-2 flex items-center gap-3">
-                    <div className="w-10 h-10 bg-brand-50 rounded-xl flex items-center justify-center text-brand-600 font-bold overflow-hidden">
+                  <div className="p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-lg mb-1.5 flex items-center gap-2.5">
+                    <div className="w-8 h-8 bg-blue-50 dark:bg-blue-950/60 rounded-lg flex items-center justify-center text-blue-600 font-bold text-xs overflow-hidden shrink-0">
                       {avatar ? (
                         <img src={avatar} alt={userName} className="w-full h-full object-cover" />
                       ) : (
                         userName.split(' ').map(n => n[0]).join('')
                       )}
                     </div>
-                    <div>
-                      <p className="text-sm font-bold text-slate-900 truncate max-w-[140px] leading-tight">{userName}</p>
-                      <p className="text-[10px] font-black text-brand-600 uppercase tracking-widest mt-0.5">{role}</p>
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold text-slate-800 dark:text-slate-100 truncate leading-tight">{userName}</p>
+                      <p className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider mt-0.5">{role}</p>
                     </div>
                   </div>
-                  <div className="space-y-1">
+                  <div className="space-y-0.5">
                     <button 
                       onClick={() => { setShowDropdown(false); navigate('/profile'); }}
-                      className="w-full flex items-center gap-3 p-3 text-slate-600 hover:bg-slate-50 hover:text-brand-600 rounded-xl transition-all text-sm font-bold group"
+                      className="w-full flex items-center gap-2.5 px-2.5 py-2 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-blue-600 rounded-lg transition-all text-xs font-medium"
                     >
-                      <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center group-hover:bg-brand-100 group-hover:text-brand-600 transition-colors">
-                        <User size={16} />
-                      </div>
+                      <User size={14} className="text-slate-400" />
                       Edit Profile
                     </button>
-                    <button className="w-full flex items-center gap-3 p-3 text-slate-600 hover:bg-slate-50 hover:text-brand-600 rounded-xl transition-all text-sm font-bold group">
-                      <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center group-hover:bg-brand-100 group-hover:text-brand-600 transition-colors">
-                        <Settings size={16} />
-                      </div>
+                    <button 
+                      onClick={() => { setShowDropdown(false); navigate('/settings'); }}
+                      className="w-full flex items-center gap-2.5 px-2.5 py-2 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-blue-600 rounded-lg transition-all text-xs font-medium"
+                    >
+                      <Settings size={14} className="text-slate-400" />
                       Account Settings
                     </button>
-                    <div className="h-px bg-slate-100 my-2" />
+                    <div className="h-px bg-slate-100 dark:bg-slate-800 my-1" />
                     <button 
                       onClick={() => { setShowDropdown(false); logout(); }}
-                      className="w-full flex items-center gap-3 p-3 text-red-600 hover:bg-red-50 rounded-xl transition-all text-sm font-black uppercase tracking-widest"
+                      className="w-full flex items-center gap-2.5 px-2.5 py-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg transition-all text-xs font-semibold"
                     >
-                      <LogOut size={16} />
+                      <LogOut size={14} />
                       Log Out
                     </button>
                   </div>

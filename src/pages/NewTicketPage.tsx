@@ -51,40 +51,43 @@ export const NewTicketPage = () => {
   };
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <div className="flex items-center gap-4 mb-8">
+    <div className="max-w-2xl mx-auto space-y-4">
+      <div className="flex items-center gap-3">
         <button 
           onClick={() => navigate('/tickets')}
-          className="p-2 hover:bg-white rounded-xl transition-colors border border-transparent hover:border-slate-200"
+          className="p-1.5 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors shadow-xs"
         >
-          <ArrowLeft size={20} />
+          <ArrowLeft size={16} />
         </button>
-        <h1 className="text-3xl font-display font-bold text-slate-900">Buat Tiket Baru</h1>
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Buat Tiket Baru</h1>
+          <p className="text-xs text-slate-500 dark:text-slate-400">Ajukan keluhan atau kendala teknis layanan Anda</p>
+        </div>
       </div>
 
       <motion.form 
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         onSubmit={handleSubmit}
-        className="glass-card p-8 rounded-3xl space-y-6"
+        className="bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4"
       >
-        <div className="space-y-2">
-          <label className="text-sm font-semibold text-slate-700">Subjek Kendala</label>
+        <div className="space-y-1.5">
+          <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Subjek Kendala</label>
           <input 
             required
             type="text"
             placeholder="Contoh: Website Error 500"
-            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-all"
+            className="w-full px-3 py-2 text-xs sm:text-sm bg-white dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:text-slate-400"
             value={formData.subject}
             onChange={e => setFormData({...formData, subject: e.target.value})}
           />
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-          <div className="space-y-2">
-            <label className="text-sm font-semibold text-slate-700">Kategori</label>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Kategori</label>
             <select 
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-all"
+              className="w-full px-3 py-2 text-xs sm:text-sm bg-white dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
               value={formData.category}
               onChange={e => setFormData({...formData, category: e.target.value})}
             >
@@ -95,10 +98,10 @@ export const NewTicketPage = () => {
               <option value="Other">Other</option>
             </select>
           </div>
-          <div className="space-y-2">
-            <label className="text-sm font-semibold text-slate-700">Prioritas</label>
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Prioritas</label>
             <select 
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-all"
+              className="w-full px-3 py-2 text-xs sm:text-sm bg-white dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
               value={formData.priority}
               onChange={e => setFormData({...formData, priority: e.target.value})}
             >
@@ -109,21 +112,21 @@ export const NewTicketPage = () => {
           </div>
         </div>
 
-        <div className="space-y-2">
-          <label className="text-sm font-semibold text-slate-700">Deskripsi Detail</label>
+        <div className="space-y-1.5">
+          <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Deskripsi Detail</label>
           <textarea 
             required
-            rows={5}
+            rows={4}
             placeholder="Jelaskan kendala Anda secara mendetail..."
-            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-all resize-none"
+            className="w-full px-3 py-2 text-xs sm:text-sm bg-white dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all resize-none placeholder:text-slate-400"
             value={formData.description}
             onChange={e => setFormData({...formData, description: e.target.value})}
           />
         </div>
 
-        <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100 flex gap-3">
-          <AlertCircle size={20} className="text-amber-600 shrink-0" />
-          <p className="text-xs text-amber-700 leading-relaxed">
+        <div className="p-3 bg-amber-50 dark:bg-amber-950/30 rounded-xl border border-amber-200/60 dark:border-amber-900/40 flex items-start gap-2.5">
+          <AlertCircle size={16} className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+          <p className="text-[11px] text-amber-800 dark:text-amber-300 leading-relaxed">
             Tim dukungan kami akan merespons tiket Anda dalam waktu maksimal 24 jam kerja. Pastikan deskripsi sudah lengkap untuk mempercepat proses mitigasi.
           </p>
         </div>
@@ -131,16 +134,16 @@ export const NewTicketPage = () => {
         <button 
           type="submit"
           disabled={isSubmitting}
-          className="w-full py-4 bg-brand-600 text-white rounded-xl font-bold hover:bg-brand-700 disabled:opacity-75 transition-all shadow-lg shadow-brand-500/20 flex items-center justify-center gap-2"
+          className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-xs disabled:opacity-75 transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
         >
           {isSubmitting ? (
             <>
-              <Loader2 className="animate-spin" size={20} />
+              <Loader2 className="animate-spin" size={16} />
               Mengirim...
             </>
           ) : (
             <>
-              <Send size={20} />
+              <Send size={16} />
               Kirim Tiket
             </>
           )}

@@ -2,7 +2,7 @@ import React from 'react';
 import { Shield, Users, Ticket, Settings, MessageSquare, BarChart3, Clock, Loader2 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { cn } from '../lib/utils';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, AreaChart, Area } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
 export const AdminDashboard = () => {
   const [data, setData] = React.useState<any>(null);
@@ -44,26 +44,25 @@ export const AdminDashboard = () => {
 
   React.useEffect(() => {
     fetchAdminData();
-    // Refresh stats every 15 seconds to keep dashboard updated
     const interval = setInterval(fetchAdminData, 15000);
     return () => clearInterval(interval);
   }, []);
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 px-4 text-center">
-        <div className="w-16 h-16 bg-red-50 text-red-500 rounded-3xl flex items-center justify-center shadow-inner">
-          <Shield size={32} />
+      <div className="flex flex-col items-center justify-center min-h-[50vh] gap-3 px-4 text-center">
+        <div className="w-12 h-12 bg-red-50 dark:bg-red-950/40 text-red-500 rounded-2xl flex items-center justify-center shadow-xs">
+          <Shield size={24} />
         </div>
-        <h3 className="font-bold text-slate-800 text-base">Gagal Memuat Dashboard</h3>
-        <p className="text-slate-500 text-xs max-w-sm leading-relaxed">{error}</p>
+        <h3 className="font-semibold text-slate-900 dark:text-white text-sm sm:text-base">Gagal Memuat Dashboard</h3>
+        <p className="text-slate-500 dark:text-slate-400 text-xs max-w-sm leading-relaxed">{error}</p>
         <button 
           onClick={() => {
             setLoading(true);
             setError(null);
             fetchAdminData();
           }}
-          className="mt-2 px-6 py-3 bg-brand-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-brand-700 transition-all shadow-lg shadow-brand-500/20 active:scale-95"
+          className="mt-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-xs"
         >
           Coba Lagi
         </button>
@@ -73,9 +72,9 @@ export const AdminDashboard = () => {
 
   if (loading || !data) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-        <Loader2 className="w-10 h-10 text-brand-600 animate-spin" />
-        <p className="text-slate-500 font-bold text-sm animate-pulse">Menghubungkan & Memuat Dashboard Admin...</p>
+      <div className="flex flex-col items-center justify-center min-h-[50vh] gap-3">
+        <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+        <p className="text-slate-500 dark:text-slate-400 text-xs font-medium">Memuat Dashboard Admin...</p>
       </div>
     );
   }
@@ -83,55 +82,56 @@ export const AdminDashboard = () => {
   const { stats, staffStats, recentLogs } = data;
 
   return (
-    <div className="space-y-8 animate-fade-in">
-      <div className="flex items-center gap-4">
-        <div className="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center text-white">
-          <Shield size={24} />
+    <div className="space-y-5">
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 bg-slate-900 dark:bg-slate-800 rounded-xl flex items-center justify-center text-white shrink-0 shadow-xs">
+          <Shield size={20} />
         </div>
         <div>
-          <h1 className="text-3xl font-display font-bold text-slate-900">Admin CRM Dashboard</h1>
-          <p className="text-slate-500 mt-1">Kelola operasional dukungan dan konfigurasi sistem reward.</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Admin CRM Dashboard</h1>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">Kelola operasional dukungan dan performa sistem.</p>
         </div>
       </div>
 
-      {/* Admin Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* Admin Stats Grid */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {[
-          { label: 'Total Pengguna', value: stats.totalUsers.toLocaleString('id-ID'), icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
-          { label: 'Tiket Aktif', value: stats.activeTickets.toString(), icon: Ticket, color: 'text-amber-600', bg: 'bg-amber-50' },
-          { label: 'Sesi AI Hari Ini', value: stats.aiSessions.toString(), icon: MessageSquare, color: 'text-brand-600', bg: 'bg-brand-50' },
-          { label: 'Resolusi Rate', value: stats.resolutionRate, icon: BarChart3, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+          { label: 'Total Pengguna', value: stats.totalUsers?.toLocaleString('id-ID') || '0', icon: Users, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-950/40' },
+          { label: 'Tiket Aktif', value: stats.activeTickets?.toString() || '0', icon: Ticket, color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-950/40' },
+          { label: 'Sesi AI Hari Ini', value: stats.aiSessions?.toString() || '0', icon: MessageSquare, color: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-50 dark:bg-indigo-950/40' },
+          { label: 'Resolusi Rate', value: stats.resolutionRate || '0%', icon: BarChart3, color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-950/40' },
         ].map((stat, i) => (
-          <div key={i} className="glass-card p-6 rounded-2xl border border-slate-200 bg-white shadow-sm">
-            <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center mb-4", stat.bg, stat.color)}>
-              <stat.icon size={20} />
+          <div key={i} className="p-4 sm:p-5 rounded-xl sm:rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
+            <div className={cn("w-9 h-9 rounded-xl flex items-center justify-center mb-3", stat.bg, stat.color)}>
+              <stat.icon size={18} />
             </div>
-            <p className="text-sm text-slate-500 font-medium">{stat.label}</p>
-            <p className="text-2xl font-bold text-slate-900 mt-1">{stat.value}</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mb-0.5">{stat.label}</p>
+            <p className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">{stat.value}</p>
           </div>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Analytics Overview & Staff Performance */}
-        <div className="lg:col-span-2 space-y-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5">
+        {/* Analytics & Staff Performance */}
+        <div className="lg:col-span-2 space-y-4 sm:space-y-5">
           {/* Performance Chart */}
-          <div className="glass-card rounded-3xl p-8 bg-white border border-slate-200 shadow-sm">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-              <h3 className="font-bold flex items-center gap-2 text-slate-900">
-                <BarChart3 size={20} className="text-brand-600" />
+          <div className="rounded-xl sm:rounded-2xl p-4 sm:p-6 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+              <h3 className="text-sm sm:text-base font-semibold flex items-center gap-2 text-slate-900 dark:text-white">
+                <BarChart3 size={18} className="text-blue-600 dark:text-blue-400" />
                 Statistik Performa Sistem
               </h3>
-              <div className="flex bg-slate-100 p-1 rounded-xl">
+              <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl self-start sm:self-auto">
                 {(['day', 'week', 'month'] as const).map((range) => (
                   <button
                     key={range}
                     onClick={() => setTimeRange(range)}
                     className={cn(
-                      "px-3 py-1.5 rounded-lg text-xs font-bold transition-all uppercase tracking-wider",
+                      "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all",
                       timeRange === range 
-                        ? "bg-white text-slate-900 shadow-sm" 
-                        : "text-slate-500 hover:text-slate-900"
+                        ? "bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs" 
+                        : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
                     )}
                   >
                     {range === 'day' ? 'Hari' : range === 'week' ? 'Minggu' : 'Bulan'}
@@ -140,31 +140,31 @@ export const AdminDashboard = () => {
               </div>
             </div>
             
-            <div className="h-64 mb-4">
+            <div className="h-56">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={
                   timeRange === 'day' ? data.dailyStats : 
                   timeRange === 'week' ? data.weeklyStats : 
                   data.monthlyStats
                 }>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                   <XAxis 
                     dataKey="name" 
                     axisLine={false} 
                     tickLine={false} 
-                    tick={{ fontSize: 10, fontWeight: 700, fill: '#64748b' }} 
+                    tick={{ fontSize: 10, fill: '#94a3b8' }} 
                   />
                   <YAxis 
                     axisLine={false} 
                     tickLine={false} 
-                    tick={{ fontSize: 10, fontWeight: 700, fill: '#64748b' }} 
+                    tick={{ fontSize: 10, fill: '#94a3b8' }} 
                   />
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                   <Tooltip 
-                    cursor={{ fill: '#f8fafc' }}
-                    contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                    cursor={{ fill: 'rgba(241, 245, 249, 0.4)' }}
+                    contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '12px' }}
                   />
-                  <Legend wrapperStyle={{ fontSize: 11, fontWeight: 600 }} />
-                  <Bar dataKey="Tiket Masuk" fill="#6366f1" radius={[4, 4, 0, 0]} />
+                  <Legend wrapperStyle={{ fontSize: 11, fontWeight: 500 }} />
+                  <Bar dataKey="Tiket Masuk" fill="#3b82f6" radius={[4, 4, 0, 0]} />
                   <Bar dataKey="Selesai" fill="#10b981" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
@@ -172,95 +172,61 @@ export const AdminDashboard = () => {
           </div>
 
           {/* Staff Performance Recap */}
-          <div className="glass-card rounded-3xl p-8 bg-white border border-slate-200 shadow-sm">
-            <div className="flex items-center justify-between mb-8">
-              <h3 className="font-bold flex items-center gap-2 text-slate-900">
-                <Users size={20} className="text-brand-600" />
-                Rekap Performa Staff (Database MySQL)
+          <div className="rounded-xl sm:rounded-2xl p-4 sm:p-6 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm sm:text-base font-semibold flex items-center gap-2 text-slate-900 dark:text-white">
+                <Users size={18} className="text-blue-600 dark:text-blue-400" />
+                Rekap Performa Staff
               </h3>
-              <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-1 bg-brand-50 text-brand-600 rounded-lg animate-pulse">
+              <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 rounded-md border border-blue-100 dark:border-blue-900">
                 Live Data
               </span>
             </div>
 
-            {/* Performance Visual Chart */}
-            <div className="h-48 mb-8 border-b border-slate-100 pb-8">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={staffStats}>
-                  <XAxis 
-                    dataKey="name" 
-                    axisLine={false} 
-                    tickLine={false} 
-                    tick={{ fontSize: 10, fontWeight: 700, fill: '#64748b' }} 
-                  />
-                  <Tooltip 
-                    cursor={{ fill: '#f8fafc' }}
-                    contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                  />
-                  <Bar dataKey="dealt" name="Tiket Ditangani" fill="#e2e8f0" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="done" name="Tiket Selesai" fill="#6366f1" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-            
             <div className="overflow-x-auto">
-              <table className="w-full border-collapse">
+              <table className="w-full border-collapse text-xs sm:text-sm">
                 <thead>
-                  <tr className="text-left border-b border-slate-100">
-                    <th className="pb-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Nama Staff</th>
-                    <th className="pb-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Tiket Ditangani</th>
-                    <th className="pb-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Tiket Selesai</th>
-                    <th className="pb-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Efisiensi</th>
+                  <tr className="text-left border-b border-slate-100 dark:border-slate-800 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                    <th className="pb-3">Nama Staff</th>
+                    <th className="pb-3 text-center">Ditangani</th>
+                    <th className="pb-3 text-center">Selesai</th>
+                    <th className="pb-3 text-right">Efisiensi</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-50">
-                  {staffStats.map((staff: any, i: number) => {
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  {staffStats?.map((staff: any, i: number) => {
                     const dealt = staff.dealt || 0;
                     const done = staff.done || 0;
                     const percent = dealt > 0 ? Math.round((done / dealt) * 100) : 100;
                     
                     return (
                       <motion.tr 
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: i * 0.1 }}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: i * 0.05 }}
                         key={i} 
-                        className="group hover:bg-slate-50/50 transition-colors"
+                        className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors"
                       >
-                        <td className="py-4">
-                          <div className="flex items-center gap-3">
-                            <div className={cn(
-                              "w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold",
-                              staff.color === 'brand' ? "bg-brand-50 text-brand-600" :
-                              staff.color === 'emerald' ? "bg-emerald-50 text-emerald-600" :
-                              staff.color === 'blue' ? "bg-blue-50 text-blue-600" : "bg-amber-50 text-amber-600"
-                            )}>
-                              {staff.name.split(' ').map((n: string) => n[0]).join('')}
+                        <td className="py-3">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center text-xs font-bold shrink-0">
+                              {staff.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2)}
                             </div>
-                            <span className="text-sm font-bold text-slate-900">{staff.name}</span>
+                            <span className="font-medium text-slate-900 dark:text-slate-100">{staff.name}</span>
                           </div>
                         </td>
-                        <td className="py-4 text-center">
-                          <span className="text-sm font-bold text-slate-600">{dealt}</span>
-                        </td>
-                        <td className="py-4 text-center">
-                          <span className="text-sm font-bold text-emerald-600">{done}</span>
-                        </td>
-                        <td className="py-4 text-right">
-                          <div className="inline-flex items-center gap-2">
-                            <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                        <td className="py-3 text-center text-slate-600 dark:text-slate-400">{dealt}</td>
+                        <td className="py-3 text-center font-semibold text-emerald-600 dark:text-emerald-400">{done}</td>
+                        <td className="py-3 text-right">
+                          <div className="inline-flex items-center gap-2 justify-end">
+                            <div className="w-14 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                               <motion.div 
                                 initial={{ width: 0 }}
                                 animate={{ width: `${percent}%` }}
-                                className={cn(
-                                  "h-full rounded-full",
-                                  staff.color === 'brand' ? "bg-brand-600" :
-                                  staff.color === 'emerald' ? "bg-emerald-600" :
-                                  staff.color === 'blue' ? "bg-blue-600" : "bg-amber-600"
-                                )}
+                                className="h-full rounded-full bg-blue-600"
                               />
                             </div>
-                            <span className="text-[10px] font-bold text-slate-500">
+                            <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
                               {percent}%
                             </span>
                           </div>
@@ -275,40 +241,40 @@ export const AdminDashboard = () => {
         </div>
 
         {/* Quick Settings & Activity Log */}
-        <div className="space-y-8">
-          <div className="glass-card rounded-3xl p-6 bg-white border border-slate-200 shadow-sm text-slate-900">
-            <h3 className="font-bold mb-4 flex items-center gap-2 text-slate-900">
-              <Settings size={18} className="text-brand-600" />
+        <div className="space-y-4 sm:space-y-5">
+          <div className="rounded-xl sm:rounded-2xl p-4 sm:p-5 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs">
+            <h3 className="text-sm sm:text-base font-semibold mb-3.5 flex items-center gap-2 text-slate-900 dark:text-white">
+              <Settings size={18} className="text-blue-600 dark:text-blue-400" />
               Kontrol Sistem
             </h3>
-            <div className="space-y-4">
+            <div className="space-y-3">
               <div 
                 onClick={() => setMaintenanceMode(!maintenanceMode)}
-                className="flex justify-between items-center p-3.5 bg-slate-50 hover:bg-slate-100 rounded-2xl border border-slate-150 transition-colors cursor-pointer"
+                className="flex justify-between items-center p-3 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700/60 rounded-xl border border-slate-200/80 dark:border-slate-700 transition-colors cursor-pointer"
               >
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-700">Maintenance Mode</span>
+                <span className="text-xs font-medium text-slate-700 dark:text-slate-300">Maintenance Mode</span>
                 <div className={cn(
-                  "w-10 h-5 rounded-full relative transition-all duration-300",
-                  maintenanceMode ? "bg-brand-600" : "bg-slate-200"
+                  "w-9 h-5 rounded-full relative transition-all duration-300",
+                  maintenanceMode ? "bg-blue-600" : "bg-slate-300 dark:bg-slate-600"
                 )}>
                   <div className={cn(
-                    "absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full transition-transform duration-300 left-1",
-                    maintenanceMode ? "translate-x-5" : "translate-x-0"
+                    "absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 bg-white rounded-full transition-transform duration-300 left-0.5",
+                    maintenanceMode ? "translate-x-4" : "translate-x-0"
                   )} />
                 </div>
               </div>
               <div 
                 onClick={() => setAutoAssign(!autoAssign)}
-                className="flex justify-between items-center p-3.5 bg-slate-50 hover:bg-slate-100 rounded-2xl border border-slate-150 transition-colors cursor-pointer"
+                className="flex justify-between items-center p-3 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700/60 rounded-xl border border-slate-200/80 dark:border-slate-700 transition-colors cursor-pointer"
               >
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-700">Auto-Assign</span>
+                <span className="text-xs font-medium text-slate-700 dark:text-slate-300">Auto-Assign Tiket</span>
                 <div className={cn(
-                  "w-10 h-5 rounded-full relative transition-all duration-300",
-                  autoAssign ? "bg-brand-600" : "bg-slate-200"
+                  "w-9 h-5 rounded-full relative transition-all duration-300",
+                  autoAssign ? "bg-blue-600" : "bg-slate-300 dark:bg-slate-600"
                 )}>
                   <div className={cn(
-                    "absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full transition-transform duration-300 left-1",
-                    autoAssign ? "translate-x-5" : "translate-x-0"
+                    "absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 bg-white rounded-full transition-transform duration-300 left-0.5",
+                    autoAssign ? "translate-x-4" : "translate-x-0"
                   )} />
                 </div>
               </div>
@@ -316,14 +282,14 @@ export const AdminDashboard = () => {
                 onClick={handleSaveConfig}
                 disabled={isConfigSaving}
                 className={cn(
-                  "w-full py-4 rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2",
+                  "w-full py-2.5 rounded-xl text-xs font-semibold transition-all shadow-xs flex items-center justify-center gap-2",
                   configSaved 
-                    ? "bg-emerald-500 text-white shadow-emerald-500/20" 
-                    : "bg-brand-600 text-white hover:bg-brand-500 shadow-brand-500/20"
+                    ? "bg-emerald-600 text-white" 
+                    : "bg-blue-600 hover:bg-blue-700 text-white"
                 )}
               >
                 {isConfigSaving ? (
-                  <Loader2 className="w-4 h-4 animate-spin text-white" />
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
                 ) : configSaved ? (
                   "Konfigurasi Disimpan!"
                 ) : (
@@ -333,18 +299,18 @@ export const AdminDashboard = () => {
             </div>
           </div>
 
-          <div className="glass-card rounded-3xl p-6 border border-slate-200 bg-white shadow-sm">
-            <h3 className="font-bold mb-6 flex items-center gap-2 text-slate-900">
-              <Clock size={18} className="text-brand-500" />
-              Log Aktivitas Terbaru (Live MySQL)
+          <div className="rounded-xl sm:rounded-2xl p-4 sm:p-5 border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
+            <h3 className="text-sm sm:text-base font-semibold mb-4 flex items-center gap-2 text-slate-900 dark:text-white">
+              <Clock size={18} className="text-blue-600 dark:text-blue-400" />
+              Log Aktivitas Terbaru
             </h3>
-            <div className="space-y-6 relative before:absolute before:left-3 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-100">
-              {recentLogs.map((log: any, i: number) => (
-                <div key={i} className="relative pl-8">
-                  <div className="absolute left-1.5 top-1 w-3 h-3 rounded-full bg-brand-600 border-2 border-white ring-2 ring-brand-50 shadow-sm" />
-                  <p className="text-xs font-bold text-slate-900 leading-tight mb-1">{log.user}</p>
-                  <p className="text-[10px] text-slate-500 mb-1 leading-snug">{log.action}</p>
-                  <span className="text-[10px] font-black text-brand-400 uppercase tracking-tighter">{log.time}</span>
+            <div className="space-y-3.5 relative before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-100 dark:before:bg-slate-800">
+              {recentLogs?.map((log: any, i: number) => (
+                <div key={i} className="relative pl-6">
+                  <div className="absolute left-1 top-1.5 w-2 h-2 rounded-full bg-blue-600 ring-2 ring-white dark:ring-slate-900" />
+                  <p className="text-xs font-semibold text-slate-900 dark:text-white">{log.user}</p>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug">{log.action}</p>
+                  <span className="text-[10px] font-medium text-slate-400 mt-0.5 block">{log.time}</span>
                 </div>
               ))}
             </div>

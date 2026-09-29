@@ -1,5 +1,5 @@
 import React from 'react';
-import { Settings, Ticket, Search, Filter, AlertCircle, Loader2, CheckCircle2 } from 'lucide-react';
+import { Settings, Search, Loader2, CheckCircle2 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 export const TicketSettingsPage = () => {
@@ -87,9 +87,9 @@ export const TicketSettingsPage = () => {
   };
 
   const filteredTickets = tickets.filter(t => {
-    const matchesSearch = t.id.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          t.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          t.subject.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = (t.id || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          (t.customerName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          (t.subject || '').toLowerCase().includes(searchQuery.toLowerCase());
     
     const matchesFilter = statusFilter === 'All' || t.status === statusFilter;
 
@@ -97,106 +97,104 @@ export const TicketSettingsPage = () => {
   });
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center text-white shadow-lg">
-            <Settings size={24} />
-          </div>
-          <div>
-            <h1 className="text-3xl font-display font-bold text-slate-900">Ticket Settings</h1>
-            <p className="text-slate-500 mt-1">Konfigurasi prioritas dan pantau semua tiket sistem secara langsung dari Database MySQL.</p>
-          </div>
+    <div className="space-y-5">
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 bg-slate-900 dark:bg-slate-800 rounded-xl flex items-center justify-center text-white shrink-0 shadow-xs">
+          <Settings size={20} />
+        </div>
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Ticket Settings</h1>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">Konfigurasi prioritas dan pantau semua tiket sistem.</p>
         </div>
       </div>
 
-      <div className="glass-card rounded-3xl overflow-hidden shadow-xl border border-slate-200 bg-white">
-        <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <h3 className="font-bold text-slate-900">Global Ticket View</h3>
-            <div className="flex bg-slate-100 p-0.5 rounded-lg">
-              {['All', 'Open', 'In Progress', 'Resolved'].map(s => (
-                <button 
-                  key={s} 
-                  onClick={() => setStatusFilter(s)}
-                  className={cn(
-                    "text-[10px] px-3 py-1 rounded-md font-bold transition-all",
-                    statusFilter === s 
-                      ? "bg-white text-slate-950 shadow-sm" 
-                      : "text-slate-500 hover:text-slate-800"
-                  )}
-                >
-                  {s}
-                </button>
-              ))}
-            </div>
+      <div className="bg-white dark:bg-slate-900 rounded-xl sm:rounded-2xl overflow-hidden shadow-xs border border-slate-200/80 dark:border-slate-800">
+        <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl self-start sm:self-auto overflow-x-auto max-w-full">
+            {['All', 'Open', 'In Progress', 'Resolved'].map(s => (
+              <button 
+                key={s} 
+                onClick={() => setStatusFilter(s)}
+                className={cn(
+                  "text-xs px-3 py-1.5 rounded-lg font-semibold transition-all whitespace-nowrap",
+                  statusFilter === s 
+                    ? "bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs" 
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
+                )}
+              >
+                {s === 'All' ? 'Semua' : s}
+              </button>
+            ))}
           </div>
           
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+          <div className="relative w-full sm:w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
             <input 
               type="text" 
-              placeholder="Cari ID, nama, atau subjek..." 
+              placeholder="Cari ID, nama, subjek..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-500/20 w-64"
+              className="w-full pl-9 pr-3 py-1.5 sm:py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-800 dark:text-slate-200 placeholder:text-slate-400"
             />
           </div>
         </div>
 
         {loading ? (
-          <div className="flex justify-center items-center py-20">
-            <Loader2 className="animate-spin text-slate-900" size={32} />
+          <div className="flex justify-center items-center py-12">
+            <Loader2 className="animate-spin text-blue-600" size={24} />
           </div>
         ) : error ? (
-          <div className="p-8 text-center text-red-500 font-medium">{error}</div>
+          <div className="p-6 text-center text-red-500 text-xs sm:text-sm">{error}</div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left">
+            <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-slate-50 text-[10px] uppercase tracking-wider text-slate-500 font-bold border-b border-slate-100">
-                  <th className="px-6 py-4">ID Tiket</th>
-                  <th className="px-6 py-4">Customer</th>
-                  <th className="px-6 py-4">Subjek</th>
-                  <th className="px-6 py-4">Prioritas</th>
-                  <th className="px-6 py-4">Status</th>
+                <tr className="bg-slate-50/70 dark:bg-slate-800/50 text-[11px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-semibold border-b border-slate-100 dark:border-slate-800">
+                  <th className="px-4 py-3 sm:px-5">ID Tiket</th>
+                  <th className="px-4 py-3 sm:px-5">Pelanggan</th>
+                  <th className="px-4 py-3 sm:px-5">Subjek</th>
+                  <th className="px-4 py-3 sm:px-5">Prioritas</th>
+                  <th className="px-4 py-3 sm:px-5">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {filteredTickets.length > 0 ? (
                   filteredTickets.map((ticket) => (
-                    <tr key={ticket.id} className="hover:bg-slate-50/50 transition-colors">
-                      <td className="px-6 py-4 font-mono text-xs font-bold text-brand-600">
+                    <tr key={ticket.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors text-xs sm:text-sm">
+                      <td className="px-4 py-3 sm:px-5 font-mono text-xs font-semibold text-blue-600 dark:text-blue-400">
                         #{ticket.id}
                       </td>
-                      <td className="px-6 py-4 text-sm font-medium text-slate-900">{ticket.customerName}</td>
-                      <td className="px-6 py-4 text-sm text-slate-600 max-w-xs truncate" title={ticket.subject}>
+                      <td className="px-4 py-3 sm:px-5 font-medium text-slate-900 dark:text-white">{ticket.customerName}</td>
+                      <td className="px-4 py-3 sm:px-5 text-slate-600 dark:text-slate-400 max-w-xs truncate" title={ticket.subject}>
                         {ticket.subject}
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-3 sm:px-5">
                         <select 
                           value={ticket.isPriority ? 'High' : 'Low'}
                           disabled={updatingId === ticket.id}
                           onChange={(e) => handlePriorityChange(ticket.id, e.target.value)}
                           className={cn(
-                            "text-[10px] font-bold px-2 py-1 rounded-lg focus:outline-none border-none cursor-pointer",
-                            ticket.isPriority ? "bg-red-100 text-red-700" : "bg-slate-100 text-slate-700"
+                            "text-[10px] font-semibold px-2 py-1 rounded-lg focus:outline-none cursor-pointer border transition-colors",
+                            ticket.isPriority 
+                              ? "bg-red-50 text-red-700 border-red-200 dark:bg-red-950/40 dark:text-red-300 dark:border-red-800" 
+                              : "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700"
                           )}
                         >
                           <option value="Low">Low (Normal)</option>
                           <option value="High">High (Priority)</option>
                         </select>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-3 sm:px-5">
                         <select 
                           value={ticket.status}
                           disabled={updatingId === ticket.id}
                           onChange={(e) => handleStatusChange(ticket.id, e.target.value)}
                           className={cn(
-                            "text-[10px] font-bold px-2 py-1 rounded-lg focus:outline-none border-none transition-colors cursor-pointer",
-                            ticket.status === 'Open' ? "bg-blue-100 text-blue-700" : 
-                            ticket.status === 'In Progress' ? "bg-amber-100 text-amber-700" : 
-                            "bg-emerald-100 text-emerald-700"
+                            "text-[10px] font-semibold px-2 py-1 rounded-lg focus:outline-none cursor-pointer border transition-colors",
+                            ticket.status === 'Open' ? "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800" : 
+                            ticket.status === 'In Progress' ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800" : 
+                            "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
                           )}
                         >
                           <option value="Open">Open</option>
@@ -208,7 +206,7 @@ export const TicketSettingsPage = () => {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={5} className="text-center py-8 text-slate-400 text-sm font-medium">
+                    <td colSpan={5} className="text-center py-8 text-slate-400 text-xs sm:text-sm">
                       Tiket tidak ditemukan.
                     </td>
                   </tr>
@@ -221,9 +219,9 @@ export const TicketSettingsPage = () => {
 
       {/* Floating Toast Notification */}
       {showToast && (
-        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-3 border border-slate-800">
-          <CheckCircle2 size={18} className="text-emerald-400" />
-          <span className="text-xs font-bold">{toastMessage}</span>
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white px-4 py-2.5 rounded-xl shadow-lg flex items-center gap-2 border border-slate-800 text-xs font-semibold animate-bounce">
+          <CheckCircle2 size={16} className="text-emerald-400" />
+          <span>{toastMessage}</span>
         </div>
       )}
     </div>

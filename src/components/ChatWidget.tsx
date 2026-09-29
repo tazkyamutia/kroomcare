@@ -1,5 +1,5 @@
 import React from 'react';
-import { MessageSquare, X, Send, Bot, User, Loader2, Minimize2, Sparkles } from 'lucide-react';
+import { MessageSquare, X, Send, Bot, User, Minimize2, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { GoogleGenAI } from '@google/genai';
 import { ChatMessage } from '../types';
@@ -35,7 +35,7 @@ export const ChatWidget = () => {
         model: 'gemini-3-flash-preview',
         contents: messageToSend,
         config: {
-          systemInstruction: "Anda adalah asisten dukungan pelanggan KroomCare. Jawab dengan singkat dan ramah."
+          systemInstruction: "Anda adalah asisten dukungan pelanggan KroomCare. Jawab dengan singkat, tepat, dan ramah."
         }
       });
 
@@ -49,52 +49,52 @@ export const ChatWidget = () => {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-50">
+    <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50">
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            initial={{ opacity: 0, y: 15, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            className="glass-card w-[350px] sm:w-[400px] h-[500px] rounded-2xl flex flex-col overflow-hidden shadow-2xl mb-4"
+            exit={{ opacity: 0, y: 15, scale: 0.95 }}
+            className="w-[calc(100vw-32px)] sm:w-[380px] h-[480px] rounded-2xl flex flex-col overflow-hidden shadow-xl mb-3 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800"
           >
             {/* Header */}
-            <div className="bg-brand-600 p-4 text-white flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
-                  <Bot size={20} />
+            <div className="bg-blue-600 p-3.5 text-white flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 bg-white/20 rounded-lg flex items-center justify-center">
+                  <Bot size={16} />
                 </div>
                 <div>
-                  <h3 className="font-medium leading-none">KroomCare AI</h3>
-                  <span className="text-[10px] text-brand-100 flex items-center gap-1 mt-1">
-                    <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
+                  <h3 className="font-semibold text-xs leading-none">KroomCare AI</h3>
+                  <span className="text-[10px] text-blue-100 flex items-center gap-1 mt-1">
+                    <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
                     Online Support
                   </span>
                 </div>
               </div>
               <button onClick={() => setIsOpen(false)} className="hover:bg-white/10 p-1 rounded-md transition-colors">
-                <Minimize2 size={20} />
+                <Minimize2 size={16} />
               </button>
             </div>
 
             {/* Messages */}
-            <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50/50">
+            <div ref={scrollRef} className="flex-1 overflow-y-auto p-3.5 space-y-3 bg-slate-50/60 dark:bg-slate-950/40">
               {messages.map((msg, i) => (
                 <div key={i} className={cn(
                   "flex items-start gap-2",
                   msg.role === 'user' ? "flex-row-reverse" : ""
                 )}>
                   <div className={cn(
-                    "w-8 h-8 rounded-lg flex items-center justify-center shrink-0",
-                    msg.role === 'user' ? "bg-brand-100 text-brand-700" : "bg-white text-slate-600 border border-slate-200"
+                    "w-7 h-7 rounded-lg flex items-center justify-center shrink-0",
+                    msg.role === 'user' ? "bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300" : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700"
                   )}>
-                    {msg.role === 'user' ? <User size={16} /> : <Bot size={16} />}
+                    {msg.role === 'user' ? <User size={14} /> : <Bot size={14} />}
                   </div>
                   <div className={cn(
-                    "max-w-[80%] p-3 rounded-2xl text-sm shadow-sm",
+                    "max-w-[80%] p-2.5 rounded-xl text-xs shadow-xs",
                     msg.role === 'user' 
-                      ? "bg-brand-600 text-white rounded-tr-none" 
-                      : "bg-white text-slate-700 rounded-tl-none border border-slate-100"
+                      ? "bg-blue-600 text-white rounded-tr-none" 
+                      : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-tl-none border border-slate-200/80 dark:border-slate-700"
                   )}>
                     {msg.text}
                   </div>
@@ -103,28 +103,28 @@ export const ChatWidget = () => {
               
               {isLoading && (
                 <div className="flex items-start gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center">
-                    <Bot size={16} />
+                  <div className="w-7 h-7 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center">
+                    <Bot size={14} />
                   </div>
-                  <div className="bg-white p-3 rounded-2xl rounded-tl-none border border-slate-100 shadow-sm flex items-center gap-2">
+                  <div className="bg-white dark:bg-slate-800 p-2.5 rounded-xl rounded-tl-none border border-slate-200/80 dark:border-slate-700 shadow-xs flex items-center gap-1.5">
                     <div className="flex gap-1">
-                      <span className="w-1.5 h-1.5 bg-slate-300 rounded-full animate-bounce [animation-delay:-0.3s]" />
-                      <span className="w-1.5 h-1.5 bg-slate-300 rounded-full animate-bounce [animation-delay:-0.15s]" />
-                      <span className="w-1.5 h-1.5 bg-slate-300 rounded-full animate-bounce" />
+                      <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce [animation-delay:-0.3s]" />
+                      <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce [animation-delay:-0.15s]" />
+                      <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" />
                     </div>
-                    <span className="text-[10px] text-slate-400 font-medium">AI is typing...</span>
+                    <span className="text-[10px] text-slate-400 font-medium">AI sedang mengetik...</span>
                   </div>
                 </div>
               )}
 
               {/* Quick Replies */}
               {!isLoading && messages.length < 4 && (
-                <div className="flex flex-wrap gap-2 mt-4">
+                <div className="flex flex-wrap gap-1.5 mt-3">
                   {QUICK_REPLIES.map((reply, i) => (
                     <button
                       key={i}
                       onClick={() => handleSend(reply)}
-                      className="text-[10px] px-3 py-1.5 bg-white border border-slate-200 rounded-full text-slate-600 hover:border-brand-500 hover:text-brand-600 transition-all flex items-center gap-1"
+                      className="text-[10px] px-2.5 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-600 dark:text-slate-300 hover:border-blue-500 hover:text-blue-600 transition-colors flex items-center gap-1"
                     >
                       <Sparkles size={10} className="text-amber-500" />
                       {reply}
@@ -135,7 +135,7 @@ export const ChatWidget = () => {
             </div>
 
             {/* Input */}
-            <div className="p-4 bg-white border-t border-slate-100">
+            <div className="p-3 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800">
               <div className="relative">
                 <input
                   type="text"
@@ -143,14 +143,14 @@ export const ChatWidget = () => {
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSend()}
                   placeholder="Tanyakan sesuatu..."
-                  className="w-full pl-4 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all"
+                  className="w-full pl-3 pr-10 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-xs text-slate-800 dark:text-slate-200 placeholder:text-slate-400"
                 />
                 <button 
-                  onClick={handleSend}
+                  onClick={() => handleSend()}
                   disabled={!input.trim() || isLoading}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 disabled:opacity-50 transition-colors"
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
                 >
-                  <Send size={18} />
+                  <Send size={14} />
                 </button>
               </div>
             </div>
@@ -161,11 +161,11 @@ export const ChatWidget = () => {
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          "w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-all duration-300",
-          isOpen ? "bg-slate-800 text-white rotate-90" : "bg-brand-600 text-white hover:scale-110"
+          "w-11 h-11 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center shadow-md transition-all duration-200",
+          isOpen ? "bg-slate-800 text-white" : "bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/20"
         )}
       >
-        {isOpen ? <X size={24} /> : <MessageSquare size={24} />}
+        {isOpen ? <X size={20} /> : <MessageSquare size={20} />}
       </button>
     </div>
   );

@@ -1,13 +1,11 @@
 import React from 'react';
 import { 
-  User, Mail, Camera, Coins, History, CheckCircle2, Save, ArrowUpRight, Gift, Activity, Zap, Award, ExternalLink,
-  ShieldCheck, Lock, ShieldEllipsis, ToggleLeft, ToggleRight, Eye, EyeOff
+  User, Mail, Camera, Coins, History, CheckCircle2, Save, ArrowUpRight, Gift, Activity,
+  Lock, ShieldEllipsis, ToggleLeft, ToggleRight, Eye, EyeOff, Loader2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../../lib/utils';
-import { DUMMY_TRANSACTIONS } from '../../utils/dummyData';
 import { useUser } from '../../context/UserContext';
-
 
 export const ProfilePage: React.FC = () => {
   const { user, updateUser } = useUser();
@@ -20,8 +18,6 @@ export const ProfilePage: React.FC = () => {
     avatar: user?.avatar || ''
   });
 
-
-  // Sinkronisasikan form dengan context user yang mengambil data dari database
   React.useEffect(() => {
     if (user) {
       setFormData({
@@ -42,7 +38,6 @@ export const ProfilePage: React.FC = () => {
   const [twoFactorEnabled, setTwoFactorEnabled] = React.useState(false);
   const [isSaving, setIsSaving] = React.useState(false);
   const [saved, setSaved] = React.useState(false);
-  const [securitySaved, setSecuritySaved] = React.useState(false);
 
   const [passwordForm, setPasswordForm] = React.useState({
     current: '',
@@ -76,8 +71,6 @@ export const ProfilePage: React.FC = () => {
   const [showNewPassword, setShowNewPassword] = React.useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
 
-  const isPasswordValid = passwordForm.new.length >= 8 && passwordForm.new === passwordForm.confirm && passwordForm.current.length > 0;
-
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user?.id) return;
@@ -102,10 +95,10 @@ export const ProfilePage: React.FC = () => {
         return;
       }
 
-      // 2. Jika kolom password diisi, lakukan pembaruan password secara bersamaan
+      // 2. Jika kolom password diisi
       if (passwordForm.current || passwordForm.new || passwordForm.confirm) {
         if (!passwordForm.current || !passwordForm.new || !passwordForm.confirm) {
-          alert('Harap lengkapi semua kolom kata sandi jika Anda ingin mengubah kata sandi.');
+          alert('Harap lengkapi semua kolom kata sandi.');
           setIsSaving(false);
           return;
         }
@@ -136,7 +129,7 @@ export const ProfilePage: React.FC = () => {
         }
       }
 
-      // 3. Update User Context dan bersihkan form sandi
+      // 3. Update User Context
       updateUser({
         name: result.data.name,
         email: result.data.email,
@@ -176,7 +169,6 @@ export const ProfilePage: React.FC = () => {
     fetchHistory();
   }, [user?.id]);
   
-  // Mock staff data
   const staffStats = {
     resolved: 45,
     rewardsGiven: 300
@@ -192,7 +184,7 @@ export const ProfilePage: React.FC = () => {
     if (!user?.id) return;
 
     if (twoFactorEnabled) {
-      const confirmDisable = window.confirm('Apakah Anda yakin ingin menonaktifkan Two-Factor Authentication (2FA)? Keamanan akun Anda akan berkurang.');
+      const confirmDisable = window.confirm('Apakah Anda yakin ingin menonaktifkan 2FA?');
       if (!confirmDisable) return;
 
       try {
@@ -259,7 +251,7 @@ export const ProfilePage: React.FC = () => {
         setOtpCode('');
         setSetupSecret('');
         setQrCodeUrl('');
-        alert('Two-Factor Authentication (2FA) berhasil diaktifkan!');
+        alert('Two-Factor Authentication berhasil diaktifkan!');
       } else {
         alert(result.message || 'Kode OTP salah. Silakan coba lagi.');
       }
@@ -272,22 +264,19 @@ export const ProfilePage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-3xl mx-auto space-y-12 pb-24 px-4">
-      {/* Page Header */}
-      <div className="space-y-2 text-center pt-8">
-        <h1 className="text-4xl font-display font-bold text-slate-900 tracking-tight">Pengaturan Profil</h1>
-        <p className="text-slate-500 font-medium">Kelola informasi publik dan keamanan akun Anda dalam satu tempat.</p>
+    <div className="max-w-2xl mx-auto space-y-5 pb-16">
+      {/* Header */}
+      <div>
+        <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Pengaturan Profil</h1>
+        <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">Kelola informasi publik dan keamanan akun Anda.</p>
       </div>
 
-      <div className="bg-white rounded-[3rem] p-8 md:p-12 border border-slate-200 shadow-xl shadow-slate-200/50 relative overflow-hidden">
-        {/* Decorative background element */}
-        <div className="absolute top-0 right-0 w-64 h-64 bg-brand-50/50 rounded-full blur-3xl -mr-32 -mt-32 pointer-events-none" />
-        
-        <form onSubmit={handleSave} className="space-y-12 relative z-10">
+      <div className="bg-white dark:bg-slate-900 rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-slate-200/80 dark:border-slate-800 shadow-xs">
+        <form onSubmit={handleSave} className="space-y-6">
           
           {/* 1. Header Profil (Avatar) */}
-          <section className="flex flex-col items-center space-y-6">
-            <div className="relative group">
+          <section className="flex flex-col sm:flex-row items-center gap-4 pb-6 border-b border-slate-100 dark:border-slate-800">
+            <div className="relative group shrink-0">
               <input 
                 type="file" 
                 ref={fileInputRef}
@@ -297,475 +286,324 @@ export const ProfilePage: React.FC = () => {
               />
               <div 
                 onClick={handlePhotoClick}
-                className="w-32 h-32 rounded-full bg-white border-4 border-white shadow-2xl flex items-center justify-center text-brand-600 text-4xl font-black overflow-hidden ring-4 ring-brand-50 transition-all group-hover:ring-brand-100 cursor-pointer"
+                className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-slate-100 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 flex items-center justify-center text-blue-600 dark:text-blue-400 text-xl font-bold overflow-hidden cursor-pointer relative"
               >
                 {formData.avatar ? (
                   <img src={formData.avatar} alt="Avatar" className="w-full h-full object-cover" />
                 ) : (
-                  formData.name.split(' ').map(n => n[0]).join('')
+                  formData.name?.split(' ').map(n => n[0]).join('').substring(0, 2)
                 )}
-                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center text-white backdrop-blur-[2px] rounded-full">
-                  <Camera size={32} />
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white rounded-full">
+                  <Camera size={18} />
                 </div>
               </div>
             </div>
-            <div className="text-center">
-              <h3 className="text-xl font-bold text-slate-900 mb-2">{formData.name}</h3>
-              <div className="flex flex-col items-center gap-2">
+            <div className="text-center sm:text-left min-w-0">
+              <h3 className="text-base font-bold text-slate-900 dark:text-white truncate">{formData.name}</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{formData.email}</p>
+              <div className="flex items-center justify-center sm:justify-start gap-2 mt-2">
                 <button 
                   type="button" 
                   onClick={handlePhotoClick}
-                  className="px-6 py-2 bg-blue-50 text-blue-600 text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-blue-100 transition-all"
+                  className="px-3 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold rounded-lg transition-colors"
                 >
-                  Pilih Foto Baru
+                  Ganti Foto
                 </button>
-                <p className="text-[10px] text-slate-400 font-medium">Maks. ukuran 2MB (JPG, PNG)</p>
+                <span className="text-[11px] text-slate-400">Maks. 2MB</span>
               </div>
             </div>
           </section>
 
-          <hr className="border-slate-100" />
-
           {/* 2. Informasi Akun */}
-          <section className="space-y-8">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-brand-50 rounded-xl flex items-center justify-center text-brand-600">
-                <User size={18} />
-              </div>
-              <h2 className="text-lg font-bold text-slate-900">Informasi Akun</h2>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-3">
-                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Nama Lengkap</label>
-                <div className="relative group">
-                  <User className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand-600 transition-colors" size={20} />
+          <section className="space-y-4">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Informasi Pribadi</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              <div>
+                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Nama Lengkap</label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
                   <input 
                     type="text" 
                     value={formData.name}
                     onChange={(e) => setFormData({...formData, name: e.target.value})}
-                    className="w-full pl-14 pr-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-brand-500/10 transition-all text-sm font-bold text-slate-800 placeholder:text-slate-400"
-                    placeholder="Masukkan nama lengkap..."
+                    className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    placeholder="Nama lengkap..."
                   />
                 </div>
               </div>
 
-              <div className="space-y-3">
-                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Email Profesional</label>
-                <div className="relative group">
-                  <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand-600 transition-colors" size={20} />
+              <div>
+                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Alamat Email</label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
                   <input 
                     type="email" 
                     value={formData.email}
                     onChange={(e) => setFormData({...formData, email: e.target.value})}
-                    className="w-full pl-14 pr-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-brand-500/10 transition-all text-sm font-bold text-slate-800 placeholder:text-slate-400"
-                    placeholder="email@kroomcare.com"
+                    className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    placeholder="email@example.com"
                   />
                 </div>
               </div>
             </div>
           </section>
 
-          <hr className="border-slate-100" />
+          {/* 3. Keamanan Akun */}
+          <section className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Kata Sandi</h2>
 
-          {/* 3. Keamanan (Security) */}
-          <section className="space-y-8">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-brand-50 rounded-xl flex items-center justify-center text-brand-600">
-                <Lock size={18} />
-              </div>
-              <h2 className="text-lg font-bold text-slate-900">Keamanan Akun</h2>
-            </div>
-
-            <div className="space-y-6">
-              <div className="space-y-3">
-                <label className="text-[10px] font-black uppercase tracking-widest ml-1 text-slate-400">Kata Sandi Saat Ini</label>
-                <div className="relative group">
-                  <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand-600 transition-colors" size={20} />
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Kata Sandi Saat Ini</label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
                   <input 
                     type={showCurrentPassword ? "text" : "password"} 
                     value={passwordForm.current}
                     onChange={(e) => setPasswordForm({...passwordForm, current: e.target.value})}
-                    className="w-full pl-14 pr-14 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-brand-500/10 transition-all text-sm font-bold text-slate-800"
-                    placeholder="••••••••"
+                    className="w-full pl-9 pr-9 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    placeholder="Kosongkan jika tidak ingin mengubah"
                   />
                   <button 
                     type="button"
                     onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                    className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-all"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                   >
-                    {showCurrentPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    {showCurrentPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                   </button>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-3">
-                  <label className="text-[10px] font-black uppercase tracking-widest ml-1 text-slate-400">Kata Sandi Baru</label>
-                  <div className="relative group">
-                    <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand-600 transition-colors" size={20} />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Kata Sandi Baru</label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
                     <input 
                       type={showNewPassword ? "text" : "password"} 
                       value={passwordForm.new}
                       onChange={(e) => setPasswordForm({...passwordForm, new: e.target.value})}
-                      className="w-full pl-14 pr-14 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-brand-500/10 transition-all text-sm font-bold text-slate-800"
+                      className="w-full pl-9 pr-9 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                       placeholder="Min. 8 karakter"
                     />
                     <button 
                       type="button"
                       onClick={() => setShowNewPassword(!showNewPassword)}
-                      className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-all"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                     >
-                      {showNewPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                      {showNewPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                     </button>
                   </div>
                 </div>
 
-                <div className="space-y-3">
-                  <label className="text-[10px] font-black uppercase tracking-widest ml-1 text-slate-400">Konfirmasi Sandi Baru</label>
-                  <div className="relative group">
-                    <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand-600 transition-colors" size={20} />
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Konfirmasi Sandi Baru</label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
                     <input 
                       type={showConfirmPassword ? "text" : "password"} 
                       value={passwordForm.confirm}
                       onChange={(e) => setPasswordForm({...passwordForm, confirm: e.target.value})}
-                      className="w-full pl-14 pr-14 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-brand-500/10 transition-all text-sm font-bold text-slate-800"
+                      className="w-full pl-9 pr-9 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                       placeholder="Ulangi sandi baru"
                     />
                     <button 
                       type="button"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-all"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                     >
-                      {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                      {showConfirmPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                     </button>
                   </div>
                 </div>
               </div>
             </div>
             
-            {/* Special Admin 2FA */}
+            {/* Admin 2FA */}
             {userRole === 'admin' && (
-              <div className="bg-red-50/50 p-6 rounded-3xl border border-red-100 flex items-center justify-between group mt-6">
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-red-600 shadow-sm border border-red-50 transition-transform">
-                    <ShieldEllipsis size={24} />
+              <div className="bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-between mt-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 bg-blue-50 dark:bg-blue-950/40 rounded-lg flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
+                    <ShieldEllipsis size={18} />
                   </div>
                   <div>
-                    <h4 className="text-sm font-bold text-slate-900">Two-Factor Authentication (2FA)</h4>
-                    <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
-                      Tambahkan verifikasi kode untuk keamanan admin maksimal.
-                    </p>
+                    <h4 className="text-xs font-semibold text-slate-900 dark:text-white">Two-Factor Authentication (2FA)</h4>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">Verifikasi kode OTP autentikator.</p>
                   </div>
                 </div>
                 <button 
                   type="button"
                   onClick={handle2FAToggle}
                   className={cn(
-                    "transition-all duration-300 transform",
-                    twoFactorEnabled ? "text-emerald-500 scale-110" : "text-slate-300"
+                    "transition-colors",
+                    twoFactorEnabled ? "text-emerald-500" : "text-slate-400"
                   )}
                 >
-                  {twoFactorEnabled ? <ToggleRight size={48} /> : <ToggleLeft size={48} />}
+                  {twoFactorEnabled ? <ToggleRight size={32} /> : <ToggleLeft size={32} />}
                 </button>
               </div>
             )}
           </section>
 
-          <hr className="border-slate-100" />
-
-          {/* 4. Gamifikasi Customer (atau Shift for Staff) */}
-          <section className="space-y-8">
-            {userRole === 'customer' && (
-              <div className="space-y-8">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-brand-50 rounded-xl flex items-center justify-center text-brand-600">
-                    <Gift size={18} />
+          {/* 4. Customer Loyalty Summary (jika Customer) */}
+          {userRole === 'customer' && (
+            <section className="space-y-3 pt-4 border-t border-slate-100 dark:border-slate-800">
+              <div className="bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl p-4 text-white shadow-xs">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Coins size={18} className="text-amber-300" />
+                    <span className="text-xs font-semibold text-blue-100">KroomCare Loyalty</span>
                   </div>
-                  <h2 className="text-lg font-bold text-slate-900">Loyalty & Reward</h2>
+                  <span className="text-[10px] bg-white/20 px-2 py-0.5 rounded-full font-bold uppercase">Member</span>
                 </div>
-
-                {/* Points Card */}
-                <div className="bg-gradient-to-r from-blue-700 to-sky-400 rounded-[2.5rem] p-10 text-white relative overflow-hidden shadow-2xl shadow-blue-500/30">
-                  <div className="relative z-10">
-                    <div className="flex items-center gap-3 mb-8">
-                      <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center text-white backdrop-blur-xl border border-white/30">
-                        <Coins size={24} fill="currentColor" />
-                      </div>
-                      <div>
-                        <h3 className="text-xs font-black uppercase tracking-widest opacity-70">Total Reward</h3>
-                        <p className="text-sm font-bold">KroomCare Loyalty</p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-baseline gap-3 mb-6">
-                      <span className="text-6xl font-display font-black tracking-tighter">🪙 {points.toLocaleString()}</span>
-                      <span className="text-brand-100 font-black uppercase text-[10px] tracking-widest bg-white/10 px-2 py-1 rounded-lg backdrop-blur-sm">Poin</span>
-                    </div>
-
-                    <div className="p-5 bg-white/10 rounded-[2rem] border border-white/20 backdrop-blur-md">
-                      <div className="flex justify-between items-center mb-3">
-                        <span className="text-[10px] font-black uppercase tracking-widest text-brand-100">Level Progress</span>
-                        <span className="text-[10px] font-bold">85% to Gold</span>
-                      </div>
-                      <div className="w-full h-2.5 bg-black/20 rounded-full overflow-hidden">
-                        <div className="h-full bg-gradient-to-r from-amber-300 to-amber-500 w-[85%] rounded-full shadow-[0_0_10px_rgba(245,158,11,0.5)]" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 5. Riwayat Aktivitas Customer */}
-                <div className="bg-slate-50/50 rounded-[2.5rem] p-8 border border-slate-100 space-y-6">
-                  <div className="flex items-center gap-2 px-1">
-                    <History size={18} className="text-brand-600" />
-                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Riwayat Koin Terakhir</h3>
-                  </div>
-                  <div className="space-y-4">
-                    {isLoadingHistory ? (
-                      <div className="flex justify-center py-6">
-                        <span className="text-xs text-slate-500 font-medium animate-pulse">Memuat riwayat...</span>
-                      </div>
-                    ) : recentTransactions.length > 0 ? (
-                      recentTransactions.map((tx) => (
-                        <div key={tx.id} className="bg-white p-5 rounded-2xl border border-slate-100 flex items-center justify-between shadow-sm hover:shadow-md transition-shadow">
-                          <div className="flex items-center gap-4">
-                            <div className={cn(
-                              "w-10 h-10 rounded-xl flex items-center justify-center",
-                              tx.jenis_transaksi === 'masuk' ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600"
-                            )}>
-                              {tx.jenis_transaksi === 'masuk' ? <ArrowUpRight size={18} /> : <Coins size={18} />}
-                            </div>
-                            <div>
-                              <p className="text-xs font-bold text-slate-900 truncate max-w-[180px]">{tx.keterangan}</p>
-                              <p className="text-[9px] text-slate-400 font-black uppercase tracking-tight mt-0.5">
-                                {new Date(tx.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
-                              </p>
-                            </div>
-                          </div>
-                          <span className={cn("text-sm font-black", tx.jenis_transaksi === 'masuk' ? "text-emerald-600" : "text-red-600")}>
-                            {tx.jenis_transaksi === 'masuk' ? '+' : '-'}{tx.jumlah_poin}
-                          </span>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-xs text-slate-500 text-center py-6">Belum ada riwayat koin.</p>
-                    )}
-                  </div>
-                </div>
+                <p className="text-2xl font-bold tracking-tight">🪙 {points.toLocaleString('id-ID')} Poin</p>
               </div>
-            )}
 
-            {userRole === 'staff' && (
-              <div className="space-y-6">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-brand-50 rounded-xl flex items-center justify-center text-brand-600">
-                    <Activity size={18} />
-                  </div>
-                  <h2 className="text-lg font-bold text-slate-900">Status & Shift</h2>
-                </div>
-
-                <div className="bg-slate-50 p-2 rounded-[2rem] border border-slate-100 flex items-center w-full">
-                  {['online', 'busy', 'offline'].map((s) => (
-                    <button 
-                      key={s}
-                      type="button"
-                      onClick={() => setStatus(s as any)}
-                      className={cn(
-                        "flex-1 py-4 rounded-[1.5rem] text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2",
-                        status === s 
-                          ? s === 'online' ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/20" 
-                          : s === 'busy' ? "bg-amber-500 text-white shadow-lg shadow-amber-500/20"
-                          : "bg-slate-900 text-white shadow-lg shadow-slate-900/20"
-                          : "text-slate-400 hover:bg-white"
-                      )}
-                    >
-                      <div className={cn("w-2 h-2 rounded-full ring-4 ring-white/10", 
-                        status === s ? "bg-white" : 
-                        s === 'online' ? "bg-emerald-500" : 
-                        s === 'busy' ? "bg-amber-500" : "bg-slate-400"
-                      )} />
-                      {s}
-                    </button>
+              {recentTransactions.length > 0 && (
+                <div className="space-y-2 pt-2">
+                  <h4 className="text-xs font-medium text-slate-500 dark:text-slate-400">Transaksi Poin Terakhir</h4>
+                  {recentTransactions.map((tx) => (
+                    <div key={tx.id} className="p-2.5 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2">
+                        <div className={cn(
+                          "w-6 h-6 rounded-md flex items-center justify-center shrink-0",
+                          tx.jenis_transaksi === 'masuk' ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400" : "bg-red-100 text-red-600 dark:bg-red-950 dark:text-red-400"
+                        )}>
+                          {tx.jenis_transaksi === 'masuk' ? <ArrowUpRight size={13} /> : <Coins size={13} />}
+                        </div>
+                        <span className="font-medium text-slate-800 dark:text-slate-200 truncate max-w-[200px]">{tx.keterangan}</span>
+                      </div>
+                      <span className={cn("font-semibold", tx.jenis_transaksi === 'masuk' ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400")}>
+                        {tx.jenis_transaksi === 'masuk' ? '+' : '-'}{tx.jumlah_poin}
+                      </span>
+                    </div>
                   ))}
                 </div>
-                
-                {/* Staff Stats Card */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="p-6 bg-slate-900 rounded-[2rem] text-white">
-                    <p className="text-3xl font-display font-black text-white mb-1">{staffStats.resolved}</p>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-brand-400">Tiket Selesai</p>
-                  </div>
-                  <div className="p-6 bg-brand-600 rounded-[2rem] text-white">
-                    <p className="text-3xl font-display font-black text-white mb-1">{staffStats.rewardsGiven}</p>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-amber-200">Poin Diberikan</p>
-                  </div>
-                </div>
-              </div>
-            )}
-          </section>
+              )}
+            </section>
+          )}
 
-          {/* 6. Action Buttons */}
-          <div className="pt-12 border-t border-slate-100 flex flex-col sm:flex-row items-center gap-6">
+          {/* 5. Status & Shift (jika Staff) */}
+          {userRole === 'staff' && (
+            <section className="space-y-3 pt-4 border-t border-slate-100 dark:border-slate-800">
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400">Status Kehadiran</h2>
+              <div className="bg-slate-100 dark:bg-slate-800 p-1 rounded-xl flex items-center">
+                {['online', 'busy', 'offline'].map((s) => (
+                  <button 
+                    key={s}
+                    type="button"
+                    onClick={() => setStatus(s as any)}
+                    className={cn(
+                      "flex-1 py-1.5 rounded-lg text-xs font-semibold capitalize transition-all",
+                      status === s 
+                        ? "bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs" 
+                        : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                    )}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Action Buttons */}
+          <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-3">
+            <button 
+              type="button"
+              onClick={() => {
+                setFormData({ name: user?.name || '', email: user?.email || '', avatar: user?.avatar || '' });
+                setPasswordForm({ current: '', new: '', confirm: '' });
+              }}
+              className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            >
+              Reset
+            </button>
             <button 
               type="submit"
               disabled={isSaving}
               className={cn(
-                "w-full sm:flex-1 py-5 rounded-[2rem] font-black uppercase tracking-[0.2em] text-xs transition-all shadow-2xl active:scale-[0.98] flex items-center justify-center gap-3",
-                saved 
-                  ? "bg-emerald-500 text-white shadow-emerald-500/30" 
-                  : "bg-brand-600 text-white shadow-brand-500/40 hover:bg-brand-700 hover:-translate-y-1"
+                "px-5 py-2 rounded-xl text-xs font-semibold transition-all shadow-xs flex items-center gap-1.5 text-white",
+                saved ? "bg-emerald-600" : "bg-blue-600 hover:bg-blue-700"
               )}
             >
               {isSaving ? (
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <>
+                  <Loader2 size={14} className="animate-spin" />
+                  Menyimpan...
+                </>
               ) : saved ? (
                 <>
-                  <CheckCircle2 size={20} />
-                  Simpan Perubahan
+                  <CheckCircle2 size={14} />
+                  Tersimpan!
                 </>
               ) : (
                 <>
-                  <Save size={20} />
+                  <Save size={14} />
                   Simpan Perubahan
                 </>
               )}
-            </button>
-            <button 
-              type="button"
-              onClick={() => {
-                setFormData({ name: user?.name || '', email: formData.email, avatar: user?.avatar || '' });
-                setPasswordForm({ current: '', new: '', confirm: '' });
-              }}
-              className="w-full sm:w-auto px-12 py-5 rounded-[2rem] bg-white border-2 border-slate-100 text-slate-400 font-black uppercase tracking-[0.2em] text-xs hover:bg-slate-50 hover:text-slate-600 transition-all active:scale-[0.98]"
-            >
-              Batal
             </button>
           </div>
         </form>
       </div>
 
+      {/* 2FA Modal */}
       <AnimatePresence>
-        {saved && (
-          <motion.div 
-            initial={{ opacity: 0, y: 50, scale: 0.9 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 20, scale: 0.9 }}
-            className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 bg-emerald-500 text-white px-8 py-4 rounded-[2rem] shadow-2xl flex items-center gap-4 border-4 border-white"
-          >
-            <div className="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center">
-              <CheckCircle2 size={20} />
-            </div>
-            <span className="font-bold text-sm">Profil Anda berhasil diperbarui!</span>
-          </motion.div>
-        )}
-
         {show2FAModal && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-50 flex items-center justify-center p-4"
-          >
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
             <motion.div 
-              initial={{ scale: 0.95, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.95, y: 20 }}
-              className="bg-white rounded-[2.5rem] w-full max-w-md p-6 md:p-8 border border-slate-100 shadow-2xl relative overflow-y-auto max-h-[90vh] scrollbar-thin"
+              initial={{ scale: 0.95 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.95 }}
+              className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-sm p-5 border border-slate-200 dark:border-slate-800 shadow-xl space-y-4"
             >
-              <button 
-                type="button"
-                onClick={() => {
-                  setShow2FAModal(false);
-                  setOtpCode('');
-                  setSetupSecret('');
-                  setQrCodeUrl('');
-                }}
-                className="absolute right-6 top-6 w-10 h-10 rounded-full bg-slate-50 hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors"
-              >
-                ✕
-              </button>
+              <div className="text-center space-y-2">
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">Setup 2FA Admin</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Scan QR code menggunakan Google Authenticator.
+                </p>
+              </div>
 
-              <div className="space-y-6 text-center">
-                <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center text-red-600 mx-auto shadow-sm">
-                  <ShieldEllipsis size={32} />
+              {qrCodeUrl && (
+                <div className="p-3 bg-white rounded-xl border border-slate-200 flex justify-center">
+                  <img src={qrCodeUrl} alt="2FA QR Code" className="w-40 h-40 object-contain" />
                 </div>
-                
-                <div>
-                  <h3 className="text-xl font-bold text-slate-900">Setup Two-Factor (2FA)</h3>
-                  <p className="text-xs text-slate-500 mt-2 leading-relaxed">
-                    Tingkatkan keamanan akun Admin Anda menggunakan Google Authenticator atau aplikasi sejenis.
-                  </p>
-                </div>
+              )}
 
-                {qrCodeUrl && (
-                  <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100 shadow-inner w-full flex justify-center items-center">
-                    <img 
-                      src={qrCodeUrl} 
-                      alt="2FA QR Code" 
-                      className="qr-code w-full max-w-[200px] h-[200px] rounded-xl object-contain mx-auto"
-                      style={{ width: '100%', height: '100%', maxWidth: '200px' }}
-                    />
-                  </div>
-                )}
+              <div>
+                <label className="block text-[11px] font-medium text-slate-500 mb-1">Kode OTP 6 Digit:</label>
+                <input 
+                  type="text" 
+                  maxLength={6}
+                  value={otpCode}
+                  onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                  placeholder="000000"
+                  className="w-full py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-center font-mono text-lg font-bold tracking-widest text-slate-800 dark:text-slate-200"
+                />
+              </div>
 
-                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 text-left space-y-2">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Kode Pengaturan Manual:</span>
-                  <div className="flex items-center justify-between">
-                    <code className="text-xs font-mono font-bold text-slate-800 select-all tracking-wider">{setupSecret}</code>
-                    <button 
-                      type="button" 
-                      onClick={() => {
-                        navigator.clipboard.writeText(setupSecret);
-                        alert('Kode disalin ke papan klip!');
-                      }}
-                      className="text-[10px] text-blue-600 hover:underline font-bold"
-                    >
-                      Salin
-                    </button>
-                  </div>
-                </div>
-
-                <div className="space-y-3 text-left">
-                  <label className="text-[10px] font-black uppercase tracking-widest ml-1 text-slate-400">Masukkan Kode Verifikasi 2FA:</label>
-                  <input 
-                    type="text" 
-                    maxLength={6}
-                    value={otpCode}
-                    onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
-                    placeholder="Contoh: 123456"
-                    className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-brand-500/10 text-center font-mono text-xl font-bold tracking-[0.3em] text-slate-800"
-                  />
-                </div>
-
-                <div className="flex gap-4 pt-2">
-                  <button 
-                    type="button"
-                    onClick={() => {
-                      setShow2FAModal(false);
-                      setOtpCode('');
-                      setSetupSecret('');
-                      setQrCodeUrl('');
-                    }}
-                    className="flex-1 py-4 bg-slate-50 border border-slate-200 text-slate-500 font-bold rounded-2xl hover:bg-slate-100 transition-colors text-sm"
-                  >
-                    Batal
-                  </button>
-                  <button 
-                    type="button"
-                    disabled={otpCode.length !== 6 || modalLoading}
-                    onClick={handleVerify2FA}
-                    className="flex-1 py-4 bg-red-600 text-white font-bold rounded-2xl hover:bg-red-700 transition-colors text-sm disabled:opacity-50 flex items-center justify-center gap-2"
-                  >
-                    {modalLoading ? 'Memverifikasi...' : 'Verifikasi & Aktifkan'}
-                  </button>
-                </div>
+              <div className="flex gap-2 pt-1">
+                <button 
+                  type="button"
+                  onClick={() => setShow2FAModal(false)}
+                  className="flex-1 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl text-xs font-semibold"
+                >
+                  Batal
+                </button>
+                <button 
+                  type="button"
+                  disabled={otpCode.length !== 6 || modalLoading}
+                  onClick={handleVerify2FA}
+                  className="flex-1 py-2 bg-blue-600 text-white rounded-xl text-xs font-semibold disabled:opacity-50"
+                >
+                  {modalLoading ? 'Verifikasi...' : 'Aktifkan'}
+                </button>
               </div>
             </motion.div>
-          </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </div>
   );
-
 };

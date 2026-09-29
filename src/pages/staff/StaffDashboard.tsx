@@ -42,18 +42,18 @@ export const StaffDashboard = () => {
   }, [user?.id, shift]);
 
   const statCards = stats ? [
-    { label: 'Tiket Baru', value: String(stats.newTickets), icon: Zap, color: 'text-blue-600', bg: 'bg-blue-50' },
-    { label: 'Tiket Saya', value: String(stats.myTickets), icon: Ticket, color: 'text-brand-600', bg: 'bg-brand-50' },
-    { label: 'Selesai Hari Ini', value: String(stats.doneToday), icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-    { label: 'Tingkat Penyelesaian Tiket', value: stats.slaRate, icon: BarChart3, color: 'text-amber-600', bg: 'bg-amber-50' },
+    { label: 'Tiket Baru', value: String(stats.newTickets), icon: Zap, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-950/40' },
+    { label: 'Tiket Saya', value: String(stats.myTickets), icon: Ticket, color: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-50 dark:bg-indigo-950/40' },
+    { label: 'Selesai Hari Ini', value: String(stats.doneToday), icon: CheckCircle2, color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-950/40' },
+    { label: 'Tingkat SLA', value: stats.slaRate, icon: BarChart3, color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-950/40' },
   ] : [
-    { label: 'Tiket Baru', value: '-', icon: Zap, color: 'text-blue-600', bg: 'bg-blue-50' },
-    { label: 'Tiket Saya', value: '-', icon: Ticket, color: 'text-brand-600', bg: 'bg-brand-50' },
-    { label: 'Selesai Hari Ini', value: '-', icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-    { label: 'Tingkat Penyelesaian Tiket', value: '-', icon: BarChart3, color: 'text-amber-600', bg: 'bg-amber-50' },
+    { label: 'Tiket Baru', value: '-', icon: Zap, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-950/40' },
+    { label: 'Tiket Saya', value: '-', icon: Ticket, color: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-50 dark:bg-indigo-950/40' },
+    { label: 'Selesai Hari Ini', value: '-', icon: CheckCircle2, color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-950/40' },
+    { label: 'Tingkat SLA', value: '-', icon: BarChart3, color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-950/40' },
   ];
 
-  // Chart bar heights (normalize weekly data to max 100%)
+  // Chart bar heights
   const chartBars = React.useMemo(() => {
     if (!stats?.weeklyChart?.length) {
       const mockHeights = [35, 60, 40, 85, 50, 75, 90];
@@ -80,20 +80,23 @@ export const StaffDashboard = () => {
   }, [stats]);
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="space-y-5">
+      {/* Header & Shift Picker */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-display font-bold text-slate-900">Ringkasan Staff</h1>
-          <p className="text-slate-500 mt-1">Pantau performa dukungan dan ringkasan aktivitas hari ini.</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Ringkasan Staff</h1>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">Pantau performa dukungan dan ringkasan aktivitas operasional.</p>
         </div>
-        <div className="flex items-center gap-2 bg-white p-1.5 rounded-2xl border border-slate-200 shadow-sm">
+        <div className="flex items-center gap-1 bg-white dark:bg-slate-900 p-1 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-xs self-start sm:self-auto">
           {['Pagi', 'Siang', 'Malam'].map(s => (
             <button
               key={s}
               onClick={() => setShift(s)}
               className={cn(
-                "px-5 py-2 rounded-xl text-xs font-bold transition-all",
-                shift === s ? "bg-brand-600 text-white shadow-lg shadow-brand-500/20" : "text-slate-500 hover:bg-slate-50"
+                "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all",
+                shift === s 
+                  ? "bg-blue-600 text-white shadow-xs" 
+                  : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
               )}
             >
               Shift {s}
@@ -105,39 +108,39 @@ export const StaffDashboard = () => {
       {/* Banner Info Shift Dinamis */}
       <motion.div
         key={shift}
-        initial={{ opacity: 0, y: -10 }}
+        initial={{ opacity: 0, y: -6 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
+        transition={{ duration: 0.2 }}
         className={cn(
-          "p-6 rounded-3xl border relative overflow-hidden flex flex-col sm:flex-row sm:items-center justify-between gap-6 shadow-sm transition-all duration-300",
-          shift === 'Pagi' && "bg-gradient-to-r from-amber-500/10 to-orange-500/5 border-amber-200/60 text-amber-900",
-          shift === 'Siang' && "bg-gradient-to-r from-sky-500/10 to-blue-500/5 border-sky-200/60 text-sky-900",
-          shift === 'Malam' && "bg-gradient-to-r from-indigo-500/10 to-purple-500/5 border-indigo-200/60 text-indigo-900"
+          "p-4 sm:p-5 rounded-xl sm:rounded-2xl border relative overflow-hidden flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs",
+          shift === 'Pagi' && "bg-amber-50/50 dark:bg-amber-950/20 border-amber-200/70 dark:border-amber-900/40 text-amber-900 dark:text-amber-200",
+          shift === 'Siang' && "bg-sky-50/50 dark:bg-sky-950/20 border-sky-200/70 dark:border-sky-900/40 text-sky-900 dark:text-sky-200",
+          shift === 'Malam' && "bg-indigo-50/50 dark:bg-indigo-950/20 border-indigo-200/70 dark:border-indigo-900/40 text-indigo-900 dark:text-indigo-200"
         )}
       >
-        <div className="flex items-start gap-4">
+        <div className="flex items-start gap-3">
           <div className={cn(
-            "w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-sm border",
-            shift === 'Pagi' && "bg-white border-amber-200 text-amber-500",
-            shift === 'Siang' && "bg-white border-sky-200 text-sky-500",
-            shift === 'Malam' && "bg-white border-indigo-200 text-indigo-500"
+            "w-9 h-9 rounded-xl flex items-center justify-center shrink-0 shadow-xs border",
+            shift === 'Pagi' && "bg-white dark:bg-slate-900 border-amber-200 dark:border-amber-800 text-amber-600 dark:text-amber-400",
+            shift === 'Siang' && "bg-white dark:bg-slate-900 border-sky-200 dark:border-sky-800 text-sky-600 dark:text-sky-400",
+            shift === 'Malam' && "bg-white dark:bg-slate-900 border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400"
           )}>
-            {shift === 'Pagi' && <Sunrise size={24} />}
-            {shift === 'Siang' && <Sun size={24} />}
-            {shift === 'Malam' && <Moon size={24} />}
+            {shift === 'Pagi' && <Sunrise size={18} />}
+            {shift === 'Siang' && <Sun size={18} />}
+            {shift === 'Malam' && <Moon size={18} />}
           </div>
           <div>
-            <h4 className="text-sm font-bold">
+            <h4 className="text-xs sm:text-sm font-semibold">
               Shift Aktif: {shift === 'Pagi' ? 'Pagi (07.00 - 15.00 WIB)' : shift === 'Siang' ? 'Siang (15.00 - 23.00 WIB)' : 'Malam (23.00 - 07.00 WIB)'}
             </h4>
-            <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-              {shift === 'Pagi' && 'Selamat pagi! Pastikan untuk segera menanggapi tiket baru yang masuk dan menjaga kemudahan pelayanan.'}
-              {shift === 'Siang' && 'Selamat siang! Tetap semangat menjaga kualitas penanganan keluhan dan perhatikan waktu respon tiket.'}
-              {shift === 'Malam' && 'Selamat malam! Tetap waspada memantau sistem penanganan keluhan mendesak selama shift malam ini.'}
+            <p className="text-[11px] sm:text-xs text-slate-600 dark:text-slate-400 mt-0.5 leading-relaxed">
+              {shift === 'Pagi' && 'Selamat pagi! Pastikan segera menanggapi tiket baru dan menjaga kepuasan pengguna.'}
+              {shift === 'Siang' && 'Selamat siang! Tetap semangat menjaga kualitas respon tiket kendala hosting.'}
+              {shift === 'Malam' && 'Selamat malam! Pantau sistem penanganan keluhan mendesak selama shift malam ini.'}
             </p>
           </div>
         </div>
-        <div className="text-[10px] font-black uppercase tracking-widest bg-white px-4 py-2 rounded-xl border self-start sm:self-auto shadow-sm">
+        <div className="text-[10px] font-bold uppercase tracking-wider bg-white dark:bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-200/80 dark:border-slate-800 self-start sm:self-auto shadow-xs shrink-0">
           {shift === 'Pagi' && '🌅 Mulai Hari'}
           {shift === 'Siang' && '☀️ Siang Ceria'}
           {shift === 'Malam' && '🌌 Jaga Malam'}
@@ -145,113 +148,111 @@ export const StaffDashboard = () => {
       </motion.div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {statCards.map((stat, i) => (
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.1 }}
+            transition={{ delay: i * 0.05 }}
             key={i}
-            className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm relative overflow-hidden group"
+            className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-xl sm:rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs relative overflow-hidden"
           >
-            <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center mb-4 transition-transform group-hover:scale-110", stat.bg, stat.color)}>
-              <stat.icon size={28} />
+            <div className={cn("w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center mb-3", stat.bg, stat.color)}>
+              <stat.icon size={18} />
             </div>
-            <p className="text-sm text-slate-500 font-medium mb-1">{stat.label}</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mb-0.5">{stat.label}</p>
             {loading ? (
-              <Loader2 size={24} className="animate-spin text-slate-400 mt-1" />
+              <Loader2 size={18} className="animate-spin text-slate-400 mt-1" />
             ) : (
-              <p className={cn("text-3xl font-bold", stat.color)}>{stat.value}</p>
+              <p className={cn("text-xl sm:text-2xl font-bold tracking-tight", stat.color)}>{stat.value}</p>
             )}
           </motion.div>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Weekly Chart dari database */}
-        <div className="lg:col-span-2 glass-card rounded-3xl p-8">
-          <div className="flex items-center justify-between mb-8">
-            <h3 className="font-bold text-slate-900 flex items-center gap-2">
-              <BarChart3 size={20} className="text-brand-600" />
-              Resolusi Tiket Mingguan ({shift === 'Pagi' ? 'Shift Pagi' : shift === 'Siang' ? 'Shift Siang' : 'Shift Malam'})
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5">
+        {/* Weekly Chart */}
+        <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-xl sm:rounded-2xl border border-slate-200/80 dark:border-slate-800 p-4 sm:p-6 shadow-xs">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-sm sm:text-base font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+              <BarChart3 size={18} className="text-blue-600 dark:text-blue-400" />
+              Resolusi Tiket Mingguan
             </h3>
-            <select className="text-xs font-bold bg-slate-50 border-none rounded-lg px-3 py-1.5 focus:ring-0">
-              <option>7 Hari Terakhir</option>
-            </select>
+            <span className="text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1 font-medium">
+              7 Hari Terakhir
+            </span>
           </div>
           {loading ? (
-            <div className="h-64 flex items-center justify-center">
-              <Loader2 size={32} className="animate-spin text-slate-400" />
+            <div className="h-52 flex items-center justify-center">
+              <Loader2 size={24} className="animate-spin text-slate-400" />
             </div>
           ) : (
-            <div className="h-64 flex items-end justify-between gap-4">
+            <div className="h-52 flex items-end justify-between gap-2 sm:gap-3 pt-6">
               {chartBars.map((bar, i) => (
-                <div key={i} className="flex-1 flex flex-col items-center gap-3">
-                  <div className="w-full flex flex-col-reverse gap-0.5">
+                <div key={i} className="flex-1 flex flex-col items-center gap-2">
+                  <div className="w-full flex flex-col-reverse items-center">
                     <motion.div
                       initial={{ height: 0 }}
-                      animate={{ height: `${bar.height * 2.56}px` }}
-                      style={{ height: `${bar.height * 2.56}px` }}
-                      className="w-full bg-brand-100 rounded-t-xl relative group"
+                      animate={{ height: `${Math.max(8, bar.height * 1.5)}px` }}
+                      className="w-full max-w-[36px] bg-blue-100 dark:bg-blue-950/60 rounded-t-md relative group transition-colors hover:bg-blue-600 dark:hover:bg-blue-500"
                     >
-                      <div className="absolute inset-0 bg-brand-600 scale-y-0 group-hover:scale-y-100 transition-transform origin-bottom rounded-t-xl" />
                       {bar.total > 0 && (
-                        <div className="absolute -top-7 left-1/2 -translate-x-1/2 text-[10px] font-bold text-slate-500 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] font-semibold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 px-1.5 py-0.5 rounded shadow-xs opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
                           {bar.resolved}/{bar.total}
                         </div>
                       )}
                     </motion.div>
                   </div>
-                  <span className="text-[10px] font-bold text-slate-400 uppercase">{bar.label}</span>
+                  <span className="text-[10px] font-semibold text-slate-400 uppercase">{bar.label}</span>
                 </div>
               ))}
             </div>
           )}
         </div>
 
-        {/* Aktivitas Terbaru dari database */}
-        <div className="glass-card rounded-3xl p-6">
-          <h3 className="font-bold text-slate-900 mb-6 flex items-center gap-2">
-            <MessageSquare size={20} className="text-brand-600" />
+        {/* Aktivitas Terbaru */}
+        <div className="bg-white dark:bg-slate-900 rounded-xl sm:rounded-2xl border border-slate-200/80 dark:border-slate-800 p-4 sm:p-5 shadow-xs flex flex-col">
+          <h3 className="text-sm sm:text-base font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+            <MessageSquare size={18} className="text-blue-600 dark:text-blue-400" />
             Aktivitas Terbaru
           </h3>
-          <div className="space-y-6">
+          <div className="space-y-3.5 flex-1">
             {loading ? (
-              <div className="flex justify-center py-8">
-                <Loader2 size={24} className="animate-spin text-slate-400" />
+              <div className="flex justify-center py-6">
+                <Loader2 size={20} className="animate-spin text-slate-400" />
               </div>
             ) : stats?.recentActivity && stats.recentActivity.length > 0 ? (
               stats.recentActivity.map((act, i) => (
-                <div key={act.id || i} className="flex gap-4">
+                <div key={act.id || i} className="flex gap-3 text-xs">
                   <div className={cn(
-                    "w-2 h-2 rounded-full mt-2 shrink-0",
-                    act.type === 'new' ? "bg-blue-500" : act.type === 'resolved' ? "bg-emerald-500" : "bg-brand-500"
+                    "w-2 h-2 rounded-full mt-1.5 shrink-0",
+                    act.type === 'new' ? "bg-blue-500" : act.type === 'resolved' ? "bg-emerald-500" : "bg-indigo-500"
                   )} />
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs text-slate-600">
-                      <span className="font-bold text-slate-900">{act.user}</span>
+                    <p className="text-slate-600 dark:text-slate-300">
+                      <span className="font-semibold text-slate-900 dark:text-white">{act.user}</span>
                       {act.type === 'reply' ? ' membalas tiket ' :
                         act.type === 'transfer' ? ' mentransfer tiket ' :
                         act.type === 'resolved' ? ' menyelesaikan tiket ' :
                         ' membuat tiket baru '}
-                      <span className="font-mono font-bold text-brand-600">{act.ticket}</span>
+                      <span className="font-mono font-semibold text-blue-600 dark:text-blue-400">{act.ticket}</span>
                     </p>
                     <p className="text-[10px] text-slate-400 mt-0.5">{act.time}</p>
                   </div>
                 </div>
               ))
             ) : (
-              <div className="text-center py-8 text-slate-400 text-sm">
+              <div className="text-center py-6 text-slate-400 text-xs">
                 Belum ada aktivitas terbaru pada shift ini.
               </div>
             )}
           </div>
           <button
             onClick={() => navigate('/staff')}
-            className="w-full mt-8 py-3 bg-slate-50 text-slate-600 rounded-2xl text-xs font-bold hover:bg-slate-100 transition-all flex items-center justify-center gap-2"
+            className="w-full mt-4 py-2 bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 border border-slate-200/80 dark:border-slate-700"
           >
             Lihat Semua Antrean
-            <ArrowRight size={14} />
+            <ArrowRight size={13} />
           </button>
         </div>
       </div>

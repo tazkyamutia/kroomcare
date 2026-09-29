@@ -247,32 +247,32 @@ export const ForumThreadPage: React.FC<ForumThreadProps> = ({ userRole }) => {
       )}
 
       {/* Main Header */}
-      <div className="bg-white p-6 md:p-8 rounded-[2.5rem] border border-slate-200 shadow-sm">
-        <div className="flex items-center gap-4 mb-6">
+      <div className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-xs">
+        <div className="flex items-center gap-3 mb-4">
           <button 
             onClick={() => navigate(-1)}
-            className="p-3 bg-slate-50 hover:bg-slate-100 text-slate-500 rounded-2xl transition-all"
+            className="p-1.5 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 text-slate-500 rounded-lg border border-slate-200/60 dark:border-slate-700 transition-all shadow-xs"
           >
-            <ArrowLeft size={20} />
+            <ArrowLeft size={16} />
           </button>
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 bg-slate-100 text-slate-500 rounded-md">
-                {ticket.id}
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 mb-0.5">
+              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-md">
+                #{ticket.id}
               </span>
               <span className={cn(
-                "text-[10px] px-2 py-0.5 rounded-md font-bold uppercase",
-                isPrivate ? "bg-blue-100 text-blue-700" : "bg-indigo-100 text-indigo-700"
+                "text-[10px] px-2 py-0.5 rounded-md font-semibold uppercase",
+                isPrivate ? "bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300" : "bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300"
               )}>
                 {isPrivate ? 'Tiket Privat' : 'Forum Publik'}
               </span>
               {ticket.isPriority && (
-                <span className="text-[10px] px-2 py-0.5 bg-red-100 text-red-600 rounded-md font-black uppercase animate-pulse">
+                <span className="text-[10px] px-2 py-0.5 bg-red-100 text-red-600 rounded-md font-bold uppercase animate-pulse">
                   Priority
                 </span>
               )}
             </div>
-            <h1 className="text-2xl md:text-3xl font-display font-bold text-slate-900">{ticket.subject}</h1>
+            <h1 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white truncate">{ticket.subject}</h1>
           </div>
         </div>
 
@@ -526,20 +526,20 @@ export const ForumThreadPage: React.FC<ForumThreadProps> = ({ userRole }) => {
 
       {/* Reply Container */}
       {ticket.status !== 'Resolved' && (
-        <div className="sticky bottom-0 left-0 right-0 p-4 bg-slate-50/80 dark:bg-[#0b0f19]/85 backdrop-blur-md rounded-t-[3rem] border-t border-slate-200 dark:border-slate-800/80 z-30 -mx-4 md:mx-0">
+        <div className="sticky bottom-0 left-0 right-0 p-3 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-t-xl border-t border-slate-200/80 dark:border-slate-800 z-30 -mx-3 sm:mx-0 shadow-lg">
           <div className="max-w-4xl mx-auto">
             {replyingTo && (
-              <div className="px-6 py-3 bg-indigo-50 border-x border-t border-indigo-100 rounded-t-2xl flex items-center justify-between mb-0">
-                 <p className="text-xs text-indigo-600 font-bold">
-                  Membalas ke <span className="text-indigo-800">@{replyingTo.name}</span>
+              <div className="px-4 py-2 bg-blue-50 dark:bg-blue-950/40 border-x border-t border-blue-100 dark:border-blue-900 rounded-t-xl flex items-center justify-between">
+                 <p className="text-xs text-blue-600 dark:text-blue-400 font-semibold">
+                  Membalas ke <span className="text-blue-800 dark:text-blue-200">@{replyingTo.name}</span>
                  </p>
-                 <button onClick={() => setReplyingTo(null)} className="text-indigo-400 hover:text-indigo-600">
-                  <MoreHorizontal size={16} />
+                 <button onClick={() => setReplyingTo(null)} className="text-blue-400 hover:text-blue-600">
+                  <MoreHorizontal size={14} />
                  </button>
               </div>
             )}
             <div className={cn(
-              "bg-white rounded-3xl border border-slate-200 shadow-xl p-2 flex items-end gap-2",
+              "bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200/80 dark:border-slate-700 p-1.5 flex items-end gap-2",
               replyingTo && "rounded-t-none"
             )}>
               <textarea 
@@ -555,14 +555,14 @@ export const ForumThreadPage: React.FC<ForumThreadProps> = ({ userRole }) => {
                   }
                 }}
                 placeholder={isPrivate ? "Ketik pesan untuk staff..." : "Tambahkan komentar di diskusi ini..."}
-                className="flex-1 px-4 py-3 bg-transparent focus:outline-none resize-none text-slate-700 text-sm"
+                className="flex-1 px-3 py-2 bg-transparent focus:outline-none resize-none text-slate-800 dark:text-slate-100 text-xs sm:text-sm"
               />
               <button 
                 onClick={handleSendReply}
                 disabled={!reply.trim()}
-                className="p-3 bg-brand-600 text-white rounded-2xl hover:bg-brand-700 disabled:opacity-50 transition-all shadow-lg shadow-brand-500/20 active:scale-95 shrink-0"
+                className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-all shadow-xs active:scale-[0.98] shrink-0"
               >
-                <Send size={20} className={isPrivate ? "" : "-rotate-45"} />
+                <Send size={16} className={isPrivate ? "" : "-rotate-45"} />
               </button>
             </div>
           </div>
