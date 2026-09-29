@@ -6,6 +6,7 @@ coverage/
 *.log
 .env*
 !.env.example
+.agents/
 
 # Environment files — NEVER commit these
 .env
