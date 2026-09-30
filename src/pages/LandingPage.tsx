@@ -200,7 +200,7 @@ export const LandingPage = () => {
             className="text-3xl sm:text-5xl md:text-6xl font-extrabold tracking-tight leading-[1.12] text-slate-900 dark:text-white mb-4"
           >
             Elevate Your{' '}
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 dark:from-blue-400 dark:via-indigo-400 dark:to-purple-400">
+            <span className="text-blue-600 dark:text-blue-500">
               Customer Support
             </span>
           </motion.h1>
