@@ -8,6 +8,19 @@
     <script>
       (function() {
         try {
+          function getCookie(name) {
+            try {
+              var prefix = name + "=";
+              var ca = document.cookie.split(';');
+              for (var i = 0; i < ca.length; i++) {
+                var c = ca[i].trim();
+                if (c.indexOf(prefix) === 0) return c.substring(prefix.length, c.length);
+              }
+            } catch(e) {}
+            return null;
+          }
+
+          var cookieTheme = getCookie('kp_theme');
           var mode = localStorage.getItem('kroomcare_theme_mode') || 'system';
           var isDark = false;
           var isEmbedded = false;
@@ -17,69 +30,79 @@
             isEmbedded = true;
           }
 
+          // If embedded in panel, user prefers panel theme unless they explicitly set 'light' or 'dark'
           if (mode === 'dark') {
             isDark = true;
           } else if (mode === 'light') {
             isDark = false;
           } else {
-            // Mode is 'system': check URL parameters first
-            var params = new URLSearchParams(window.location.search);
-            var pTheme = params.get('theme') || params.get('mode') || params.get('themeMode') || params.get('colorScheme');
-            if (pTheme === 'dark') {
+            // Mode is 'system' (or embedded in panel):
+            // 1. Check shared cookie from Kroombox panel (.kroombox.com domain)
+            if (cookieTheme === 'dark') {
               isDark = true;
-            } else if (pTheme === 'light') {
+            } else if (cookieTheme === 'light') {
               isDark = false;
-            } else if (isEmbedded) {
-              // Embedded inside Kroombox Panel iframe: inspect parent document if accessible
-              var detectedParentTheme = null;
-              try {
-                if (window.parent && window.parent.document) {
-                  var pDoc = window.parent.document;
-                  var pHtml = pDoc.documentElement;
-                  var pBody = pDoc.body;
-                  if (
-                    pHtml.classList.contains('dark') || 
-                    pHtml.classList.contains('theme-dark') || 
-                    pHtml.classList.contains('night') || 
-                    pBody.classList.contains('dark') || 
-                    pBody.classList.contains('theme-dark') || 
-                    pHtml.getAttribute('data-theme') === 'dark' ||
-                    pHtml.getAttribute('data-mode') === 'dark' ||
-                    pBody.getAttribute('data-theme') === 'dark' ||
-                    pBody.getAttribute('data-mode') === 'dark'
-                  ) {
-                    detectedParentTheme = 'dark';
-                  } else {
-                    // Check parent localStorage if accessible
-                    try {
-                      var pStore = window.parent.localStorage;
-                      if (pStore) {
-                        for (var k of ['theme', 'kroombox_theme', 'theme_mode', 'mode', 'color-theme']) {
-                          var sVal = pStore.getItem(k);
-                          if (sVal === 'dark') { detectedParentTheme = 'dark'; break; }
-                          if (sVal === 'light') { detectedParentTheme = 'light'; break; }
+            } else {
+              // 2. Check URL parameters
+              var params = new URLSearchParams(window.location.search);
+              var pTheme = params.get('theme') || params.get('mode') || params.get('themeMode') || params.get('colorScheme');
+              if (pTheme === 'dark') {
+                isDark = true;
+              } else if (pTheme === 'light') {
+                isDark = false;
+              } else if (isEmbedded) {
+                // 3. Embedded inside Kroombox Panel iframe: inspect parent document if accessible
+                var detectedParentTheme = null;
+                try {
+                  if (window.parent && window.parent.document) {
+                    var pDoc = window.parent.document;
+                    var pHtml = pDoc.documentElement;
+                    var pBody = pDoc.body;
+                    if (
+                      pHtml.classList.contains('dark') || 
+                      pHtml.classList.contains('theme-dark') || 
+                      pHtml.classList.contains('night') || 
+                      pBody.classList.contains('dark') || 
+                      pBody.classList.contains('theme-dark') || 
+                      pHtml.getAttribute('data-theme') === 'dark' ||
+                      pHtml.getAttribute('data-mode') === 'dark' ||
+                      pBody.getAttribute('data-theme') === 'dark' ||
+                      pBody.getAttribute('data-mode') === 'dark'
+                    ) {
+                      detectedParentTheme = 'dark';
+                    } else {
+                      try {
+                        var pStore = window.parent.localStorage;
+                        if (pStore) {
+                          for (var k of ['kp_theme', 'theme', 'kroombox_theme', 'theme_mode', 'mode', 'color-theme']) {
+                            var sVal = pStore.getItem(k);
+                            if (sVal === 'dark') { detectedParentTheme = 'dark'; break; }
+                            if (sVal === 'light') { detectedParentTheme = 'light'; break; }
+                          }
                         }
+                      } catch(e2) {}
+                      if (!detectedParentTheme) {
+                        detectedParentTheme = 'light';
                       }
-                    } catch(e2) {}
-                    if (!detectedParentTheme) {
-                      detectedParentTheme = 'light';
                     }
                   }
+                } catch(e) {
+                  // Cross-origin: check stored parent theme or cookie
+                  var storedParent = localStorage.getItem('kroombox_parent_theme');
+                  if (storedParent === 'dark' || storedParent === 'light') {
+                    detectedParentTheme = storedParent;
+                  }
                 }
-              } catch(e) {
-                // Cross-origin: check stored parent theme or default to light
-                var storedParent = localStorage.getItem('kroombox_parent_theme');
-                if (storedParent === 'dark' || storedParent === 'light') {
-                  detectedParentTheme = storedParent;
-                } else {
-                  detectedParentTheme = 'light';
+                if (detectedParentTheme) {
+                  isDark = (detectedParentTheme === 'dark');
+                } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                  isDark = true;
                 }
-              }
-              isDark = (detectedParentTheme === 'dark');
-            } else {
-              // Standalone direct window: follow OS prefers-color-scheme
-              if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-                isDark = true;
+              } else {
+                // Standalone direct window: follow OS prefers-color-scheme
+                if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                  isDark = true;
+                }
               }
             }
           }
@@ -89,10 +112,30 @@
           } else {
             document.documentElement.classList.remove('dark');
           }
+
+          // Early message listener before bundle loads
+          window.addEventListener('message', function(ev) {
+            try {
+              if (!ev || !ev.data) return;
+              var d = ev.data;
+              var incoming = null;
+              if (typeof d === 'string' && (d === 'dark' || d === 'light')) incoming = d;
+              else if (d.theme === 'dark' || d.theme === 'light') incoming = d.theme;
+              else if (d.type === 'KROOMBOX_THEME_CHANGE' && (d.theme === 'dark' || d.theme === 'light')) incoming = d.theme;
+              if (incoming) {
+                localStorage.setItem('kroombox_parent_theme', incoming);
+                var savedMode = localStorage.getItem('kroomcare_theme_mode') || 'system';
+                if (savedMode === 'system') {
+                  if (incoming === 'dark') document.documentElement.classList.add('dark');
+                  else document.documentElement.classList.remove('dark');
+                }
+              }
+            } catch(e) {}
+          });
         } catch (e) {}
       })();
     </script>
-    <script type="module" crossorigin src="/assets/index-DkDFuxcE.js"></script>
+    <script type="module" crossorigin src="/assets/index-C8Vybkbo.js"></script>
     <link rel="stylesheet" crossorigin href="/assets/index-Cid4BJn6.css">
   </head>
   <body>

@@ -133,9 +133,25 @@ const translations = {
   }
 };
 
-// Store last known theme reported by parent panel (via postMessage, URL, storage, or parent DOM)
+// Get shared theme cookie set across .kroombox.com domain by Kroombox Panel
+function getSharedCookieTheme(): Theme | null {
+  try {
+    if (typeof document !== 'undefined') {
+      const match = document.cookie.match(/(?:^|;\s*)kp_theme=([^;]+)/);
+      if (match) {
+        const val = decodeURIComponent(match[1]).trim().toLowerCase();
+        if (val === 'dark' || val === 'light') return val as Theme;
+      }
+    }
+  } catch (_) {}
+  return null;
+}
+
+// Store last known theme reported by parent panel (via postMessage, cookie, URL, storage, or parent DOM)
 let lastKnownParentTheme: Theme | null = (() => {
   try {
+    const fromCookie = getSharedCookieTheme();
+    if (fromCookie) return fromCookie;
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('kroombox_parent_theme');
       if (stored === 'dark' || stored === 'light') return stored;
@@ -145,13 +161,36 @@ let lastKnownParentTheme: Theme | null = (() => {
 })();
 
 function detectParentTheme(): Theme | null {
+  // 1. Shared cookie across .kroombox.com is completely immune to iframe SOP restrictions
+  const cookieTheme = getSharedCookieTheme();
+  if (cookieTheme) {
+    lastKnownParentTheme = cookieTheme;
+    try { localStorage.setItem('kroombox_parent_theme', cookieTheme); } catch (_) {}
+    return cookieTheme;
+  }
+
   try {
     if (typeof window !== 'undefined' && window.parent && window.parent !== window) {
+      // 2. Check parent localStorage if accessible
+      try {
+        const pStorage = window.parent.localStorage;
+        if (pStorage) {
+          for (const key of ['kp_theme', 'theme', 'kroombox_theme', 'kolab_theme', 'theme_mode', 'mode', 'color-theme', 'next-theme']) {
+            const val = pStorage.getItem(key);
+            if (val === 'dark' || val === 'light') {
+              lastKnownParentTheme = val;
+              try { localStorage.setItem('kroombox_parent_theme', val); } catch (_) {}
+              return val;
+            }
+          }
+        }
+      } catch (_) {}
+
       const pDoc = window.parent.document;
       const pHtml = pDoc.documentElement;
       const pBody = pDoc.body;
 
-      // 1. Check if parent explicitly has dark classes or data attributes
+      // 3. Check if parent explicitly has dark classes or data attributes
       if (
         pHtml.classList.contains('dark') ||
         pHtml.classList.contains('theme-dark') ||
@@ -188,22 +227,7 @@ function detectParentTheme(): Theme | null {
         }
       }
 
-      // 2. Check parent localStorage if accessible
-      try {
-        const pStorage = window.parent.localStorage;
-        if (pStorage) {
-          for (const key of ['theme', 'kroombox_theme', 'kolab_theme', 'theme_mode', 'mode', 'color-theme', 'next-theme']) {
-            const val = pStorage.getItem(key);
-            if (val === 'dark' || val === 'light') {
-              lastKnownParentTheme = val;
-              try { localStorage.setItem('kroombox_parent_theme', val); } catch (_) {}
-              return val;
-            }
-          }
-        }
-      } catch (_) {}
-
-      // 3. Check computed background color brightness of parent elements
+      // 4. Check computed background color brightness of parent elements
       const checkBg = (el: Element | null): Theme | null => {
         if (!el) return null;
         try {
@@ -242,13 +266,15 @@ function detectParentTheme(): Theme | null {
         }
       }
 
-      // 4. Parent document was accessible and has NO dark indicators -> Parent is in LIGHT mode!
+      // Parent document was accessible and has NO dark indicators -> Parent is in LIGHT mode!
       lastKnownParentTheme = 'light';
       try { localStorage.setItem('kroombox_parent_theme', 'light'); } catch (_) {}
       return 'light';
     }
   } catch (_) {
-    // Cross-origin restriction: use last known theme from postMessage / storage
+    // Cross-origin restriction: check shared cookie first, then last known parent theme, then stored
+    const fallbackCookie = getSharedCookieTheme();
+    if (fallbackCookie) return fallbackCookie;
     if (lastKnownParentTheme) {
       return lastKnownParentTheme;
     }
@@ -256,7 +282,7 @@ function detectParentTheme(): Theme | null {
       const stored = localStorage.getItem('kroombox_parent_theme') as Theme;
       if (stored === 'dark' || stored === 'light') return stored;
     } catch (_) {}
-    return 'light';
+    return null;
   }
   return null;
 }
@@ -275,17 +301,26 @@ function resolveSystemTheme(): Theme {
     }
   } catch (_) {}
 
-  // 2. Check parent iframe theme (Kroombox Panel)
+  // 2. Check shared cookie from Kroombox Panel (accessible even across subdomains)
+  const cookieTheme = getSharedCookieTheme();
+  if (cookieTheme) {
+    lastKnownParentTheme = cookieTheme;
+    return cookieTheme;
+  }
+
+  // 3. Check parent iframe theme (Kroombox Panel)
   const isEmbedded = typeof window !== 'undefined' && window.parent && window.parent !== window;
   if (isEmbedded) {
     const parentTheme = detectParentTheme();
     if (parentTheme) {
       return parentTheme;
     }
-    return lastKnownParentTheme || 'light';
+    if (lastKnownParentTheme) {
+      return lastKnownParentTheme;
+    }
   }
 
-  // 3. Standalone direct window: check system media query
+  // 4. Standalone direct window or fallback: check system media query
   if (typeof window !== 'undefined' && window.matchMedia) {
     if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
       return 'dark';
