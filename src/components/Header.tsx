@@ -125,7 +125,7 @@ export const Header: React.FC = () => {
   const { role, name: userName, points = 0, avatar } = user;
 
   return (
-    <header className="flex items-center justify-between mb-5 sm:mb-6 relative z-50">
+    <header className="flex items-center justify-between mb-5 sm:mb-6 relative z-50 bg-transparent border-none shadow-none">
       {/* Brand Logo & Name (Mobile/Embedded) */}
       <div className="flex items-center gap-2 lg:hidden pl-12">
         <img 
@@ -141,7 +141,7 @@ export const Header: React.FC = () => {
         {role === 'customer' && (
           <motion.div 
             whileHover={{ scale: 1.01 }}
-            className="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-xs transition-all hover:border-blue-300 group cursor-pointer"
+            className="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-slate-900/50 rounded-xl border border-slate-200/60 dark:border-white/5 shadow-xs transition-all hover:border-blue-300 dark:hover:border-white/15 dark:hover:bg-slate-900/80 group cursor-pointer backdrop-blur-sm"
             onClick={() => navigate('/points-history')}
           >
             <div className="w-6 h-6 bg-amber-50 dark:bg-amber-950/40 rounded-lg flex items-center justify-center text-amber-500">
@@ -158,11 +158,11 @@ export const Header: React.FC = () => {
         <div className="relative">
           <button 
             onClick={() => setShowNotifications(!showNotifications)}
-            className="w-8 h-8 sm:w-9 sm:h-9 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-xl flex items-center justify-center text-slate-500 hover:text-blue-600 transition-all shadow-xs relative"
+            className="w-8 h-8 sm:w-9 sm:h-9 bg-white dark:bg-slate-900/50 border border-slate-200/60 dark:border-white/5 rounded-xl flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-white dark:hover:border-white/15 dark:hover:bg-slate-900/80 transition-all shadow-xs relative backdrop-blur-sm"
           >
             <Bell size={17} />
             {notifications.length > 0 && (
-              <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border border-white" />
+              <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border border-white dark:border-slate-900" />
             )}
           </button>
 
@@ -180,9 +180,9 @@ export const Header: React.FC = () => {
                   initial={{ opacity: 0, scale: 0.95, y: 10 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                  className="absolute right-0 mt-2 w-80 sm:w-96 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xl p-3 z-50 overflow-hidden"
+                  className="absolute right-0 mt-2 w-80 sm:w-96 bg-white dark:bg-slate-900/95 backdrop-blur-xl rounded-xl border border-slate-200/80 dark:border-white/10 shadow-xl p-3 z-50 overflow-hidden"
                 >
-                  <div className="flex items-center justify-between px-2 py-1.5 border-b border-slate-100 dark:border-slate-800 mb-2">
+                  <div className="flex items-center justify-between px-2 py-1.5 border-b border-slate-100 dark:border-white/5 mb-2">
                     <h3 className="font-semibold text-slate-800 dark:text-slate-100 text-xs">Notifications</h3>
                     <span className="text-[10px] font-bold bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded-md">
                       {notifications.length} Info
@@ -197,7 +197,7 @@ export const Header: React.FC = () => {
                             setShowNotifications(false);
                             navigate(notif.link);
                           }}
-                          className="flex items-start gap-2.5 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors cursor-pointer"
+                          className="flex items-start gap-2.5 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer"
                         >
                           <div className={cn(
                             "w-7 h-7 rounded-lg flex items-center justify-center shrink-0",
@@ -230,7 +230,7 @@ export const Header: React.FC = () => {
         <button
           onClick={toggleTheme}
           title={theme === 'dark' ? 'Ganti ke tema terang' : 'Ganti ke tema gelap'}
-          className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-200 dark:hover:border-slate-700 transition-colors shadow-xs"
+          className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl border border-slate-200/60 dark:border-white/5 bg-white dark:bg-slate-900/50 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-amber-400 hover:border-blue-200 dark:hover:border-white/15 dark:hover:bg-slate-900/80 transition-all shadow-xs backdrop-blur-sm"
         >
           {theme === 'dark' ? <Sun size={16} className="text-amber-400" /> : <Moon size={16} />}
         </button>
@@ -239,7 +239,7 @@ export const Header: React.FC = () => {
         <div className="relative">
           <button 
             onClick={() => setShowDropdown(!showDropdown)}
-            className="flex items-center gap-1.5 p-1 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-xl hover:border-slate-300 transition-all shadow-xs"
+            className="flex items-center gap-1.5 p-1 bg-white dark:bg-slate-900/50 border border-slate-200/60 dark:border-white/5 rounded-xl hover:border-slate-300 dark:hover:border-white/15 dark:hover:bg-slate-900/80 transition-all shadow-xs backdrop-blur-sm"
           >
             <div className="w-7 h-7 sm:w-8 sm:h-8 bg-blue-600 text-white rounded-lg flex items-center justify-center font-bold text-xs shadow-inner overflow-hidden">
               {avatar ? (
