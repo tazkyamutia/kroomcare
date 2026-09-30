@@ -109,12 +109,14 @@ export const LandingPage = () => {
           
           {/* Brand Logo & Name */}
           <div 
-            className="flex items-center gap-2.5 cursor-pointer select-none" 
+            className="flex items-center gap-2.5 cursor-pointer select-none group" 
             onClick={() => navigate('/')}
           >
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-sm shadow-blue-500/30">
-              <Zap size={17} className="fill-white" />
-            </div>
+            <img 
+              src="https://i.ibb.co.com/fGPRy8Jt/Gemini-Generated-Image-yss7sryss7sryss7-removebg-preview.png" 
+              alt="Logo KroomCare" 
+              className="h-9 w-auto object-contain group-hover:scale-105 transition-transform" 
+            />
             <span className="text-xl font-extrabold tracking-tight text-slate-900 dark:text-white">
               KroomCare
             </span>
@@ -502,11 +504,13 @@ export const LandingPage = () => {
             
             {/* Brand */}
             <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-lg bg-blue-600 flex items-center justify-center text-white">
-                  <Zap size={14} className="fill-white" />
-                </div>
-                <span className="text-sm font-bold text-slate-900 dark:text-white">KroomCare</span>
+              <div className="flex items-center gap-2.5">
+                <img 
+                  src="https://i.ibb.co.com/fGPRy8Jt/Gemini-Generated-Image-yss7sryss7sryss7-removebg-preview.png" 
+                  alt="Logo KroomCare" 
+                  className="h-8 w-auto object-contain" 
+                />
+                <span className="text-base font-bold text-slate-900 dark:text-white">KroomCare</span>
               </div>
               <p className="leading-relaxed">Platform CRM modern berbasis AI dan gamifikasi untuk operasional customer support.</p>
               <div className="flex items-center gap-2 pt-1">
