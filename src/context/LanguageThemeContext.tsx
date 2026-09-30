@@ -140,35 +140,65 @@ function detectParentTheme(): Theme | null {
       const pHtml = pDoc.documentElement;
       const pBody = pDoc.body;
 
+      // 1. Check if parent explicitly has dark classes or data attributes
       if (
         pHtml.classList.contains('dark') ||
         pBody.classList.contains('dark') ||
         pHtml.getAttribute('data-theme') === 'dark' ||
         pHtml.getAttribute('data-mode') === 'dark' ||
         pBody.getAttribute('data-theme') === 'dark' ||
-        pBody.classList.contains('night')
+        pBody.getAttribute('data-mode') === 'dark' ||
+        pBody.classList.contains('night') ||
+        pHtml.classList.contains('night')
       ) {
         return 'dark';
       }
 
-      if (
-        pHtml.classList.contains('light') ||
-        pHtml.getAttribute('data-theme') === 'light'
-      ) {
-        return 'light';
-      }
-
-      const bg = window.parent.getComputedStyle(pBody).backgroundColor;
-      if (bg && bg !== 'transparent' && bg !== 'rgba(0, 0, 0, 0)') {
-        const rgb = bg.match(/\d+/g);
-        if (rgb && rgb.length >= 3) {
-          const brightness = (parseInt(rgb[0]) * 299 + parseInt(rgb[1]) * 587 + parseInt(rgb[2]) * 114) / 1000;
-          return brightness < 128 ? 'dark' : 'light';
+      // Check root container in parent
+      const pRoot = pDoc.getElementById('root') || pDoc.querySelector('#app') || pDoc.querySelector('main');
+      if (pRoot) {
+        if (
+          pRoot.classList.contains('dark') ||
+          pRoot.getAttribute('data-theme') === 'dark' ||
+          pRoot.getAttribute('data-mode') === 'dark'
+        ) {
+          return 'dark';
         }
       }
+
+      // 2. Check computed background color brightness of parent elements
+      const checkBg = (el: Element | null): Theme | null => {
+        if (!el) return null;
+        try {
+          const bg = window.parent.getComputedStyle(el).backgroundColor;
+          if (bg && bg !== 'transparent' && bg !== 'rgba(0, 0, 0, 0)') {
+            const rgb = bg.match(/\d+/g);
+            if (rgb && rgb.length >= 3) {
+              const brightness = (parseInt(rgb[0], 10) * 299 + parseInt(rgb[1], 10) * 587 + parseInt(rgb[2], 10) * 114) / 1000;
+              return brightness < 128 ? 'dark' : 'light';
+            }
+          }
+        } catch (_) {}
+        return null;
+      };
+
+      const bodyTheme = checkBg(pBody);
+      if (bodyTheme) return bodyTheme;
+
+      const htmlTheme = checkBg(pHtml);
+      if (htmlTheme) return htmlTheme;
+
+      if (pRoot) {
+        const rootTheme = checkBg(pRoot);
+        if (rootTheme) return rootTheme;
+      }
+
+      // 3. Parent document was accessible and has NO dark indicators -> Parent is in LIGHT mode!
+      return 'light';
     }
   } catch (_) {
-    // Cross-origin restriction
+    // Cross-origin restriction: host panel default is light mode
+    return 'light';
   }
   return null;
 }
@@ -178,7 +208,7 @@ function resolveSystemTheme(): Theme {
   try {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
-      const urlTheme = params.get('theme') || params.get('mode');
+      const urlTheme = params.get('theme') || params.get('mode') || params.get('themeMode') || params.get('colorScheme');
       if (urlTheme === 'dark' || urlTheme === 'light') {
         return urlTheme;
       }
@@ -186,12 +216,16 @@ function resolveSystemTheme(): Theme {
   } catch (_) {}
 
   // 2. Check parent iframe theme (Kroombox Panel)
-  const parentTheme = detectParentTheme();
-  if (parentTheme) {
-    return parentTheme;
+  const isEmbedded = typeof window !== 'undefined' && window.parent && window.parent !== window;
+  if (isEmbedded) {
+    const parentTheme = detectParentTheme();
+    if (parentTheme) {
+      return parentTheme;
+    }
+    return 'light';
   }
 
-  // 3. Check system media query
+  // 3. Standalone direct window: check system media query
   if (typeof window !== 'undefined' && window.matchMedia) {
     if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
       return 'dark';
@@ -309,6 +343,14 @@ export const LanguageThemeProvider: React.FC<{ children: React.ReactNode }> = ({
       }
     };
     window.addEventListener('message', handleMessage);
+
+    // Request initial theme from parent if embedded in iframe
+    if (typeof window !== 'undefined' && window.parent && window.parent !== window) {
+      try {
+        window.parent.postMessage({ type: 'GET_THEME' }, '*');
+        window.parent.postMessage('getTheme', '*');
+      } catch (_) {}
+    }
 
     // 3. Polling interval to check parent iframe theme (handles real-time toggle in Kroombox Panel)
     const interval = setInterval(() => {

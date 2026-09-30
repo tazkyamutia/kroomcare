@@ -10,37 +10,66 @@
         try {
           var mode = localStorage.getItem('kroomcare_theme_mode') || 'system';
           var isDark = false;
+          var isEmbedded = false;
+          try {
+            isEmbedded = window.parent && window.parent !== window;
+          } catch(e) {
+            isEmbedded = true;
+          }
+
           if (mode === 'dark') {
             isDark = true;
-          } else if (mode === 'system') {
+          } else if (mode === 'light') {
+            isDark = false;
+          } else {
+            // Mode is 'system': check URL parameters first
             var params = new URLSearchParams(window.location.search);
-            var pTheme = params.get('theme') || params.get('mode');
+            var pTheme = params.get('theme') || params.get('mode') || params.get('themeMode') || params.get('colorScheme');
             if (pTheme === 'dark') {
               isDark = true;
-            } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-              isDark = true;
-            }
-            try {
-              if (window.parent && window.parent !== window) {
-                var p = window.parent.document;
-                if (
-                  p.documentElement.classList.contains('dark') || 
-                  p.body.classList.contains('dark') || 
-                  p.documentElement.getAttribute('data-theme') === 'dark' ||
-                  p.body.getAttribute('data-theme') === 'dark'
-                ) {
-                  isDark = true;
+            } else if (pTheme === 'light') {
+              isDark = false;
+            } else if (isEmbedded) {
+              // Embedded inside Kroombox Panel iframe: inspect parent document if accessible
+              var detectedParentDark = false;
+              try {
+                if (window.parent && window.parent.document) {
+                  var pDoc = window.parent.document;
+                  var pHtml = pDoc.documentElement;
+                  var pBody = pDoc.body;
+                  if (
+                    pHtml.classList.contains('dark') || 
+                    pBody.classList.contains('dark') || 
+                    pHtml.getAttribute('data-theme') === 'dark' ||
+                    pHtml.getAttribute('data-mode') === 'dark' ||
+                    pBody.getAttribute('data-theme') === 'dark' ||
+                    pBody.classList.contains('night')
+                  ) {
+                    detectedParentDark = true;
+                  }
                 }
+              } catch(e) {
+                // Cross-origin: Kroombox Panel default is light mode
+                detectedParentDark = false;
               }
-            } catch(e) {}
+              isDark = detectedParentDark;
+            } else {
+              // Standalone direct window: follow OS prefers-color-scheme
+              if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                isDark = true;
+              }
+            }
           }
+
           if (isDark) {
             document.documentElement.classList.add('dark');
+          } else {
+            document.documentElement.classList.remove('dark');
           }
         } catch (e) {}
       })();
     </script>
-    <script type="module" crossorigin src="/assets/index-ClgVsNPn.js"></script>
+    <script type="module" crossorigin src="/assets/index-6gtfeaUb.js"></script>
     <link rel="stylesheet" crossorigin href="/assets/index-Cid4BJn6.css">
   </head>
   <body>
