@@ -318,6 +318,8 @@ function resolveSystemTheme(): Theme {
     if (lastKnownParentTheme) {
       return lastKnownParentTheme;
     }
+    // If embedded and no explicit parent theme detected, default to 'light' (matching Kroombox Panel's base UI)
+    return 'light';
   }
 
   // 4. Standalone direct window or fallback: check system media query
@@ -339,21 +341,30 @@ export const LanguageThemeProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // User preference: 'system' | 'light' | 'dark'
   const [themeMode, setThemeModeState] = useState<ThemeMode>(() => {
-    // In embedded panel mode: ALWAYS follow panel theme by default
-    if (isEmbedded) return 'system';
-    const savedMode = localStorage.getItem('kroomcare_theme_mode');
-    if (savedMode === 'system' || savedMode === 'light' || savedMode === 'dark') {
+    if (typeof window !== 'undefined') {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const urlTheme = params.get('theme') || params.get('mode');
+        if (urlTheme === 'light' || urlTheme === 'dark') return urlTheme;
+      } catch (_) {}
+    }
+    const savedMode = typeof window !== 'undefined' ? localStorage.getItem('kroomcare_theme_mode') : null;
+    if (savedMode === 'light' || savedMode === 'dark') {
       return savedMode as ThemeMode;
     }
-    return 'system';
+    return isEmbedded ? 'system' : (savedMode === 'system' ? 'system' : 'system');
   });
 
   // Current active resolved theme: 'light' | 'dark'
   const [resolvedTheme, setResolvedTheme] = useState<Theme>(() => {
-    if (!isEmbedded) {
+    if (typeof window !== 'undefined') {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const urlTheme = params.get('theme') || params.get('mode');
+        if (urlTheme === 'light' || urlTheme === 'dark') return urlTheme;
+      } catch (_) {}
       const savedMode = localStorage.getItem('kroomcare_theme_mode');
-      if (savedMode === 'dark') return 'dark';
-      if (savedMode === 'light') return 'light';
+      if (savedMode === 'dark' || savedMode === 'light') return savedMode;
     }
     return resolveSystemTheme();
   });
@@ -430,8 +441,8 @@ export const LanguageThemeProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Re-sync with system or parent when in 'system' mode or when embedded
   useEffect(() => {
-    // If user is standalone and explicitly locked to 'light' or 'dark', honor it
-    if (!isEmbedded && themeMode !== 'system') {
+    // If user is explicitly locked to 'light' or 'dark', honor it
+    if (themeMode !== 'system') {
       applyThemeToDOM(themeMode);
       setResolvedTheme(themeMode);
       return;

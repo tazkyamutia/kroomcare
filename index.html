@@ -33,30 +33,33 @@
           var cookieTheme = getCookie('kp_theme');
           var isDark = false;
 
-          if (isEmbedded) {
-            // When embedded in Kroombox Panel: ALWAYS prioritize panel theme
+          var params = new URLSearchParams(window.location.search);
+          var pTheme = params.get('theme') || params.get('mode');
+          var userMode = localStorage.getItem('kroomcare_theme_mode');
+
+          if (pTheme === 'dark') {
+            isDark = true;
+          } else if (pTheme === 'light') {
+            isDark = false;
+          } else if (userMode === 'dark') {
+            isDark = true;
+          } else if (userMode === 'light') {
+            isDark = false;
+          } else if (isEmbedded) {
+            // When embedded in Kroombox Panel: prioritize cookie or parent broadcast
             if (cookieTheme === 'dark') {
               isDark = true;
             } else if (cookieTheme === 'light') {
               isDark = false;
             } else {
-              var params = new URLSearchParams(window.location.search);
-              var pTheme = params.get('theme') || params.get('mode');
-              if (pTheme === 'dark') isDark = true;
-              else if (pTheme === 'light') isDark = false;
-              else {
-                var stored = localStorage.getItem('kroombox_parent_theme');
-                if (stored === 'dark') isDark = true;
-                else if (stored === 'light') isDark = false;
-                else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) isDark = true;
-              }
+              var stored = localStorage.getItem('kroombox_parent_theme');
+              if (stored === 'dark') isDark = true;
+              else if (stored === 'light') isDark = false;
+              else isDark = false; // Default embedded mode to light matching Kroombox panel
             }
           } else {
-            // Standalone mode: follow explicit user setting if available, else OS
-            var mode = localStorage.getItem('kroomcare_theme_mode') || 'system';
-            if (mode === 'dark') isDark = true;
-            else if (mode === 'light') isDark = false;
-            else if (cookieTheme === 'dark') isDark = true;
+            // Standalone mode
+            if (cookieTheme === 'dark') isDark = true;
             else if (cookieTheme === 'light') isDark = false;
             else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) isDark = true;
           }
