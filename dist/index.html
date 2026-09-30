@@ -20,9 +20,6 @@
             return null;
           }
 
-          var cookieTheme = getCookie('kp_theme');
-          var mode = localStorage.getItem('kroomcare_theme_mode') || 'system';
-          var isDark = false;
           var isEmbedded = false;
           try {
             isEmbedded = window.parent && window.parent !== window;
@@ -30,81 +27,35 @@
             isEmbedded = true;
           }
 
-          // If embedded in panel, user prefers panel theme unless they explicitly set 'light' or 'dark'
-          if (mode === 'dark') {
-            isDark = true;
-          } else if (mode === 'light') {
-            isDark = false;
-          } else {
-            // Mode is 'system' (or embedded in panel):
-            // 1. Check shared cookie from Kroombox panel (.kroombox.com domain)
+          var cookieTheme = getCookie('kp_theme');
+          var isDark = false;
+
+          if (isEmbedded) {
+            // When embedded in Kroombox Panel: ALWAYS prioritize panel theme
             if (cookieTheme === 'dark') {
               isDark = true;
             } else if (cookieTheme === 'light') {
               isDark = false;
             } else {
-              // 2. Check URL parameters
               var params = new URLSearchParams(window.location.search);
-              var pTheme = params.get('theme') || params.get('mode') || params.get('themeMode') || params.get('colorScheme');
-              if (pTheme === 'dark') {
-                isDark = true;
-              } else if (pTheme === 'light') {
-                isDark = false;
-              } else if (isEmbedded) {
-                // 3. Embedded inside Kroombox Panel iframe: inspect parent document if accessible
-                var detectedParentTheme = null;
-                try {
-                  if (window.parent && window.parent.document) {
-                    var pDoc = window.parent.document;
-                    var pHtml = pDoc.documentElement;
-                    var pBody = pDoc.body;
-                    if (
-                      pHtml.classList.contains('dark') || 
-                      pHtml.classList.contains('theme-dark') || 
-                      pHtml.classList.contains('night') || 
-                      pBody.classList.contains('dark') || 
-                      pBody.classList.contains('theme-dark') || 
-                      pHtml.getAttribute('data-theme') === 'dark' ||
-                      pHtml.getAttribute('data-mode') === 'dark' ||
-                      pBody.getAttribute('data-theme') === 'dark' ||
-                      pBody.getAttribute('data-mode') === 'dark'
-                    ) {
-                      detectedParentTheme = 'dark';
-                    } else {
-                      try {
-                        var pStore = window.parent.localStorage;
-                        if (pStore) {
-                          for (var k of ['kp_theme', 'theme', 'kroombox_theme', 'theme_mode', 'mode', 'color-theme']) {
-                            var sVal = pStore.getItem(k);
-                            if (sVal === 'dark') { detectedParentTheme = 'dark'; break; }
-                            if (sVal === 'light') { detectedParentTheme = 'light'; break; }
-                          }
-                        }
-                      } catch(e2) {}
-                      if (!detectedParentTheme) {
-                        detectedParentTheme = 'light';
-                      }
-                    }
-                  }
-                } catch(e) {
-                  // Cross-origin: check stored parent theme or cookie
-                  var storedParent = localStorage.getItem('kroombox_parent_theme');
-                  if (storedParent === 'dark' || storedParent === 'light') {
-                    detectedParentTheme = storedParent;
-                  }
-                }
-                if (detectedParentTheme) {
-                  isDark = (detectedParentTheme === 'dark');
-                } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-                  isDark = true;
-                }
-              } else {
-                // Standalone direct window: follow OS prefers-color-scheme
-                if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-                  isDark = true;
-                }
+              var pTheme = params.get('theme') || params.get('mode');
+              if (pTheme === 'dark') isDark = true;
+              else if (pTheme === 'light') isDark = false;
+              else {
+                var stored = localStorage.getItem('kroombox_parent_theme');
+                if (stored === 'dark') isDark = true;
+                else if (stored === 'light') isDark = false;
+                else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) isDark = true;
               }
             }
+          } else {
+            // Standalone mode: follow explicit user setting if available, else OS
+            var mode = localStorage.getItem('kroomcare_theme_mode') || 'system';
+            if (mode === 'dark') isDark = true;
+            else if (mode === 'light') isDark = false;
+            else if (cookieTheme === 'dark') isDark = true;
+            else if (cookieTheme === 'light') isDark = false;
+            else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) isDark = true;
           }
 
           if (isDark) {
@@ -124,18 +75,15 @@
               else if (d.type === 'KROOMBOX_THEME_CHANGE' && (d.theme === 'dark' || d.theme === 'light')) incoming = d.theme;
               if (incoming) {
                 localStorage.setItem('kroombox_parent_theme', incoming);
-                var savedMode = localStorage.getItem('kroomcare_theme_mode') || 'system';
-                if (savedMode === 'system') {
-                  if (incoming === 'dark') document.documentElement.classList.add('dark');
-                  else document.documentElement.classList.remove('dark');
-                }
+                if (incoming === 'dark') document.documentElement.classList.add('dark');
+                else document.documentElement.classList.remove('dark');
               }
             } catch(e) {}
           });
         } catch (e) {}
       })();
     </script>
-    <script type="module" crossorigin src="/assets/index-C8Vybkbo.js"></script>
+    <script type="module" crossorigin src="/assets/index-DiqEx3z8.js"></script>
     <link rel="stylesheet" crossorigin href="/assets/index-Cid4BJn6.css">
   </head>
   <body>

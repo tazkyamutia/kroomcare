@@ -335,21 +335,26 @@ const LanguageThemeContext = createContext<LanguageThemeContextType | undefined>
 export const LanguageThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [language, setLanguageState] = useState<Language>('en');
 
+  const isEmbedded = typeof window !== 'undefined' && window.parent && window.parent !== window;
+
   // User preference: 'system' | 'light' | 'dark'
   const [themeMode, setThemeModeState] = useState<ThemeMode>(() => {
+    // In embedded panel mode: ALWAYS follow panel theme by default
+    if (isEmbedded) return 'system';
     const savedMode = localStorage.getItem('kroomcare_theme_mode');
     if (savedMode === 'system' || savedMode === 'light' || savedMode === 'dark') {
       return savedMode as ThemeMode;
     }
-    // Default to 'system' so it follows Kroombox Panel and OS automatically
     return 'system';
   });
 
   // Current active resolved theme: 'light' | 'dark'
   const [resolvedTheme, setResolvedTheme] = useState<Theme>(() => {
-    const savedMode = localStorage.getItem('kroomcare_theme_mode') || 'system';
-    if (savedMode === 'dark') return 'dark';
-    if (savedMode === 'light') return 'light';
+    if (!isEmbedded) {
+      const savedMode = localStorage.getItem('kroomcare_theme_mode');
+      if (savedMode === 'dark') return 'dark';
+      if (savedMode === 'light') return 'light';
+    }
     return resolveSystemTheme();
   });
 
@@ -423,25 +428,35 @@ export const LanguageThemeProvider: React.FC<{ children: React.ReactNode }> = ({
     return null;
   };
 
-  // Re-sync with system or parent when in 'system' mode
+  // Re-sync with system or parent when in 'system' mode or when embedded
   useEffect(() => {
-    if (themeMode !== 'system') {
+    // If user is standalone and explicitly locked to 'light' or 'dark', honor it
+    if (!isEmbedded && themeMode !== 'system') {
       applyThemeToDOM(themeMode);
       setResolvedTheme(themeMode);
       return;
     }
 
+    const syncTheme = (newTheme: Theme) => {
+      setResolvedTheme(prev => {
+        if (prev !== newTheme) {
+          applyThemeToDOM(newTheme);
+          return newTheme;
+        }
+        return prev;
+      });
+      applyThemeToDOM(newTheme);
+    };
+
     // Initial check
     const currentSys = resolveSystemTheme();
-    setResolvedTheme(currentSys);
-    applyThemeToDOM(currentSys);
+    syncTheme(currentSys);
 
     // 1. Listen to system preference changes (for standalone mode)
     const mediaQuery = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
     const handleMediaChange = () => {
       const nextTheme = resolveSystemTheme();
-      setResolvedTheme(nextTheme);
-      applyThemeToDOM(nextTheme);
+      syncTheme(nextTheme);
     };
 
     if (mediaQuery?.addEventListener) {
@@ -454,13 +469,12 @@ export const LanguageThemeProvider: React.FC<{ children: React.ReactNode }> = ({
       if (incomingTheme) {
         lastKnownParentTheme = incomingTheme;
         try { localStorage.setItem('kroombox_parent_theme', incomingTheme); } catch (_) {}
-        setResolvedTheme(incomingTheme);
-        applyThemeToDOM(incomingTheme);
+        syncTheme(incomingTheme);
       }
     };
     window.addEventListener('message', handleMessage);
 
-    // 3. MutationObserver on parent document (0ms real-time responsive sync)
+    // 3. MutationObserver on parent document if same-origin (0ms real-time responsive sync)
     let parentObserver: MutationObserver | null = null;
     let onParentStorage: (() => void) | null = null;
     try {
@@ -468,13 +482,7 @@ export const LanguageThemeProvider: React.FC<{ children: React.ReactNode }> = ({
         const syncFromParent = () => {
           const latest = detectParentTheme();
           if (latest) {
-            setResolvedTheme(prev => {
-              if (prev !== latest) {
-                applyThemeToDOM(latest);
-                return latest;
-              }
-              return prev;
-            });
+            syncTheme(latest);
           }
         };
 
@@ -498,25 +506,20 @@ export const LanguageThemeProvider: React.FC<{ children: React.ReactNode }> = ({
     } catch (_) {}
 
     // 4. Request initial theme from parent if embedded in iframe
-    if (typeof window !== 'undefined' && window.parent && window.parent !== window) {
+    if (isEmbedded) {
       try {
         window.parent.postMessage({ type: 'GET_THEME' }, '*');
         window.parent.postMessage({ type: 'REQUEST_THEME' }, '*');
+        window.parent.postMessage({ type: 'KP_GET_THEME' }, '*');
         window.parent.postMessage('getTheme', '*');
       } catch (_) {}
     }
 
-    // 5. Polling interval (400ms) for high-responsiveness fallback
+    // 5. Polling interval (200ms) for ultra-responsiveness
     const interval = setInterval(() => {
       const latest = resolveSystemTheme();
-      setResolvedTheme(prev => {
-        if (prev !== latest) {
-          applyThemeToDOM(latest);
-          return latest;
-        }
-        return prev;
-      });
-    }, 400);
+      syncTheme(latest);
+    }, 200);
 
     // 6. Focus & Visibility listener
     const handleVisibility = () => {
