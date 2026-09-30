@@ -2,7 +2,7 @@ import React from 'react';
 import { Sparkles, Bell, User, Settings, LogOut, ChevronDown, Ticket, Gift, Sun, Moon, Star } from 'lucide-react';
 import { UserRole } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { cn } from '../lib/utils';
 import { useUser } from '../context/UserContext';
 import { useLanguageTheme } from '../context/LanguageThemeContext';
@@ -23,17 +23,6 @@ export const Header: React.FC = () => {
   const [showNotifications, setShowNotifications] = React.useState(false);
   const [notifications, setNotifications] = React.useState<AppNotification[]>([]);
   const navigate = useNavigate();
-  const location = useLocation();
-
-  const getBreadcrumbTitle = () => {
-    if (location.pathname.startsWith('/forum')) return 'Community Forum';
-    if (location.pathname.startsWith('/tickets')) return 'My Tickets';
-    if (location.pathname.startsWith('/rewards')) return 'Rewards';
-    if (location.pathname.startsWith('/points-history')) return 'Points History';
-    if (location.pathname.startsWith('/profile')) return 'My Profile';
-    if (location.pathname.startsWith('/settings')) return 'Settings';
-    return 'Support Center';
-  };
 
   const fetchNotifications = React.useCallback(async () => {
     if (!user?.id) return;
@@ -145,21 +134,6 @@ export const Header: React.FC = () => {
           className="h-7 sm:h-8 w-auto object-contain" 
         />
         <span className="text-base sm:text-lg font-bold tracking-tight text-slate-800 dark:text-white">KroomCare</span>
-      </div>
-      {/* Breadcrumb & System Status (Desktop) */}
-      <div className="hidden sm:flex items-center gap-3">
-        <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 font-medium">
-          <span>Workspace</span>
-          <span className="text-slate-300 dark:text-slate-600">&gt;</span>
-          <span className="font-semibold text-slate-800 dark:text-slate-200">{getBreadcrumbTitle()}</span>
-        </div>
-        <div className="px-2.5 py-1 bg-emerald-50 dark:bg-emerald-950/40 rounded-full border border-emerald-200/60 dark:border-emerald-800/40 flex items-center gap-1.5">
-          <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-          </span>
-          <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400">Semua Sistem Normal</span>
-        </div>
       </div>
 
       <div className="flex-1" />
