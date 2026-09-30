@@ -69,12 +69,12 @@ export const Sidebar: React.FC = () => {
 
       {/* Sidebar */}
       <aside className={cn(
-        "fixed inset-y-0 left-0 z-40 w-60 bg-white dark:bg-slate-900/95 dark:backdrop-blur-xl border-r border-slate-200/60 dark:border-white/[0.05] transform transition-transform duration-300 ease-in-out lg:translate-x-0 shadow-xs",
+        "fixed inset-y-0 left-0 z-40 w-60 bg-white dark:bg-[#0b0f19] border-r border-slate-200/60 dark:border-white/[0.04] transform transition-transform duration-300 ease-in-out lg:translate-x-0 shadow-xs",
         isOpen ? "translate-x-0" : "-translate-x-full"
       )}>
         <div className="flex flex-col h-full">
           {/* Brand Header */}
-          <div className="px-5 py-4 border-b border-slate-100 dark:border-white/[0.05] flex items-center justify-between">
+          <div className="px-5 py-4 border-b border-slate-100 dark:border-transparent flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <img 
                 src="https://i.ibb.co.com/fGPRy8Jt/Gemini-Generated-Image-yss7sryss7sryss7-removebg-preview.png" 
@@ -115,8 +115,8 @@ export const Sidebar: React.FC = () => {
             ))}
           </nav>
 
-          <div className="p-3 border-t border-slate-100 dark:border-white/[0.05]">
-            <div className="flex items-center gap-2.5 p-2 rounded-xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200/60 dark:border-white/[0.05]">
+          <div className="p-3 border-t border-slate-100 dark:border-transparent">
+            <div className="flex items-center gap-2.5 p-2 rounded-xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200/60 dark:border-white/[0.04]">
               <div className={cn(
                 "w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 overflow-hidden",
                 role === 'admin' ? "bg-slate-900 text-white" : "bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400"

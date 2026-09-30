@@ -46,7 +46,7 @@ export default function App() {
 
   return (
     <Router>
-      <div className="flex min-h-screen bg-slate-50/60 dark:bg-slate-950 transition-colors duration-300">
+      <div className="flex min-h-screen bg-slate-50/60 dark:bg-[#0b0f19] transition-colors duration-300">
         <Sidebar />
         
         <main className="flex-1 lg:ml-64 p-3 sm:p-5 md:p-6 lg:p-8 pb-20 lg:pb-8 min-w-0">
