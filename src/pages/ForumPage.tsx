@@ -149,7 +149,7 @@ export const ForumPage = () => {
           className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-sm hover:shadow-blue-500/25 transition-all active:scale-[0.98] self-start sm:self-auto shrink-0"
         >
           <Plus size={16} className="stroke-[2.5]" />
-          <span>+ Mulai Diskusi</span>
+          <span>Mulai Diskusi</span>
         </button>
       </div>
 
