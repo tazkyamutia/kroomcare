@@ -133,6 +133,17 @@ const translations = {
   }
 };
 
+// Store last known theme reported by parent panel (via postMessage, URL, storage, or parent DOM)
+let lastKnownParentTheme: Theme | null = (() => {
+  try {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('kroombox_parent_theme');
+      if (stored === 'dark' || stored === 'light') return stored;
+    }
+  } catch (_) {}
+  return null;
+})();
+
 function detectParentTheme(): Theme | null {
   try {
     if (typeof window !== 'undefined' && window.parent && window.parent !== window) {
@@ -143,14 +154,22 @@ function detectParentTheme(): Theme | null {
       // 1. Check if parent explicitly has dark classes or data attributes
       if (
         pHtml.classList.contains('dark') ||
+        pHtml.classList.contains('theme-dark') ||
+        pHtml.classList.contains('dark-mode') ||
+        pHtml.classList.contains('night') ||
         pBody.classList.contains('dark') ||
+        pBody.classList.contains('theme-dark') ||
+        pBody.classList.contains('dark-mode') ||
+        pBody.classList.contains('night') ||
         pHtml.getAttribute('data-theme') === 'dark' ||
         pHtml.getAttribute('data-mode') === 'dark' ||
+        pHtml.getAttribute('data-color-mode') === 'dark' ||
         pBody.getAttribute('data-theme') === 'dark' ||
         pBody.getAttribute('data-mode') === 'dark' ||
-        pBody.classList.contains('night') ||
-        pHtml.classList.contains('night')
+        pBody.getAttribute('data-color-mode') === 'dark'
       ) {
+        lastKnownParentTheme = 'dark';
+        try { localStorage.setItem('kroombox_parent_theme', 'dark'); } catch (_) {}
         return 'dark';
       }
 
@@ -159,14 +178,32 @@ function detectParentTheme(): Theme | null {
       if (pRoot) {
         if (
           pRoot.classList.contains('dark') ||
+          pRoot.classList.contains('theme-dark') ||
           pRoot.getAttribute('data-theme') === 'dark' ||
           pRoot.getAttribute('data-mode') === 'dark'
         ) {
+          lastKnownParentTheme = 'dark';
+          try { localStorage.setItem('kroombox_parent_theme', 'dark'); } catch (_) {}
           return 'dark';
         }
       }
 
-      // 2. Check computed background color brightness of parent elements
+      // 2. Check parent localStorage if accessible
+      try {
+        const pStorage = window.parent.localStorage;
+        if (pStorage) {
+          for (const key of ['theme', 'kroombox_theme', 'kolab_theme', 'theme_mode', 'mode', 'color-theme', 'next-theme']) {
+            const val = pStorage.getItem(key);
+            if (val === 'dark' || val === 'light') {
+              lastKnownParentTheme = val;
+              try { localStorage.setItem('kroombox_parent_theme', val); } catch (_) {}
+              return val;
+            }
+          }
+        }
+      } catch (_) {}
+
+      // 3. Check computed background color brightness of parent elements
       const checkBg = (el: Element | null): Theme | null => {
         if (!el) return null;
         try {
@@ -183,21 +220,42 @@ function detectParentTheme(): Theme | null {
       };
 
       const bodyTheme = checkBg(pBody);
-      if (bodyTheme) return bodyTheme;
+      if (bodyTheme) {
+        lastKnownParentTheme = bodyTheme;
+        try { localStorage.setItem('kroombox_parent_theme', bodyTheme); } catch (_) {}
+        return bodyTheme;
+      }
 
       const htmlTheme = checkBg(pHtml);
-      if (htmlTheme) return htmlTheme;
+      if (htmlTheme) {
+        lastKnownParentTheme = htmlTheme;
+        try { localStorage.setItem('kroombox_parent_theme', htmlTheme); } catch (_) {}
+        return htmlTheme;
+      }
 
       if (pRoot) {
         const rootTheme = checkBg(pRoot);
-        if (rootTheme) return rootTheme;
+        if (rootTheme) {
+          lastKnownParentTheme = rootTheme;
+          try { localStorage.setItem('kroombox_parent_theme', rootTheme); } catch (_) {}
+          return rootTheme;
+        }
       }
 
-      // 3. Parent document was accessible and has NO dark indicators -> Parent is in LIGHT mode!
+      // 4. Parent document was accessible and has NO dark indicators -> Parent is in LIGHT mode!
+      lastKnownParentTheme = 'light';
+      try { localStorage.setItem('kroombox_parent_theme', 'light'); } catch (_) {}
       return 'light';
     }
   } catch (_) {
-    // Cross-origin restriction: host panel default is light mode
+    // Cross-origin restriction: use last known theme from postMessage / storage
+    if (lastKnownParentTheme) {
+      return lastKnownParentTheme;
+    }
+    try {
+      const stored = localStorage.getItem('kroombox_parent_theme') as Theme;
+      if (stored === 'dark' || stored === 'light') return stored;
+    } catch (_) {}
     return 'light';
   }
   return null;
@@ -210,6 +268,8 @@ function resolveSystemTheme(): Theme {
       const params = new URLSearchParams(window.location.search);
       const urlTheme = params.get('theme') || params.get('mode') || params.get('themeMode') || params.get('colorScheme');
       if (urlTheme === 'dark' || urlTheme === 'light') {
+        lastKnownParentTheme = urlTheme;
+        try { localStorage.setItem('kroombox_parent_theme', urlTheme); } catch (_) {}
         return urlTheme;
       }
     }
@@ -222,7 +282,7 @@ function resolveSystemTheme(): Theme {
     if (parentTheme) {
       return parentTheme;
     }
-    return 'light';
+    return lastKnownParentTheme || 'light';
   }
 
   // 3. Standalone direct window: check system media query
@@ -296,6 +356,38 @@ export const LanguageThemeProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
+  // Helper to parse any incoming message format into Theme
+  const parseThemeFromData = (data: any): Theme | null => {
+    if (!data) return null;
+    if (typeof data === 'string') {
+      const lower = data.toLowerCase().trim();
+      if (lower === 'dark' || lower === 'light') return lower as Theme;
+      if (lower === 'theme:dark') return 'dark';
+      if (lower === 'theme:light') return 'light';
+      try {
+        const parsed = JSON.parse(data);
+        return parseThemeFromData(parsed);
+      } catch (_) {}
+    }
+    if (typeof data === 'object') {
+      if (data.theme === 'dark' || data.theme === 'light') return data.theme;
+      if (data.mode === 'dark' || data.mode === 'light') return data.mode;
+      if (data.colorScheme === 'dark' || data.colorScheme === 'light') return data.colorScheme;
+      if (data.payload === 'dark' || data.payload === 'light') return data.payload;
+      if (data.payload && typeof data.payload === 'object') {
+        if (data.payload.theme === 'dark' || data.payload.theme === 'light') return data.payload.theme;
+        if (data.payload.mode === 'dark' || data.payload.mode === 'light') return data.payload.mode;
+      }
+      if (data.data === 'dark' || data.data === 'light') return data.data;
+      if (data.data && typeof data.data === 'object') {
+        if (data.data.theme === 'dark' || data.data.theme === 'light') return data.data.theme;
+        if (data.data.mode === 'dark' || data.data.mode === 'light') return data.data.mode;
+      }
+      if (data.value === 'dark' || data.value === 'light') return data.value;
+    }
+    return null;
+  };
+
   // Re-sync with system or parent when in 'system' mode
   useEffect(() => {
     if (themeMode !== 'system') {
@@ -309,7 +401,7 @@ export const LanguageThemeProvider: React.FC<{ children: React.ReactNode }> = ({
     setResolvedTheme(currentSys);
     applyThemeToDOM(currentSys);
 
-    // 1. Listen to system preference changes
+    // 1. Listen to system preference changes (for standalone mode)
     const mediaQuery = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
     const handleMediaChange = () => {
       const nextTheme = resolveSystemTheme();
@@ -323,36 +415,63 @@ export const LanguageThemeProvider: React.FC<{ children: React.ReactNode }> = ({
 
     // 2. Listen to postMessage from parent (Kroombox Panel theme broadcast)
     const handleMessage = (event: MessageEvent) => {
-      const data = event.data;
-      if (!data) return;
-      let incomingTheme: Theme | null = null;
-      if (data === 'dark' || data === 'light') {
-        incomingTheme = data;
-      } else if (typeof data === 'object') {
-        if (data.theme === 'dark' || data.theme === 'light') {
-          incomingTheme = data.theme;
-        } else if (data.mode === 'dark' || data.mode === 'light') {
-          incomingTheme = data.mode;
-        } else if (data.type === 'THEME_CHANGE' && (data.payload === 'dark' || data.payload === 'light')) {
-          incomingTheme = data.payload;
-        }
-      }
+      const incomingTheme = parseThemeFromData(event.data);
       if (incomingTheme) {
+        lastKnownParentTheme = incomingTheme;
+        try { localStorage.setItem('kroombox_parent_theme', incomingTheme); } catch (_) {}
         setResolvedTheme(incomingTheme);
         applyThemeToDOM(incomingTheme);
       }
     };
     window.addEventListener('message', handleMessage);
 
-    // Request initial theme from parent if embedded in iframe
+    // 3. MutationObserver on parent document (0ms real-time responsive sync)
+    let parentObserver: MutationObserver | null = null;
+    let onParentStorage: (() => void) | null = null;
+    try {
+      if (typeof window !== 'undefined' && window.parent && window.parent !== window && window.parent.document) {
+        const syncFromParent = () => {
+          const latest = detectParentTheme();
+          if (latest) {
+            setResolvedTheme(prev => {
+              if (prev !== latest) {
+                applyThemeToDOM(latest);
+                return latest;
+              }
+              return prev;
+            });
+          }
+        };
+
+        parentObserver = new MutationObserver(syncFromParent);
+        if (window.parent.document.documentElement) {
+          parentObserver.observe(window.parent.document.documentElement, {
+            attributes: true,
+            attributeFilter: ['class', 'data-theme', 'data-mode', 'data-color-mode', 'style']
+          });
+        }
+        if (window.parent.document.body) {
+          parentObserver.observe(window.parent.document.body, {
+            attributes: true,
+            attributeFilter: ['class', 'data-theme', 'data-mode', 'data-color-mode', 'style']
+          });
+        }
+
+        onParentStorage = syncFromParent;
+        window.parent.addEventListener('storage', onParentStorage);
+      }
+    } catch (_) {}
+
+    // 4. Request initial theme from parent if embedded in iframe
     if (typeof window !== 'undefined' && window.parent && window.parent !== window) {
       try {
         window.parent.postMessage({ type: 'GET_THEME' }, '*');
+        window.parent.postMessage({ type: 'REQUEST_THEME' }, '*');
         window.parent.postMessage('getTheme', '*');
       } catch (_) {}
     }
 
-    // 3. Polling interval to check parent iframe theme (handles real-time toggle in Kroombox Panel)
+    // 5. Polling interval (400ms) for high-responsiveness fallback
     const interval = setInterval(() => {
       const latest = resolveSystemTheme();
       setResolvedTheme(prev => {
@@ -362,23 +481,36 @@ export const LanguageThemeProvider: React.FC<{ children: React.ReactNode }> = ({
         }
         return prev;
       });
-    }, 1000);
+    }, 400);
 
-    // 4. Focus listener
-    const handleFocus = () => {
+    // 6. Focus & Visibility listener
+    const handleVisibility = () => {
       const latest = resolveSystemTheme();
       setResolvedTheme(latest);
       applyThemeToDOM(latest);
+      if (typeof window !== 'undefined' && window.parent && window.parent !== window) {
+        try {
+          window.parent.postMessage({ type: 'GET_THEME' }, '*');
+        } catch (_) {}
+      }
     };
-    window.addEventListener('focus', handleFocus);
+    window.addEventListener('focus', handleVisibility);
+    document.addEventListener('visibilitychange', handleVisibility);
 
     return () => {
       if (mediaQuery?.removeEventListener) {
         mediaQuery.removeEventListener('change', handleMediaChange);
       }
       window.removeEventListener('message', handleMessage);
+      if (parentObserver) {
+        parentObserver.disconnect();
+      }
+      if (onParentStorage) {
+        try { window.parent.removeEventListener('storage', onParentStorage); } catch (_) {}
+      }
       clearInterval(interval);
-      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('focus', handleVisibility);
+      document.removeEventListener('visibilitychange', handleVisibility);
     };
   }, [themeMode, applyThemeToDOM]);
 

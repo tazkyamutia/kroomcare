@@ -31,7 +31,7 @@
               isDark = false;
             } else if (isEmbedded) {
               // Embedded inside Kroombox Panel iframe: inspect parent document if accessible
-              var detectedParentDark = false;
+              var detectedParentTheme = null;
               try {
                 if (window.parent && window.parent.document) {
                   var pDoc = window.parent.document;
@@ -39,20 +39,43 @@
                   var pBody = pDoc.body;
                   if (
                     pHtml.classList.contains('dark') || 
+                    pHtml.classList.contains('theme-dark') || 
+                    pHtml.classList.contains('night') || 
                     pBody.classList.contains('dark') || 
+                    pBody.classList.contains('theme-dark') || 
                     pHtml.getAttribute('data-theme') === 'dark' ||
                     pHtml.getAttribute('data-mode') === 'dark' ||
                     pBody.getAttribute('data-theme') === 'dark' ||
-                    pBody.classList.contains('night')
+                    pBody.getAttribute('data-mode') === 'dark'
                   ) {
-                    detectedParentDark = true;
+                    detectedParentTheme = 'dark';
+                  } else {
+                    // Check parent localStorage if accessible
+                    try {
+                      var pStore = window.parent.localStorage;
+                      if (pStore) {
+                        for (var k of ['theme', 'kroombox_theme', 'theme_mode', 'mode', 'color-theme']) {
+                          var sVal = pStore.getItem(k);
+                          if (sVal === 'dark') { detectedParentTheme = 'dark'; break; }
+                          if (sVal === 'light') { detectedParentTheme = 'light'; break; }
+                        }
+                      }
+                    } catch(e2) {}
+                    if (!detectedParentTheme) {
+                      detectedParentTheme = 'light';
+                    }
                   }
                 }
               } catch(e) {
-                // Cross-origin: Kroombox Panel default is light mode
-                detectedParentDark = false;
+                // Cross-origin: check stored parent theme or default to light
+                var storedParent = localStorage.getItem('kroombox_parent_theme');
+                if (storedParent === 'dark' || storedParent === 'light') {
+                  detectedParentTheme = storedParent;
+                } else {
+                  detectedParentTheme = 'light';
+                }
               }
-              isDark = detectedParentDark;
+              isDark = (detectedParentTheme === 'dark');
             } else {
               // Standalone direct window: follow OS prefers-color-scheme
               if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
