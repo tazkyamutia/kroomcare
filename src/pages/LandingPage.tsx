@@ -127,7 +127,7 @@ export const LandingPage = () => {
               alt="KroomCare Logo" 
               className="h-9 w-auto group-hover:scale-105 transition-transform" 
             />
-            <span className="text-xl font-display font-extrabold text-slate-900 dark:text-white tracking-tight">KroomCare</span>
+            <span className="text-xl font-sans font-extrabold text-slate-900 dark:text-white tracking-tight">KroomCare</span>
           </div>
 
           <div className="hidden md:flex items-center gap-8 text-sm font-semibold text-slate-600 dark:text-slate-300">
@@ -367,7 +367,7 @@ export const LandingPage = () => {
                   <Star size={12} className="fill-yellow-300 text-yellow-300" />
                   Newsletter KroomCare
                 </div>
-                <h3 className="text-lg md:text-xl font-display font-bold text-white leading-snug">
+                <h3 className="text-lg md:text-xl font-sans font-bold text-white leading-snug">
                   Dapatkan tips layanan pelanggan &amp; <br className="hidden md:block" />update fitur terbaru kami
                 </h3>
                 <p className="text-sm text-blue-100 mt-2">Gratis. Tanpa spam. Bisa berhenti kapan saja.</p>
@@ -413,7 +413,7 @@ export const LandingPage = () => {
                   alt="Logo KroomCare"
                   className="h-10 w-auto"
                 />
-                <span className="text-2xl font-display font-extrabold text-slate-900 dark:text-white tracking-tight">KroomCare</span>
+                <span className="text-2xl font-sans font-extrabold text-slate-900 dark:text-white tracking-tight">KroomCare</span>
               </div>
               <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed max-w-xs">
                 Platform CRM modern yang menghubungkan bisnis dengan pelanggannya secara lebih cerdas, lebih cepat, dan lebih personal.
