@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { ChatWidget } from './components/ChatWidget';
@@ -26,12 +26,25 @@ import { useUser } from './context/UserContext';
 
 import { ForumPage } from './pages/ForumPage';
 
+function ScrollToTop() {
+  const { pathname, search, hash } = useLocation();
+
+  React.useEffect(() => {
+    if (!hash) {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    }
+  }, [pathname, search, hash]);
+
+  return null;
+}
+
 export default function App() {
   const { user, logout } = useUser();
 
   if (!user) {
     return (
       <Router>
+        <ScrollToTop />
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
@@ -46,6 +59,7 @@ export default function App() {
 
   return (
     <Router>
+      <ScrollToTop />
       <div className="flex min-h-screen bg-slate-50/60 dark:bg-[#0b0f19] transition-colors duration-300">
         <Sidebar />
         

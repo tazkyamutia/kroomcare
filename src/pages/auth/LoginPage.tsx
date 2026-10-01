@@ -2,7 +2,6 @@ import React from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { ShieldCheck, User, Lock, ArrowRight, Loader2, ArrowLeft, Mail, Instagram, Linkedin, Eye, EyeOff } from 'lucide-react';
 import { motion } from 'motion/react';
-import { DUMMY_USERS } from '../../utils/dummyData';
 import { useUser } from '../../context/UserContext';
 
 const Tiktok = ({ size = 24, ...props }: { size?: number } & React.SVGProps<SVGSVGElement>) => (

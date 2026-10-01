@@ -1,6 +1,6 @@
 import React from 'react';
 import { MessageSquare, User, ShieldCheck, ArrowLeft, Send, AlertTriangle, Coins, CheckCircle2, MoreHorizontal, Loader2, Trash2 } from 'lucide-react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../../lib/utils';
 import { UserRole } from '../../types';
@@ -13,6 +13,7 @@ interface ForumThreadProps {
 export const ForumThreadPage: React.FC<ForumThreadProps> = ({ userRole }) => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useUser();
   const [reply, setReply] = React.useState('');
   const [replyingTo, setReplyingTo] = React.useState<{ id: string, name: string } | null>(null);
@@ -24,7 +25,7 @@ export const ForumThreadPage: React.FC<ForumThreadProps> = ({ userRole }) => {
   const [rewardPoints, setRewardPoints] = React.useState<number | ''>(50);
   const [showToastTransfer, setShowToastTransfer] = React.useState(false);
 
-  const isTicketPath = window.location.pathname.includes('/tickets') || window.location.pathname.includes('/staff/tickets');
+  const isTicketPath = location.pathname.includes('/tickets') || location.pathname.includes('/staff');
   const isEscalated = messages.some(msg => msg.text && msg.text.includes("dieskalasi ke tim teknis"));
 
   const fetchDetails = async () => {
@@ -221,6 +222,8 @@ export const ForumThreadPage: React.FC<ForumThreadProps> = ({ userRole }) => {
           <div className="flex items-center gap-2">
             {ticket.isPriority && (
               <button 
+                id="btn_transfer_maintenance"
+                data-testid="btn_transfer_maintenance"
                 onClick={handleTransferMaintenance}
                 disabled={isEscalated}
                 className={cn(
@@ -573,6 +576,7 @@ export const ForumThreadPage: React.FC<ForumThreadProps> = ({ userRole }) => {
       {showToastTransfer && (
         <div 
           id="toast_success_transfer"
+          data-testid="toast_success_transfer"
           className="toast_success_transfer fixed bottom-24 right-8 bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl border border-slate-800 flex items-center gap-3 z-50 animate-bounce"
         >
           <CheckCircle2 size={20} className="text-emerald-500" />

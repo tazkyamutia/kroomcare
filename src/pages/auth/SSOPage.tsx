@@ -7,7 +7,7 @@ import { Loader2, ShieldCheck, AlertCircle, Headphones } from 'lucide-react';
 export const SSOPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { setUser, setToken } = useUser();
+  const { user, setUser } = useUser();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -44,9 +44,8 @@ export const SSOPage: React.FC = () => {
 
         if (!isMounted) return;
 
-        // 1. Simpan token ke storage via utility & context
+        // 1. Simpan token ke storage via utility
         saveTokenUtil(data.token);
-        if (setToken) setToken(data.token);
 
         // 2. Set user di context & localStorage
         if (setUser) setUser(data.data);
@@ -73,7 +72,7 @@ export const SSOPage: React.FC = () => {
     return () => {
       isMounted = false;
     };
-  }, [searchParams, navigate, setUser, setToken]);
+  }, [searchParams, navigate, setUser, user]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 p-4 transition-colors">
