@@ -5,10 +5,12 @@ import { motion } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '../lib/utils';
 import { useUser } from '../context/UserContext';
+import { useLanguageTheme } from '../context/LanguageThemeContext';
 
 export const RewardsPage = () => {
   const navigate = useNavigate();
   const { user, updateUser } = useUser();
+  const { t, language } = useLanguageTheme();
   const [transactions, setTransactions] = React.useState<any[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = React.useState(true);
 
@@ -44,14 +46,14 @@ export const RewardsPage = () => {
 
   const handleRedeem = (pointsRequired: number, voucherName: string) => {
     if (!user?.id) {
-      setToastMessage('Anda harus login terlebih dahulu.');
+      setToastMessage(t('rewards.must_login'));
       setToastType('error');
       setShowToast(true);
       setTimeout(() => setShowToast(false), 3000);
       return;
     }
     if (points < pointsRequired) {
-      setToastMessage('Koin tidak mencukupi.');
+      setToastMessage(t('rewards.insufficient_points'));
       setToastType('error');
       setShowToast(true);
       setTimeout(() => setShowToast(false), 3000);
@@ -80,7 +82,7 @@ export const RewardsPage = () => {
       if (response.ok && result.success) {
         const randCode = 'KRM-' + Math.random().toString(36).substring(2, 8).toUpperCase();
         setRedeemedCode(randCode);
-        setToastMessage('Voucher berhasil ditukarkan!');
+        setToastMessage(t('rewards.redeem_success_toast'));
         setToastType('success');
         setShowToast(true);
         setTimeout(() => setShowToast(false), 4000);
@@ -88,25 +90,31 @@ export const RewardsPage = () => {
         updateUser({ points: points - selectedVoucher.pointsRequired });
         fetchPointHistory(); // Segarkan riwayat poin
       } else {
-        setToastMessage(result.message || 'Gagal menukarkan voucher.');
+        setToastMessage(result.message || t('rewards.redeem_fail'));
         setToastType('error');
         setShowToast(true);
         setTimeout(() => setShowToast(false), 3000);
       }
     } catch (error) {
       console.error('Error redeeming voucher:', error);
-      setToastMessage('Terjadi kesalahan koneksi.');
+      setToastMessage(t('rewards.connection_error'));
       setToastType('error');
       setShowToast(true);
       setTimeout(() => setShowToast(false), 3000);
     }
   };
 
+  const locale = language === 'en' ? 'en-US' : 'id-ID';
+
   return (
     <div className="space-y-4 sm:space-y-5">
       <div>
-        <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Manajemen Poin & Voucher</h1>
-        <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">Kumpulkan poin dari aktivitas Anda dan tukarkan dengan voucher menarik.</p>
+        <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
+          {t('rewards.title')}
+        </h1>
+        <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+          {t('rewards.subtitle')}
+        </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -116,11 +124,13 @@ export const RewardsPage = () => {
             <div className="relative z-10">
               <div className="flex items-center gap-1.5 text-blue-100 mb-1">
                 <Sparkles size={14} />
-                <span className="text-[11px] font-semibold uppercase tracking-wider">Total Poin Anda</span>
+                <span className="text-[11px] font-semibold uppercase tracking-wider">{t('rewards.total_points')}</span>
               </div>
-              <h2 className="text-3xl font-bold mb-4 tracking-tight">{points.toLocaleString('id-ID')} <span className="text-xs font-normal text-blue-100">pts</span></h2>
+              <h2 className="text-3xl font-bold mb-4 tracking-tight">
+                {points.toLocaleString(locale)} <span className="text-xs font-normal text-blue-100">{t('rewards.pts')}</span>
+              </h2>
               <div className="p-3 bg-white/10 rounded-lg backdrop-blur-xs border border-white/15">
-                <p className="text-[10px] text-blue-100 mb-0.5">Estimasi Nilai Tukar</p>
+                <p className="text-[10px] text-blue-100 mb-0.5">{t('rewards.estimated_value')}</p>
                 <p className="text-sm font-semibold">Rp {(points * 100).toLocaleString('id-ID')}</p>
               </div>
             </div>
@@ -131,13 +141,13 @@ export const RewardsPage = () => {
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                 <History size={14} className="text-blue-500" />
-                Riwayat Poin
+                {t('rewards.history_title')}
               </h3>
               <button 
                 onClick={() => navigate('/points-history')}
                 className="text-xs text-blue-600 dark:text-blue-400 font-semibold hover:underline"
               >
-                Lihat Semua
+                {t('rewards.view_all')}
               </button>
             </div>
             <div className="space-y-2">
@@ -158,7 +168,7 @@ export const RewardsPage = () => {
                       <div className="min-w-0">
                         <p className="text-xs font-semibold text-slate-800 dark:text-slate-100 truncate max-w-[130px] leading-tight">{tx.keterangan}</p>
                         <p className="text-[10px] text-slate-400 mt-0.5">
-                          {new Date(tx.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
+                          {new Date(tx.created_at).toLocaleDateString(locale, { day: 'numeric', month: 'short' })}
                         </p>
                       </div>
                     </div>
@@ -171,7 +181,7 @@ export const RewardsPage = () => {
                   </div>
                 ))
               ) : (
-                <p className="text-xs text-slate-400 text-center py-4">Belum ada riwayat transaksi.</p>
+                <p className="text-xs text-slate-400 text-center py-4">{t('rewards.no_history')}</p>
               )}
             </div>
           </div>
@@ -182,15 +192,15 @@ export const RewardsPage = () => {
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
               <VoucherIcon size={16} className="text-blue-500" />
-              Tukarkan Voucher
+              {t('rewards.redeem_voucher')}
             </h3>
           </div>
 
           {redeemedCode && (
             <div id="code_voucher_display" className="code_voucher_display bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200/80 p-4 rounded-xl text-center flex flex-col items-center justify-center gap-1.5">
               <CheckCircle2 className="text-emerald-500" size={24} />
-              <h4 className="font-semibold text-sm text-emerald-900 dark:text-emerald-400">Voucher Berhasil Ditukarkan!</h4>
-              <p className="text-xs text-slate-500">Gunakan kode voucher di bawah ini saat checkout:</p>
+              <h4 className="font-semibold text-sm text-emerald-900 dark:text-emerald-400">{t('rewards.redeemed_success')}</h4>
+              <p className="text-xs text-slate-500">{t('rewards.redeemed_code_instruction')}</p>
               <div className="font-mono bg-white dark:bg-slate-900 px-3 py-1 border border-slate-200 rounded-lg font-bold text-sm text-slate-900 dark:text-white select-all">
                 {redeemedCode}
               </div>
@@ -198,7 +208,7 @@ export const RewardsPage = () => {
                 onClick={() => setRedeemedCode('')} 
                 className="mt-1 text-xs text-blue-600 font-semibold hover:underline"
               >
-                Tutup
+                {t('rewards.close')}
               </button>
             </div>
           )}
@@ -222,7 +232,7 @@ export const RewardsPage = () => {
                     </span>
                   </div>
                   <h4 className="font-semibold text-xs sm:text-sm text-slate-800 dark:text-slate-100 mb-0.5">{voucher.name}</h4>
-                  <p className="text-[11px] text-slate-400 mb-3">Berlaku hingga {new Date(voucher.expiryDate).toLocaleDateString('id-ID')}</p>
+                  <p className="text-[11px] text-slate-400 mb-3">{t('rewards.valid_until')} {new Date(voucher.expiryDate).toLocaleDateString(locale)}</p>
                 </div>
                 
                 <div className="flex items-center justify-between pt-2.5 border-t border-slate-100 dark:border-slate-800">
@@ -239,7 +249,7 @@ export const RewardsPage = () => {
                         : "bg-blue-600 hover:bg-blue-700 text-white cursor-pointer shadow-xs"
                     )}
                   >
-                    Tukarkan
+                    {t('rewards.redeem_button')}
                   </button>
                 </div>
               </motion.div>
@@ -255,23 +265,27 @@ export const RewardsPage = () => {
             <div className="w-10 h-10 bg-blue-50 dark:bg-blue-950/50 rounded-xl flex items-center justify-center text-blue-600 mx-auto">
               <Gift size={20} />
             </div>
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white">Konfirmasi Penukaran</h3>
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white">{t('rewards.confirm_title')}</h3>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Apakah Anda yakin ingin menukarkan <span className="font-semibold text-slate-800 dark:text-slate-200">{selectedVoucher.pointsRequired} Poin</span> untuk "{selectedVoucher.name}"?
+              {t('rewards.confirm_message_prefix')}{' '}
+              <span className="font-semibold text-slate-800 dark:text-slate-200">
+                {selectedVoucher.pointsRequired} {t('rewards.confirm_points')}
+              </span>{' '}
+              {t('rewards.confirm_for')} "{selectedVoucher.name}"?
             </p>
             <div className="flex gap-2.5 pt-1">
               <button
                 onClick={() => setShowConfirmModal(false)}
                 className="flex-1 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-300 transition-colors"
               >
-                Batal
+                {t('rewards.cancel')}
               </button>
               <button
                 id="btn_confirm"
                 onClick={executeRedeem}
                 className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-xs transition-all active:scale-[0.98]"
               >
-                Tukar
+                {t('rewards.confirm_button')}
               </button>
             </div>
           </div>

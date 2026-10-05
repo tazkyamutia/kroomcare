@@ -3,9 +3,11 @@ import { History, ArrowUpCircle, ArrowDownCircle, Search, Loader2 } from 'lucide
 import { motion } from 'motion/react';
 import { cn } from '../../lib/utils';
 import { useUser } from '../../context/UserContext';
+import { useLanguageTheme } from '../../context/LanguageThemeContext';
 
 export const PointHistoryPage = () => {
   const { user } = useUser();
+  const { t, language } = useLanguageTheme();
   const [transactions, setTransactions] = React.useState<any[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [searchQuery, setSearchQuery] = React.useState('');
@@ -44,12 +46,18 @@ export const PointHistoryPage = () => {
     tx.keterangan?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const locale = language === 'en' ? 'en-US' : 'id-ID';
+
   return (
     <div className="space-y-5">
       {/* Header */}
       <div>
-        <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Riwayat Poin</h1>
-        <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">Pantau perolehan dan penggunaan poin loyalitas Anda.</p>
+        <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
+          {t('points_history.title')}
+        </h1>
+        <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
+          {t('points_history.subtitle')}
+        </p>
       </div>
 
       {/* Summary Cards */}
@@ -59,8 +67,12 @@ export const PointHistoryPage = () => {
             <ArrowUpCircle size={22} />
           </div>
           <div className="min-w-0">
-            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Total Poin Masuk</p>
-            <p className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white truncate">+{totalEarned.toLocaleString('id-ID')} Poin</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+              {t('points_history.total_earned')}
+            </p>
+            <p className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white truncate">
+              +{totalEarned.toLocaleString(locale)} {t('rewards.pts')}
+            </p>
           </div>
         </div>
         <div className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-xl sm:rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs flex items-center gap-3.5">
@@ -68,8 +80,12 @@ export const PointHistoryPage = () => {
             <ArrowDownCircle size={22} />
           </div>
           <div className="min-w-0">
-            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Total Poin Keluar</p>
-            <p className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white truncate">-{totalSpent.toLocaleString('id-ID')} Poin</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+              {t('points_history.total_spent')}
+            </p>
+            <p className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white truncate">
+              -{totalSpent.toLocaleString(locale)} {t('rewards.pts')}
+            </p>
           </div>
         </div>
       </div>
@@ -79,14 +95,14 @@ export const PointHistoryPage = () => {
         <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <h3 className="text-sm sm:text-base font-semibold text-slate-900 dark:text-white flex items-center gap-2">
             <History size={18} className="text-blue-600 dark:text-blue-400" />
-            Daftar Transaksi
+            {t('points_history.list_title')}
           </h3>
           <div className="flex items-center gap-2 w-full sm:w-auto">
             <div className="relative w-full sm:w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
               <input 
                 type="text" 
-                placeholder="Cari transaksi..." 
+                placeholder={t('points_history.search_placeholder')} 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-9 pr-3 py-1.5 sm:py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-xs sm:text-sm text-slate-800 dark:text-slate-200 placeholder:text-slate-400"
@@ -104,11 +120,11 @@ export const PointHistoryPage = () => {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50/70 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 text-[11px] uppercase tracking-wider font-semibold border-b border-slate-100 dark:border-slate-800">
-                  <th className="px-4 py-3 sm:px-5">ID Transaksi</th>
-                  <th className="px-4 py-3 sm:px-5">Keterangan</th>
-                  <th className="px-4 py-3 sm:px-5">Tanggal</th>
-                  <th className="px-4 py-3 sm:px-5">Tipe</th>
-                  <th className="px-4 py-3 sm:px-5 text-right">Jumlah</th>
+                  <th className="px-4 py-3 sm:px-5">{t('points_history.col_id')}</th>
+                  <th className="px-4 py-3 sm:px-5">{t('points_history.col_desc')}</th>
+                  <th className="px-4 py-3 sm:px-5">{t('points_history.col_date')}</th>
+                  <th className="px-4 py-3 sm:px-5">{t('points_history.col_type')}</th>
+                  <th className="px-4 py-3 sm:px-5 text-right">{t('points_history.col_amount')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -125,21 +141,21 @@ export const PointHistoryPage = () => {
                       <p className="font-medium text-slate-900 dark:text-slate-100">{tx.keterangan}</p>
                     </td>
                     <td className="px-4 py-3 sm:px-5 text-slate-500 dark:text-slate-400">
-                      {new Date(tx.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      {new Date(tx.created_at).toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' })}
                     </td>
                     <td className="px-4 py-3 sm:px-5">
                       <span className={cn(
                         "text-[10px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider",
                         tx.jenis_transaksi === 'masuk' ? "bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800" : "bg-red-50 text-red-700 border border-red-200 dark:bg-red-950/40 dark:text-red-300 dark:border-red-800"
                       )}>
-                        {tx.jenis_transaksi === 'masuk' ? 'Masuk' : 'Keluar'}
+                        {tx.jenis_transaksi === 'masuk' ? t('points_history.type_in') : t('points_history.type_out')}
                       </span>
                     </td>
                     <td className={cn(
                       "px-4 py-3 sm:px-5 text-right font-semibold",
                       tx.jenis_transaksi === 'masuk' ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"
                     )}>
-                      {tx.jenis_transaksi === 'masuk' ? '+' : '-'}{tx.jumlah_poin} Poin
+                      {tx.jenis_transaksi === 'masuk' ? '+' : '-'}{tx.jumlah_poin} {t('rewards.pts')}
                     </td>
                   </motion.tr>
                 ))}
@@ -147,7 +163,7 @@ export const PointHistoryPage = () => {
             </table>
           ) : (
             <div className="text-center py-10 text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-              Belum ada riwayat transaksi poin.
+              {t('points_history.no_data')}
             </div>
           )}
         </div>

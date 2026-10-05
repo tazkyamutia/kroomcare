@@ -5,10 +5,12 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
+import { useLanguageTheme } from '../context/LanguageThemeContext';
 
 export const ForumPage = () => {
   const { user } = useUser();
   const navigate = useNavigate();
+  const { t, language } = useLanguageTheme();
   
   const [searchQuery, setSearchQuery] = React.useState('');
   const [threads, setThreads] = React.useState<any[]>([]);
@@ -42,11 +44,11 @@ export const ForumPage = () => {
   const handleCreateForum = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user?.id) {
-      alert('Anda harus login terlebih dahulu.');
+      alert(t('forum.must_login'));
       return;
     }
     if (!newTitle.trim() || !newContent.trim()) {
-      alert('Judul dan konten wajib diisi.');
+      alert(t('forum.required_fields'));
       return;
     }
 
@@ -63,17 +65,17 @@ export const ForumPage = () => {
       });
       const result = await response.json();
       if (response.ok && result.success) {
-        alert('Diskusi forum berhasil dibuat!');
+        alert(t('forum.create_success'));
         setNewTitle('');
         setNewContent('');
         setIsModalOpen(false);
         fetchForums(); // refresh
       } else {
-        alert(result.message || 'Gagal membuat diskusi.');
+        alert(result.message || t('forum.create_fail'));
       }
     } catch (error) {
       console.error('Failed to create forum thread:', error);
-      alert('Terjadi kesalahan koneksi server.');
+      alert(t('forum.connection_error'));
     } finally {
       setIsSubmitting(false);
     }
@@ -112,11 +114,13 @@ export const ForumPage = () => {
     }
   ];
 
+  const locale = language === 'en' ? 'en-US' : 'id-ID';
+
   const formattedThreads = threads.map(t => ({
     id: t.id,
     authorName: t.customerName || t.nama_pembuat || 'tazkyaa',
     authorAvatar: t.avatar || '',
-    date: new Date(t.createdAt || t.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }),
+    date: new Date(t.createdAt || t.created_at).toLocaleDateString(locale, { day: 'numeric', month: 'short' }),
     subject: t.subject || t.judul,
     description: t.description || t.konten,
     replyCount: t.replyCount || t.jumlah_balasan || 0,
@@ -137,10 +141,10 @@ export const ForumPage = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
-            Forum Komunitas
+            {t('forum.title')}
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Berbagi pengalaman, bertanya, dan berdiskusi dengan sesama pengguna secara terbuka.
+            {t('forum.subtitle')}
           </p>
         </div>
 
@@ -149,7 +153,7 @@ export const ForumPage = () => {
           className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-sm hover:shadow-blue-500/25 transition-all active:scale-[0.98] self-start sm:self-auto shrink-0"
         >
           <Plus size={16} className="stroke-[2.5]" />
-          <span>Mulai Diskusi</span>
+          <span>{t('forum.create_btn')}</span>
         </button>
       </div>
 
@@ -159,7 +163,7 @@ export const ForumPage = () => {
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={17} />
           <input 
             type="text" 
-            placeholder="Cari diskusi di forum..." 
+            placeholder={t('forum.search_placeholder')} 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 sm:py-3 text-xs sm:text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-200/80 dark:border-white/5 rounded-2xl shadow-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:text-slate-400"
@@ -168,7 +172,7 @@ export const ForumPage = () => {
         <button 
           type="button"
           className="p-2.5 sm:p-3 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-white/5 rounded-2xl text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors shadow-xs shrink-0"
-          title="Filter Diskusi"
+          title={t('forum.filter_title')}
         >
           <SlidersHorizontal size={17} />
         </button>
@@ -178,7 +182,7 @@ export const ForumPage = () => {
       <div className="space-y-3.5">
         <div className="flex items-center justify-between px-1">
           <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
-            Diskusi Terbaru
+            {t('forum.recent_discussions')}
             <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-full text-xs font-bold">
               {forumThreads.length}
             </span>
@@ -214,7 +218,7 @@ export const ForumPage = () => {
                     </span>
                   </div>
                   <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 bg-teal-50 dark:bg-teal-950/40 text-teal-600 dark:text-teal-400 rounded-full border border-teal-200/50 dark:border-teal-800/40">
-                    FORUM
+                    {t('forum.badge')}
                   </span>
                 </div>
 
@@ -228,10 +232,10 @@ export const ForumPage = () => {
                 <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-white/5">
                   <div className="flex items-center gap-1.5 text-slate-400 text-xs font-medium">
                     <MessageSquare size={13} />
-                    <span>{thread.replyCount} Balasan</span>
+                    <span>{thread.replyCount} {t('forum.replies')}</span>
                   </div>
                   <div className="flex items-center gap-1 text-xs font-semibold text-blue-600 dark:text-blue-400 group-hover:translate-x-0.5 transition-transform">
-                    <span>Lihat Diskusi</span>
+                    <span>{t('forum.view_discussion')}</span>
                     <ArrowRight size={13} />
                   </div>
                 </div>
@@ -242,16 +246,16 @@ export const ForumPage = () => {
               <div className="w-12 h-12 bg-slate-100 dark:bg-slate-800 rounded-xl flex items-center justify-center text-slate-400 mb-3">
                 <Search size={22} />
               </div>
-              <h3 className="text-base font-semibold text-slate-900 dark:text-white mb-1">Diskusi tidak ditemukan</h3>
+              <h3 className="text-base font-semibold text-slate-900 dark:text-white mb-1">{t('forum.no_threads')}</h3>
               <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-sm mb-5">
-                Jadilah yang pertama untuk memulai diskusi baru di forum komunitas kami.
+                {t('forum.no_threads_desc')}
               </p>
               <button 
                 onClick={() => setIsModalOpen(true)}
                 className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-xs transition-all"
               >
                 <Plus size={16} />
-                Buat Diskusi Pertama
+                {t('forum.create_first_discussion')}
               </button>
             </div>
           )}
@@ -269,7 +273,7 @@ export const ForumPage = () => {
               className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-white/10 w-full max-w-lg overflow-hidden shadow-2xl p-5 sm:p-6 space-y-4"
             >
               <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-white/5">
-                <h3 className="text-base font-bold text-slate-900 dark:text-white">Mulai Diskusi Baru</h3>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">{t('forum.modal_title')}</h3>
                 <button 
                   onClick={() => setIsModalOpen(false)}
                   className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors text-slate-400"
@@ -280,11 +284,11 @@ export const ForumPage = () => {
 
               <form onSubmit={handleCreateForum} className="space-y-4">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Subjek/Judul Diskusi</label>
+                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">{t('forum.form_subject')}</label>
                   <input 
                     required
                     type="text"
-                    placeholder="Contoh: Optimasi Cache VPS"
+                    placeholder={t('forum.form_subject_placeholder')}
                     value={newTitle}
                     onChange={(e) => setNewTitle(e.target.value)}
                     className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-white dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:text-slate-400"
@@ -292,11 +296,11 @@ export const ForumPage = () => {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Konten Pertanyaan / Diskusi</label>
+                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">{t('forum.form_content')}</label>
                   <textarea 
                     required
                     rows={4}
-                    placeholder="Tuliskan detail pertanyaan atau topik yang ingin didiskusikan..."
+                    placeholder={t('forum.form_content_placeholder')}
                     value={newContent}
                     onChange={(e) => setNewContent(e.target.value)}
                     className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-white dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all resize-none placeholder:text-slate-400"
@@ -311,12 +315,12 @@ export const ForumPage = () => {
                   {isSubmitting ? (
                     <>
                       <Loader2 className="animate-spin" size={16} />
-                      Mengirim...
+                      {t('forum.submitting')}
                     </>
                   ) : (
                     <>
                       <MessageSquare size={16} />
-                      Buat Thread
+                      {t('forum.create_thread_btn')}
                     </>
                   )}
                 </button>
