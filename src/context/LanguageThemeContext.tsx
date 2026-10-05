@@ -250,17 +250,132 @@ const translations = {
   }
 };
 
-// Get shared theme cookie set across .kroombox.com domain by Kroombox Panel
-function getSharedCookieTheme(): Theme | null {
+// Get shared cookie set across .kroombox.com domain by Kroombox Panel
+function getSharedCookie(name: string): string | null {
   try {
     if (typeof document !== 'undefined') {
-      const match = document.cookie.match(/(?:^|;\s*)kp_theme=([^;]+)/);
+      const regex = new RegExp('(?:^|;\\s*)' + name + '=([^;]+)');
+      const match = document.cookie.match(regex);
       if (match) {
-        const val = decodeURIComponent(match[1]).trim().toLowerCase();
-        if (val === 'dark' || val === 'light') return val as Theme;
+        return decodeURIComponent(match[1]).trim();
       }
     }
   } catch (_) {}
+  return null;
+}
+
+function getSharedCookieTheme(): Theme | null {
+  const val = getSharedCookie('kp_theme')?.toLowerCase();
+  if (val === 'dark' || val === 'light') return val as Theme;
+  return null;
+}
+
+let lastKnownParentLang: Language | null = null;
+
+// Detect language from Kroombox Panel (URL param, shared cookies, parent document, or broadcast)
+function detectParentLanguage(): Language | null {
+  if (typeof window === 'undefined') return null;
+
+  // 1. URL search params (e.g. ?lang=id or ?lang=en or ?locale=id)
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const urlLang = (params.get('lang') || params.get('locale') || params.get('language') || '').toLowerCase().trim();
+    if (urlLang.startsWith('en')) {
+      lastKnownParentLang = 'en';
+      return 'en';
+    }
+    if (urlLang.startsWith('id')) {
+      lastKnownParentLang = 'id';
+      return 'id';
+    }
+  } catch (_) {}
+
+  // 2. Shared cookies with Kroombox Panel (kp_lang, kroombox_lang, lang, locale)
+  const cookieNames = ['kp_lang', 'kroombox_lang', 'kroombox_language', 'panel_lang', 'lang', 'locale'];
+  for (const name of cookieNames) {
+    const val = getSharedCookie(name)?.toLowerCase().trim();
+    if (val) {
+      if (val.startsWith('en')) {
+        lastKnownParentLang = 'en';
+        return 'en';
+      }
+      if (val.startsWith('id')) {
+        lastKnownParentLang = 'id';
+        return 'id';
+      }
+    }
+  }
+
+  // 3. Parent document inspection if same-origin / accessible
+  try {
+    if (window.parent && window.parent !== window) {
+      const pDoc = window.parent.document;
+      if (pDoc) {
+        const docLang = (pDoc.documentElement.lang || pDoc.body?.getAttribute('data-lang') || pDoc.body?.getAttribute('data-locale') || '').toLowerCase().trim();
+        if (docLang.startsWith('en')) {
+          lastKnownParentLang = 'en';
+          return 'en';
+        }
+        if (docLang.startsWith('id')) {
+          lastKnownParentLang = 'id';
+          return 'id';
+        }
+
+        const pStorage = window.parent.localStorage;
+        if (pStorage) {
+          for (const key of ['kp_lang', 'kroombox_lang', 'lang', 'language', 'locale', 'i18nextLng']) {
+            const val = (pStorage.getItem(key) || '').toLowerCase().trim();
+            if (val.startsWith('en')) {
+              lastKnownParentLang = 'en';
+              return 'en';
+            }
+            if (val.startsWith('id')) {
+              lastKnownParentLang = 'id';
+              return 'id';
+            }
+          }
+        }
+      }
+    }
+  } catch (_) {}
+
+  // 4. Stored last known parent language
+  if (lastKnownParentLang) return lastKnownParentLang;
+  try {
+    const stored = localStorage.getItem('kroombox_parent_lang');
+    if (stored === 'en' || stored === 'id') return stored as Language;
+  } catch (_) {}
+
+  return null;
+}
+
+function parseLanguageFromData(data: any): Language | null {
+  if (!data) return null;
+  if (typeof data === 'string') {
+    const lower = data.toLowerCase().trim();
+    if (lower === 'id' || lower === 'en') return lower as Language;
+    if (lower === 'lang:id' || lower === 'language:id') return 'id';
+    if (lower === 'lang:en' || lower === 'language:en') return 'en';
+    try {
+      const parsed = JSON.parse(data);
+      return parseLanguageFromData(parsed);
+    } catch (_) {}
+  }
+  if (typeof data === 'object') {
+    if (data.type === 'KROOMBOX_LANG_CHANGE' || data.type === 'LANG_CHANGE' || data.type === 'LANGUAGE_CHANGE' || data.type === 'SET_LANGUAGE') {
+      const val = (data.lang || data.language || data.locale || '').toLowerCase().trim();
+      if (val.startsWith('en')) return 'en';
+      if (val.startsWith('id')) return 'id';
+    }
+    const candidate = data.lang || data.language || data.locale || data.kp_lang;
+    if (typeof candidate === 'string') {
+      const lower = candidate.toLowerCase().trim();
+      if (lower.startsWith('en')) return 'en';
+      if (lower.startsWith('id')) return 'id';
+    }
+    if (data.payload) return parseLanguageFromData(data.payload);
+    if (data.data) return parseLanguageFromData(data.data);
+  }
   return null;
 }
 
@@ -452,17 +567,28 @@ function resolveSystemTheme(): Theme {
 const LanguageThemeContext = createContext<LanguageThemeContextType | undefined>(undefined);
 
 export const LanguageThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const isEmbedded = typeof window !== 'undefined' && window.parent && window.parent !== window;
+
   const [language, setLanguageState] = useState<Language>(() => {
     if (typeof window !== 'undefined') {
-      try {
-        const saved = localStorage.getItem('kroomcare_lang');
-        if (saved === 'id' || saved === 'en') return saved as Language;
-      } catch (_) {}
+      if (isEmbedded) {
+        // When embedded in Support Center: ALWAYS prioritize Kroombox Panel's language!
+        const parentLang = detectParentLanguage();
+        if (parentLang) return parentLang;
+        const savedEmbedded = localStorage.getItem('kroombox_parent_lang');
+        if (savedEmbedded === 'id' || savedEmbedded === 'en') return savedEmbedded as Language;
+        return 'id';
+      } else {
+        // Standalone KroomCare CRM: use KroomCare's own independent setting!
+        try {
+          const savedStandalone = localStorage.getItem('kroomcare_lang');
+          if (savedStandalone === 'id' || savedStandalone === 'en') return savedStandalone as Language;
+        } catch (_) {}
+        return 'id';
+      }
     }
     return 'id';
   });
-
-  const isEmbedded = typeof window !== 'undefined' && window.parent && window.parent !== window;
 
   // User preference: 'system' | 'light' | 'dark'
   const [themeMode, setThemeModeState] = useState<ThemeMode>(() => {
@@ -506,7 +632,13 @@ export const LanguageThemeProvider: React.FC<{ children: React.ReactNode }> = ({
   const setLanguage = (lang: Language) => {
     setLanguageState(lang);
     try {
-      localStorage.setItem('kroomcare_lang', lang);
+      if (isEmbedded) {
+        // When embedded in Support Center, save to parent preference
+        localStorage.setItem('kroombox_parent_lang', lang);
+      } else {
+        // Standalone CRM setting
+        localStorage.setItem('kroomcare_lang', lang);
+      }
       if (typeof document !== 'undefined') {
         document.documentElement.lang = lang;
       }
@@ -697,6 +829,96 @@ export const LanguageThemeProvider: React.FC<{ children: React.ReactNode }> = ({
       document.removeEventListener('visibilitychange', handleVisibility);
     };
   }, [themeMode, applyThemeToDOM]);
+
+  // Real-time synchronization with Kroombox Panel language when embedded in Support Center
+  useEffect(() => {
+    if (!isEmbedded) return;
+
+    const syncLanguage = (newLang: Language) => {
+      setLanguageState(prev => {
+        if (prev !== newLang) {
+          if (typeof document !== 'undefined') {
+            document.documentElement.lang = newLang;
+          }
+          return newLang;
+        }
+        return prev;
+      });
+    };
+
+    // 1. Initial check
+    const currentLang = detectParentLanguage();
+    if (currentLang) syncLanguage(currentLang);
+
+    // 2. Listen to postMessage from parent (Kroombox Panel language broadcast)
+    const handleMessage = (event: MessageEvent) => {
+      const incomingLang = parseLanguageFromData(event.data);
+      if (incomingLang) {
+        lastKnownParentLang = incomingLang;
+        try { localStorage.setItem('kroombox_parent_lang', incomingLang); } catch (_) {}
+        syncLanguage(incomingLang);
+      }
+    };
+    window.addEventListener('message', handleMessage);
+
+    // 3. MutationObserver on parent document if same-origin (watching parent lang or data-lang attribute)
+    let parentObserver: MutationObserver | null = null;
+    let onParentStorage: (() => void) | null = null;
+    try {
+      if (typeof window !== 'undefined' && window.parent && window.parent !== window && window.parent.document) {
+        const syncFromParent = () => {
+          const latest = detectParentLanguage();
+          if (latest) {
+            syncLanguage(latest);
+          }
+        };
+
+        parentObserver = new MutationObserver(syncFromParent);
+        if (window.parent.document.documentElement) {
+          parentObserver.observe(window.parent.document.documentElement, {
+            attributes: true,
+            attributeFilter: ['lang', 'data-lang', 'data-locale']
+          });
+        }
+        if (window.parent.document.body) {
+          parentObserver.observe(window.parent.document.body, {
+            attributes: true,
+            attributeFilter: ['lang', 'data-lang', 'data-locale']
+          });
+        }
+
+        onParentStorage = syncFromParent;
+        window.parent.addEventListener('storage', onParentStorage);
+      }
+    } catch (_) {}
+
+    // 4. Request initial language from parent if embedded in iframe
+    try {
+      window.parent.postMessage({ type: 'GET_LANGUAGE' }, '*');
+      window.parent.postMessage({ type: 'REQUEST_LANGUAGE' }, '*');
+      window.parent.postMessage({ type: 'KP_GET_LANG' }, '*');
+      window.parent.postMessage('getLanguage', '*');
+    } catch (_) {}
+
+    // 5. Polling interval (400ms) for real-time responsiveness when embedded
+    const interval = setInterval(() => {
+      const latest = detectParentLanguage();
+      if (latest) {
+        syncLanguage(latest);
+      }
+    }, 400);
+
+    return () => {
+      window.removeEventListener('message', handleMessage);
+      if (parentObserver) {
+        parentObserver.disconnect();
+      }
+      if (onParentStorage) {
+        try { window.parent.removeEventListener('storage', onParentStorage); } catch (_) {}
+      }
+      clearInterval(interval);
+    };
+  }, [isEmbedded]);
 
   const t = (key: string): string => {
     const langDict = (translations[language] || translations['id']) as Record<string, string>;

@@ -70,6 +70,26 @@
             document.documentElement.classList.remove('dark');
           }
 
+          // Early language detection: Support Center follows panel, Standalone CRM uses independent setting
+          var cookieLang = getCookie('kp_lang') || getCookie('kroombox_lang') || getCookie('lang');
+          var urlLang = params.get('lang') || params.get('locale') || params.get('language');
+          if (isEmbedded) {
+            var activeLang = null;
+            if (urlLang && urlLang.indexOf('en') === 0) activeLang = 'en';
+            else if (urlLang && urlLang.indexOf('id') === 0) activeLang = 'id';
+            else if (cookieLang && cookieLang.indexOf('en') === 0) activeLang = 'en';
+            else if (cookieLang && cookieLang.indexOf('id') === 0) activeLang = 'id';
+            if (activeLang) {
+              document.documentElement.lang = activeLang;
+              localStorage.setItem('kroombox_parent_lang', activeLang);
+            }
+          } else {
+            var userLang = localStorage.getItem('kroomcare_lang');
+            if (userLang === 'en' || userLang === 'id') {
+              document.documentElement.lang = userLang;
+            }
+          }
+
           // Early message listener before bundle loads
           window.addEventListener('message', function(ev) {
             try {
@@ -83,6 +103,18 @@
                 localStorage.setItem('kroombox_parent_theme', incoming);
                 if (incoming === 'dark') document.documentElement.classList.add('dark');
                 else document.documentElement.classList.remove('dark');
+              }
+
+              // Language broadcast from parent
+              if (d.type === 'KROOMBOX_LANG_CHANGE' || d.type === 'LANG_CHANGE' || d.type === 'LANGUAGE_CHANGE') {
+                var langVal = (d.lang || d.language || '').toLowerCase();
+                if (langVal.indexOf('en') === 0) {
+                  document.documentElement.lang = 'en';
+                  localStorage.setItem('kroombox_parent_lang', 'en');
+                } else if (langVal.indexOf('id') === 0) {
+                  document.documentElement.lang = 'id';
+                  localStorage.setItem('kroombox_parent_lang', 'id');
+                }
               }
             } catch(e) {}
           });
