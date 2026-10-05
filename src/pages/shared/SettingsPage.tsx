@@ -7,6 +7,7 @@ import { cn } from '../../lib/utils';
 export const SettingsPage: React.FC = () => {
   const { themeMode, setTheme, language, setLanguage, t } = useLanguageTheme();
   const [savedNotify, setSavedNotify] = React.useState(false);
+  const isEmbedded = typeof window !== 'undefined' && window.parent && window.parent !== window;
 
   const handleThemeChange = (newTheme: 'system' | 'light' | 'dark') => {
     setTheme(newTheme);
@@ -38,7 +39,8 @@ export const SettingsPage: React.FC = () => {
       </div>
 
       <div className="space-y-4">
-        {/* Language Selection Card */}
+        {/* Language Selection Card - Hidden in Support Center / Embedded Panel */}
+        {!isEmbedded && (
         <section className="bg-white dark:bg-slate-900 rounded-xl sm:rounded-2xl p-4 sm:p-5 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 bg-blue-50 dark:bg-blue-950/40 rounded-xl flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
@@ -119,6 +121,7 @@ export const SettingsPage: React.FC = () => {
             </button>
           </div>
         </section>
+        )}
 
         {/* Theme Mode Card */}
         <section className="bg-white dark:bg-slate-900 rounded-xl sm:rounded-2xl p-4 sm:p-5 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">

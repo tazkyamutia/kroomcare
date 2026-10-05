@@ -22,6 +22,7 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({ onToggleSidebar, isEmbedded = false }) => {
+  const isEmbeddedEffective = isEmbedded || (typeof window !== 'undefined' && window.parent && window.parent !== window);
   const { user, logout } = useUser();
   const { theme, toggleTheme, language, toggleLanguage, t } = useLanguageTheme();
   const [showDropdown, setShowDropdown] = React.useState(false);
@@ -246,40 +247,42 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar, isEmbedded = fa
           </AnimatePresence>
         </div>
 
-        {/* Language Quick Toggle (Pill model with flag & code) */}
-        <button
-          onClick={toggleLanguage}
-          title={language === 'id' ? 'Switch to English' : 'Ganti ke Bahasa Indonesia'}
-          className="h-7 sm:h-8 px-2.5 sm:px-3 rounded-full border border-blue-500 hover:border-blue-600 dark:border-blue-400/90 bg-white dark:bg-slate-900/90 hover:bg-blue-50/40 dark:hover:bg-blue-950/30 flex items-center gap-1.5 transition-all shadow-xs active:scale-95 cursor-pointer select-none"
-        >
-          {language === 'id' ? (
-            <span className="inline-flex w-4 h-2.5 rounded-[2px] overflow-hidden shadow-2xs border border-slate-300/80 dark:border-white/20 shrink-0 flex-col">
-              <span className="h-1/2 bg-[#e00000] w-full" />
-              <span className="h-1/2 bg-white w-full" />
+        {/* Language Quick Toggle (Pill model with flag & code) - Hidden in Support Center / Embedded panel */}
+        {!isEmbeddedEffective && (
+          <button
+            onClick={toggleLanguage}
+            title={language === 'id' ? 'Switch to English' : 'Ganti ke Bahasa Indonesia'}
+            className="h-7 sm:h-8 px-2.5 sm:px-3 rounded-full border border-blue-500 hover:border-blue-600 dark:border-blue-400/90 bg-white dark:bg-slate-900/90 hover:bg-blue-50/40 dark:hover:bg-blue-950/30 flex items-center gap-1.5 transition-all shadow-xs active:scale-95 cursor-pointer select-none"
+          >
+            {language === 'id' ? (
+              <span className="inline-flex w-4 h-2.5 rounded-[2px] overflow-hidden shadow-2xs border border-slate-300/80 dark:border-white/20 shrink-0 flex-col">
+                <span className="h-1/2 bg-[#e00000] w-full" />
+                <span className="h-1/2 bg-white w-full" />
+              </span>
+            ) : (
+              <span className="inline-flex w-4 h-2.5 rounded-[2px] overflow-hidden shadow-2xs border border-slate-300/80 dark:border-white/20 shrink-0 relative bg-[#012169]">
+                <svg viewBox="0 0 60 30" className="w-full h-full object-cover">
+                  <clipPath id="uk-flag-header">
+                    <path d="M0,0 v30 h60 v-30 z"/>
+                  </clipPath>
+                  <clipPath id="uk-diag-header">
+                    <path d="M30,15 h30 v15 z v15 h-30 z h-30 v-15 z v-15 h30 z"/>
+                  </clipPath>
+                  <g clipPath="url(#uk-flag-header)">
+                    <path d="M0,0 v30 h60 v-30 z" fill="#012169"/>
+                    <path d="M0,0 L60,30 M60,0 L0,30" stroke="#fff" strokeWidth="6"/>
+                    <path d="M0,0 L60,30 M60,0 L0,30" clipPath="url(#uk-diag-header)" stroke="#C8102E" strokeWidth="4"/>
+                    <path d="M30,0 v30 M0,15 h60" stroke="#fff" strokeWidth="10"/>
+                    <path d="M30,0 v30 M0,15 h60" stroke="#C8102E" strokeWidth="6"/>
+                  </g>
+                </svg>
+              </span>
+            )}
+            <span className="font-mono text-xs font-bold text-slate-800 dark:text-slate-100 tracking-wide uppercase">
+              {language === 'id' ? 'ID' : 'EN'}
             </span>
-          ) : (
-            <span className="inline-flex w-4 h-2.5 rounded-[2px] overflow-hidden shadow-2xs border border-slate-300/80 dark:border-white/20 shrink-0 relative bg-[#012169]">
-              <svg viewBox="0 0 60 30" className="w-full h-full object-cover">
-                <clipPath id="uk-flag-header">
-                  <path d="M0,0 v30 h60 v-30 z"/>
-                </clipPath>
-                <clipPath id="uk-diag-header">
-                  <path d="M30,15 h30 v15 z v15 h-30 z h-30 v-15 z v-15 h30 z"/>
-                </clipPath>
-                <g clipPath="url(#uk-flag-header)">
-                  <path d="M0,0 v30 h60 v-30 z" fill="#012169"/>
-                  <path d="M0,0 L60,30 M60,0 L0,30" stroke="#fff" strokeWidth="6"/>
-                  <path d="M0,0 L60,30 M60,0 L0,30" clipPath="url(#uk-diag-header)" stroke="#C8102E" strokeWidth="4"/>
-                  <path d="M30,0 v30 M0,15 h60" stroke="#fff" strokeWidth="10"/>
-                  <path d="M30,0 v30 M0,15 h60" stroke="#C8102E" strokeWidth="6"/>
-                </g>
-              </svg>
-            </span>
-          )}
-          <span className="font-mono text-xs font-bold text-slate-800 dark:text-slate-100 tracking-wide uppercase">
-            {language === 'id' ? 'ID' : 'EN'}
-          </span>
-        </button>
+          </button>
+        )}
 
         {/* Theme Quick Toggle */}
         <button
