@@ -58,7 +58,7 @@ interface OrbitItem {
 
 export const LandingPage: React.FC = () => {
   const navigate = useNavigate();
-  const { theme, setTheme, language, setLanguage } = useLanguageTheme();
+  const { theme, setTheme, language, toggleLanguage, t } = useLanguageTheme();
   const shouldReduceMotion = useReducedMotion();
 
   // Scroll detection for floating pill navbar
@@ -263,13 +263,11 @@ export const LandingPage: React.FC = () => {
             onKeyDown={(e) => e.key === 'Enter' && window.scrollTo({ top: 0, behavior: 'smooth' })}
             aria-label="KroomCare Beranda"
           >
-            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-500/10 to-indigo-500/15 border border-blue-500/20 dark:border-blue-400/20 flex items-center justify-center p-1 group-hover:scale-105 transition-transform duration-200">
-              <img 
-                src="https://i.ibb.co.com/fGPRy8Jt/Gemini-Generated-Image-yss7sryss7sryss7-removebg-preview.png" 
-                alt="Logo KroomCare" 
-                className="h-5 w-auto object-contain" 
-              />
-            </div>
+            <img 
+              src="https://i.ibb.co.com/fGPRy8Jt/Gemini-Generated-Image-yss7sryss7sryss7-removebg-preview.png" 
+              alt="Logo KroomCare" 
+              className="h-6 sm:h-7 w-auto object-contain group-hover:scale-105 transition-transform duration-200" 
+            />
             <span className="text-sm sm:text-base font-bold tracking-tight text-slate-900 dark:text-white">
               KroomCare
             </span>
@@ -306,6 +304,41 @@ export const LandingPage: React.FC = () => {
 
           {/* Right Actions & Controls */}
           <div className="flex items-center gap-1.5 sm:gap-2">
+            {/* Language Toggle Pill (Matching requested pill model) */}
+            <button
+              onClick={toggleLanguage}
+              className="h-7 sm:h-8 px-2.5 sm:px-3 rounded-full border border-blue-500 hover:border-blue-600 dark:border-blue-400 bg-white dark:bg-slate-900/90 hover:bg-blue-50/40 dark:hover:bg-blue-950/30 flex items-center gap-1.5 transition-all shadow-xs active:scale-95 cursor-pointer select-none"
+              title={language === 'id' ? 'Switch to English' : 'Ganti ke Bahasa Indonesia'}
+            >
+              {language === 'id' ? (
+                <span className="inline-flex w-4 h-2.5 rounded-[2px] overflow-hidden shadow-2xs border border-slate-300/80 dark:border-white/20 shrink-0 flex-col">
+                  <span className="h-1/2 bg-[#e00000] w-full" />
+                  <span className="h-1/2 bg-white w-full" />
+                </span>
+              ) : (
+                <span className="inline-flex w-4 h-2.5 rounded-[2px] overflow-hidden shadow-2xs border border-slate-300/80 dark:border-white/20 shrink-0 relative bg-[#012169]">
+                  <svg viewBox="0 0 60 30" className="w-full h-full object-cover">
+                    <clipPath id="uk-flag-landing">
+                      <path d="M0,0 v30 h60 v-30 z"/>
+                    </clipPath>
+                    <clipPath id="uk-diag-landing">
+                      <path d="M30,15 h30 v15 z v15 h-30 z h-30 v-15 z v-15 h30 z"/>
+                    </clipPath>
+                    <g clipPath="url(#uk-flag-landing)">
+                      <path d="M0,0 v30 h60 v-30 z" fill="#012169"/>
+                      <path d="M0,0 L60,30 M60,0 L0,30" stroke="#fff" strokeWidth="6"/>
+                      <path d="M0,0 L60,30 M60,0 L0,30" clipPath="url(#uk-diag-landing)" stroke="#C8102E" strokeWidth="4"/>
+                      <path d="M30,0 v30 M0,15 h60" stroke="#fff" strokeWidth="10"/>
+                      <path d="M30,0 v30 M0,15 h60" stroke="#C8102E" strokeWidth="6"/>
+                    </g>
+                  </svg>
+                </span>
+              )}
+              <span className="font-mono text-xs font-bold text-slate-800 dark:text-slate-100 tracking-wide uppercase">
+                {language === 'id' ? 'ID' : 'EN'}
+              </span>
+            </button>
+
             {/* Theme Toggle Pill */}
             <button 
               onClick={toggleTheme}
@@ -329,13 +362,12 @@ export const LandingPage: React.FC = () => {
               Masuk
             </button>
 
-            {/* Primary Action Button (Gradient Pill) */}
+            {/* Primary Action Button (Solid Pill) */}
             <button 
-              onClick={() => navigate('/register')}
-              className="inline-flex items-center justify-center min-h-[34px] px-3.5 sm:px-4 py-1.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-500 hover:to-indigo-500 text-white rounded-full text-xs font-semibold transition-all shadow-md shadow-blue-500/20 hover:shadow-lg hover:shadow-blue-500/30 hover:scale-[1.02] active:scale-[0.98] whitespace-nowrap gap-1.5"
+              onClick={() => navigate('/login')}
+              className="inline-flex items-center justify-center min-h-[34px] px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-xs font-semibold transition-all shadow-sm shadow-blue-500/20 hover:shadow-md hover:shadow-blue-500/30 hover:scale-[1.02] active:scale-[0.98] whitespace-nowrap"
             >
               <span>Mulai Gratis</span>
-              <Sparkles size={11} className="text-blue-200" />
             </button>
 
             {/* Mobile Hamburger Button */}
@@ -390,16 +422,23 @@ export const LandingPage: React.FC = () => {
 
               <div className="pt-2 border-t border-slate-200/80 dark:border-white/10 flex flex-col gap-2">
                 <button
+                  onClick={toggleLanguage}
+                  className="w-full py-2 px-4 text-center text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors flex items-center justify-center gap-2"
+                >
+                  <span>{language === 'id' ? '🇮🇩' : '🇬🇧'}</span>
+                  <span>{language === 'id' ? 'Ganti ke English (EN)' : 'Ganti ke Bahasa Indonesia (ID)'}</span>
+                </button>
+                <button
                   onClick={() => closeMobileMenuAndNavigate('/login')}
                   className="w-full py-2.5 px-4 text-center text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
                 >
-                  Masuk
+                  {t('landing.login_btn')}
                 </button>
                 <button
-                  onClick={() => closeMobileMenuAndNavigate('/register')}
-                  className="w-full py-2.5 px-4 text-center text-xs font-semibold text-white bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full hover:from-blue-500 hover:to-indigo-500 transition-all shadow-xs"
+                  onClick={() => closeMobileMenuAndNavigate('/login')}
+                  className="w-full py-2.5 px-4 text-center text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-full transition-all shadow-xs"
                 >
-                  Mulai Gratis
+                  {t('landing.register_btn')}
                 </button>
               </div>
             </motion.div>
@@ -488,7 +527,7 @@ export const LandingPage: React.FC = () => {
             >
               {/* Primary Black Pill CTA */}
               <button 
-                onClick={() => navigate('/register')}
+                onClick={() => navigate('/login')}
                 className="w-full sm:w-auto min-h-[38px] px-6 py-2 bg-slate-950 hover:bg-slate-800 dark:bg-blue-600 dark:hover:bg-blue-700 text-white rounded-full font-medium text-xs shadow-xs hover:shadow-md active:scale-[0.98] transition-all flex items-center justify-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
               >
                 <span>Get Started Free</span>

@@ -1,23 +1,8 @@
 import React from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { UserPlus, User, Mail, Lock, ArrowRight, Loader2, CheckCircle2, ArrowLeft, Instagram, Linkedin, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { User, Mail, Lock, Loader2, CheckCircle2, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { motion } from 'motion/react';
-
-const Tiktok = ({ size = 24, ...props }: { size?: number } & React.SVGProps<SVGSVGElement>) => (
-  <svg
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    width={size}
-    height={size}
-    {...props}
-  >
-    <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5" />
-  </svg>
-);
+import { AuthIllustration } from '../../components/auth/AuthIllustration';
 
 export const RegisterPage = () => {
   const [formData, setFormData] = React.useState({
@@ -66,7 +51,8 @@ export const RegisterPage = () => {
       const result = await response.json();
 
       if (response.ok && result.success) {
-        setToastMessage('Registrasi berhasil. Silakan login.');
+        setIsSuccess(true);
+        setToastMessage('Registrasi berhasil. Mengarahkan ke halaman login...');
         setToastType('success');
         setShowToast(true);
         setTimeout(() => {
@@ -94,233 +80,205 @@ export const RegisterPage = () => {
     }
   };
 
-  if (isSuccess) {
-    return (
-      <div className="min-h-screen bg-white dark:bg-slate-950 flex items-center justify-center p-6 transition-colors duration-300">
-        <motion.div 
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          className="max-w-md w-full bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-12 rounded-3xl text-center shadow-2xl transition-all duration-300"
-        >
-          <div className="w-20 h-20 bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center mx-auto mb-6">
-            <CheckCircle2 size={48} />
-          </div>
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Registration Successful!</h2>
-          <p className="text-slate-500 dark:text-slate-400">Your account has been created. Redirecting to login page...</p>
-        </motion.div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-white dark:bg-slate-950 font-sans flex flex-col selection:bg-blue-100 selection:text-blue-900 transition-colors duration-300">
-      {/* Navigation */}
-      <nav className="fixed top-0 inset-x-0 bg-white/70 dark:bg-slate-950/70 backdrop-blur-md z-50 border-b border-slate-200/50 dark:border-slate-900/50 transition-colors duration-300">
-        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2 group">
-            <img 
-              src="https://i.ibb.co.com/fGPRy8Jt/Gemini-Generated-Image-yss7sryss7sryss7-removebg-preview.png" 
-              alt="Logo KroomCare" 
-              className="h-10 w-auto group-hover:scale-105 transition-transform" 
-            />
-            <span className="text-xl font-display font-bold text-slate-900 dark:text-white">KroomCare</span>
-          </Link>
-          <div className="flex items-center gap-4">
-            <Link 
-              to="/login"
-              className="text-sm font-semibold text-slate-650 dark:text-blue-450 hover:text-blue-600 transition-colors"
-            >
-              Log In
-            </Link>
-            <Link 
-              to="/register"
-              className="px-5 py-2 bg-slate-900 dark:bg-blue-600 text-white rounded-full text-sm font-bold hover:bg-blue-800 dark:hover:bg-blue-700 transition-all shadow-md active:scale-95"
-            >
-              Get Started
-            </Link>
-          </div>
-        </div>
-      </nav>
-
-      <div className="flex-1 flex flex-col items-center justify-center pt-32 pb-24 px-6">
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="max-w-md w-full relative"
-        >
-          <Link 
-            to="/" 
-            className="absolute -top-12 left-0 flex items-center gap-2 text-slate-500 hover:text-blue-650 transition-colors font-semibold group"
-          >
-            <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
-            Back to Home
-          </Link>
-
-          <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-8 rounded-3xl shadow-2xl transition-all duration-300">
-            <Link to="/" className="flex flex-col items-center gap-4 mb-10 group hover:opacity-85 transition-all">
-              <img 
-                src="https://i.ibb.co.com/fGPRy8Jt/Gemini-Generated-Image-yss7sryss7sryss7-removebg-preview.png" 
-                alt="Logo KroomCare" 
-                className="h-32 w-auto object-contain group-hover:scale-105 transition-transform" 
-              />
-              <h1 className="text-4xl font-display font-bold text-blue-900 dark:text-white">KroomCare</h1>
-              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Join the KroomCare ecosystem</p>
-            </Link>
-
-            <form onSubmit={handleRegister} className="space-y-4">
-              {error && (
-                <p id="alert_error" className="alert_error text-xs text-red-500 font-medium text-center bg-red-50 dark:bg-red-950/30 py-2 rounded-lg border border-red-100 dark:border-red-900/30">{error}</p>
-              )}
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-slate-700 dark:text-slate-350 uppercase tracking-wider ml-1">Full Name</label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                  <input 
-                    type="text" 
-                    required
-                    value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
-                    placeholder="John Doe"
-                    autoComplete="name"
-                    className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all text-sm text-slate-800 dark:text-white"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-slate-700 dark:text-slate-350 uppercase tracking-wider ml-1">Email Address</label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                  <input 
-                    type="email" 
-                    required
-                    value={formData.email}
-                    onChange={(e) => setFormData({...formData, email: e.target.value})}
-                    placeholder="johndoe@example.com"
-                    autoComplete="email"
-                    className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all text-sm text-slate-800 dark:text-white"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-slate-700 dark:text-slate-350 uppercase tracking-wider ml-1">Password</label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                  <input 
-                    type={showPassword ? "text" : "password"} 
-                    required
-                    value={formData.password}
-                    onChange={(e) => setFormData({...formData, password: e.target.value})}
-                    placeholder="••••••••"
-                    autoComplete="new-password"
-                    className="w-full pl-10 pr-12 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all text-sm text-slate-800 dark:text-white"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors p-1"
-                  >
-                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                  </button>
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-slate-700 dark:text-slate-350 uppercase tracking-wider ml-1">Confirm Password</label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                  <input 
-                    type={showConfirmPassword ? "text" : "password"} 
-                    required
-                    value={formData.confirmPassword}
-                    onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
-                    placeholder="••••••••"
-                    autoComplete="new-password"
-                    className="w-full pl-10 pr-12 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all text-sm text-slate-800 dark:text-white"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors p-1"
-                  >
-                    {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                  </button>
-                </div>
-              </div>
-
-              <button 
-                type="submit"
-                disabled={isLoading}
-                className="w-full py-4 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all flex items-center justify-center gap-2 group shadow-lg shadow-blue-500/20 mt-4"
+    <div className="h-screen w-full bg-white dark:bg-slate-950 flex items-center justify-center p-3 sm:p-5 overflow-hidden font-sans transition-colors duration-300">
+      {/* Main Split Auth Container - Fits cleanly without page scroll */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.98 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.25 }}
+        className="relative z-10 w-full max-w-4xl min-h-[400px] max-h-[94vh] bg-white dark:bg-[#111827] rounded-3xl shadow-xl shadow-slate-200/50 dark:shadow-none border border-slate-200/80 dark:border-slate-800 overflow-hidden grid grid-cols-1 lg:grid-cols-2"
+      >
+        {/* Left Side: Register Form */}
+        <div className="p-6 sm:p-8 lg:p-9 flex flex-col justify-between overflow-y-auto">
+          <div>
+            {/* Top Brand Logo */}
+            <div className="flex items-center justify-between mb-3.5">
+              <Link to="/" className="flex items-center gap-2 group">
+                <img
+                  src="https://i.ibb.co.com/fGPRy8Jt/Gemini-Generated-Image-yss7sryss7sryss7-removebg-preview.png"
+                  alt="Logo KroomCare"
+                  className="h-6 w-auto object-contain group-hover:scale-105 transition-transform"
+                />
+                <span className="text-lg font-bold tracking-tight text-slate-900 dark:text-white">
+                  KroomCare
+                </span>
+              </Link>
+              <Link
+                to="/"
+                className="text-xs font-semibold text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 transition-colors"
               >
-                {isLoading ? (
-                  <Loader2 size={20} className="animate-spin" />
-                ) : (
-                  <>
-                    Register Now
-                    <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
-                  </>
-                )}
-              </button>
-            </form>
-
-            <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800 text-center">
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                Already have an account?{' '}
-                <Link to="/login" className="text-blue-650 dark:text-blue-400 font-bold hover:underline">
-                  Log in here
-                </Link>
-              </p>
-            </div>
-          </div>
-        </motion.div>
-      </div>
-
-      {/* Footer */}
-      <footer className="bg-white dark:bg-slate-950 border-t border-slate-200/50 dark:border-slate-900/50 py-16 px-4 transition-colors duration-300">
-        <div className="max-w-7xl mx-auto space-y-12">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-8">
-            <div className="flex items-center gap-3">
-              <img 
-                src="https://i.ibb.co.com/fGPRy8Jt/Gemini-Generated-Image-yss7sryss7sryss7-removebg-preview.png" 
-                alt="Logo Foot" 
-                className="h-10 w-auto" 
-              />
-              <span className="text-2xl font-display font-bold text-slate-900 dark:text-white">KroomCare</span>
+                Back to Home
+              </Link>
             </div>
 
-            <div className="flex items-center gap-6">
-              <a href="https://mail.google.com/mail/?view=cm&fs=1&to=krooomcare@gmail.com" target="_blank" rel="noopener noreferrer" className="text-slate-450 hover:text-blue-650 transition-colors"><Mail size={24} /></a>
-              <a href="https://www.instagram.com/kroombox?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==" target="_blank" rel="noopener noreferrer" className="text-slate-450 hover:text-blue-650 transition-colors"><Instagram size={24} /></a>
-              <a href="https://www.tiktok.com/@kroombox?is_from_webapp=1&sender_device=pc" target="_blank" rel="noopener noreferrer" className="text-slate-450 hover:text-blue-650 transition-colors"><Tiktok size={24} /></a>
-              <a href="https://www.linkedin.com/company/kroombox/" target="_blank" rel="noopener noreferrer" className="text-slate-450 hover:text-blue-650 transition-colors"><Linkedin size={24} /></a>
-            </div>
-          </div>
+            {isSuccess ? (
+              /* Success State */
+              <div className="text-center py-8">
+                <div className="w-14 h-14 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center mx-auto mb-3 shadow-xs border border-emerald-100 dark:border-emerald-900/30">
+                  <CheckCircle2 size={30} />
+                </div>
+                <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-1">
+                  Account Created!
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xs mx-auto">
+                  Your KroomCare account is ready. Redirecting to login...
+                </p>
+              </div>
+            ) : (
+              /* Standard Register Form */
+              <div>
+                <div className="text-center mb-3">
+                  <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white font-display">
+                    Sign Up
+                  </h1>
+                </div>
 
-          <div className="pt-8 border-t border-slate-100 dark:border-slate-900 flex flex-col md:flex-row items-center justify-between gap-4">
-            <p className="text-sm text-slate-500">
-              Transforming customer support with AI efficiency.
-            </p>
-            <p className="text-xs text-slate-400 font-medium">
-              Copyright &copy; 2026 KroomCare. Built with React &amp; Tailwind CSS.
-            </p>
+                <form onSubmit={handleRegister} className="space-y-2.5">
+                  {/* Full Name */}
+                  <div>
+                    <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 block mb-0.5">
+                      Full Name *
+                    </label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                      <input
+                        type="text"
+                        required
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        placeholder="John Doe"
+                        className="w-full pl-9 pr-3 py-2 bg-slate-50/80 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs sm:text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Email */}
+                  <div>
+                    <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 block mb-0.5">
+                      Email *
+                    </label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                      <input
+                        type="email"
+                        required
+                        value={formData.email}
+                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        placeholder="hello@delisas.com"
+                        className="w-full pl-9 pr-3 py-2 bg-slate-50/80 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs sm:text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Password */}
+                  <div>
+                    <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 block mb-0.5">
+                      Password *
+                    </label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        required
+                        value={formData.password}
+                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                        placeholder="Enter password"
+                        className="w-full pl-9 pr-9 py-2 bg-slate-50/80 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs sm:text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 dark:hover:text-white transition-colors"
+                      >
+                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Confirm Password */}
+                  <div>
+                    <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 block mb-0.5">
+                      Confirm Password *
+                    </label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                      <input
+                        type={showConfirmPassword ? 'text' : 'password'}
+                        required
+                        value={formData.confirmPassword}
+                        onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                        placeholder="Repeat password"
+                        className="w-full pl-9 pr-9 py-2 bg-slate-50/80 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs sm:text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 dark:hover:text-white transition-colors"
+                      >
+                        {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {error && (
+                    <p className="text-xs text-red-600 font-medium text-center bg-red-50 dark:bg-red-950/40 py-1 rounded-lg border border-red-200 dark:border-red-900/40">
+                      {error}
+                    </p>
+                  )}
+
+                  {/* Submit Button */}
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    className="w-full py-2.5 mt-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl shadow-md shadow-blue-500/20 transition-all active:scale-[0.99] flex items-center justify-center gap-2 text-xs sm:text-sm disabled:opacity-50"
+                  >
+                    {isLoading ? (
+                      <Loader2 size={16} className="animate-spin" />
+                    ) : (
+                      <>
+                        Sign up
+                      </>
+                    )}
+                  </button>
+                </form>
+
+                {/* Footer Switch to Login */}
+                <div className="mt-3.5 text-center">
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Already have an account?{' '}
+                    <Link
+                      to="/login"
+                      className="text-blue-600 dark:text-blue-400 font-bold hover:underline"
+                    >
+                      Sign In
+                    </Link>
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
-      </footer>
+
+        {/* Right Side: Cityscape Architectural Illustration */}
+        <div className="hidden lg:block border-l border-slate-100 dark:border-slate-800/80">
+          <AuthIllustration />
+        </div>
+      </motion.div>
 
       {/* Floating Toast Notification */}
       {showToast && (
-        <div 
-          id={toastType === 'success' ? "toast_success" : "toast_error"} 
-          className={`toast_${toastType} fixed bottom-24 right-8 bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl border border-slate-800 flex items-center gap-3 z-50 animate-bounce transition-all duration-300`}
+        <div
+          className={`fixed bottom-6 right-6 ${
+            toastType === 'success' ? 'bg-slate-900 border-slate-700' : 'bg-red-800 border-red-700'
+          } text-white px-4 py-2.5 rounded-xl shadow-xl border flex items-center gap-2.5 z-50 transition-all duration-300`}
         >
           {toastType === 'success' ? (
-            <CheckCircle2 size={18} className="text-emerald-400" />
+            <CheckCircle2 size={16} className="text-emerald-400" />
           ) : (
-            <AlertCircle size={18} className="text-red-400" />
+            <AlertCircle size={16} className="text-red-300" />
           )}
-          <span className="text-xs font-bold">{toastMessage}</span>
+          <span className="text-xs font-semibold">{toastMessage}</span>
         </div>
       )}
     </div>

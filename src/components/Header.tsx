@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sparkles, Bell, User, Settings, LogOut, ChevronDown, Ticket, Gift, Sun, Moon, Star } from 'lucide-react';
+import { Sparkles, Bell, User, Settings, LogOut, ChevronDown, Ticket, Gift, Sun, Moon, Star, Menu } from 'lucide-react';
 import { UserRole } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
@@ -16,9 +16,14 @@ interface AppNotification {
   link: string;
 }
 
-export const Header: React.FC = () => {
+interface HeaderProps {
+  onToggleSidebar?: () => void;
+  isEmbedded?: boolean;
+}
+
+export const Header: React.FC<HeaderProps> = ({ onToggleSidebar, isEmbedded = false }) => {
   const { user, logout } = useUser();
-  const { theme, toggleTheme } = useLanguageTheme();
+  const { theme, toggleTheme, language, toggleLanguage, t } = useLanguageTheme();
   const [showDropdown, setShowDropdown] = React.useState(false);
   const [showNotifications, setShowNotifications] = React.useState(false);
   const [notifications, setNotifications] = React.useState<AppNotification[]>([]);
@@ -125,32 +130,46 @@ export const Header: React.FC = () => {
   const { role, name: userName, points = 0, avatar } = user;
 
   return (
-    <header className="flex items-center justify-between mb-5 sm:mb-6 relative z-50 bg-transparent border-none shadow-none">
-      {/* Brand Logo & Name (Mobile/Embedded) */}
-      <div className="flex items-center gap-2 lg:hidden pl-12">
-        <img 
-          src="https://i.ibb.co.com/fGPRy8Jt/Gemini-Generated-Image-yss7sryss7sryss7-removebg-preview.png" 
-          alt="Logo KroomCare" 
-          className="h-7 sm:h-8 w-auto object-contain" 
-        />
-        <span className="text-base sm:text-lg font-bold tracking-tight text-slate-800 dark:text-white">KroomCare</span>
+    <header className="flex items-center justify-between gap-2 sm:gap-4 mb-4 sm:mb-6 relative z-30 bg-transparent border-none shadow-none">
+      {/* Brand Logo & Name & Toggle Button */}
+      <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+        <button 
+          onClick={onToggleSidebar}
+          className={cn(
+            "p-1.5 sm:p-2 bg-white dark:bg-slate-900/80 border border-slate-200/60 dark:border-white/[0.08] rounded-xl shadow-xs text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer shrink-0",
+            !isEmbedded && "lg:hidden"
+          )}
+          title="Menu Navigasi"
+          aria-label="Toggle navigation menu"
+        >
+          <Menu size={17} />
+        </button>
+
+        <div className={cn("flex items-center gap-2 select-none", !isEmbedded && "lg:hidden")}>
+          <img 
+            src="https://i.ibb.co.com/fGPRy8Jt/Gemini-Generated-Image-yss7sryss7sryss7-removebg-preview.png" 
+            alt="Logo KroomCare" 
+            className="h-7 sm:h-8 w-auto object-contain" 
+          />
+          <span className="text-sm sm:text-base font-bold tracking-tight text-slate-800 dark:text-white truncate">KroomCare</span>
+        </div>
       </div>
 
-      <div className="flex-1" />
+      <div className="flex-1 min-w-0" />
       
-      <div className="flex items-center gap-2 sm:gap-3">
+      <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
         {role === 'customer' && (
           <motion.div 
             whileHover={{ scale: 1.01 }}
-            className="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-slate-900/50 rounded-xl border border-slate-200/60 dark:border-white/5 shadow-xs transition-all hover:border-blue-300 dark:hover:border-white/15 dark:hover:bg-slate-900/80 group cursor-pointer backdrop-blur-sm"
+            className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 bg-white dark:bg-slate-900/50 rounded-xl border border-slate-200/60 dark:border-white/5 shadow-xs transition-all hover:border-blue-300 dark:hover:border-white/15 dark:hover:bg-slate-900/80 group cursor-pointer backdrop-blur-sm shrink-0"
             onClick={() => navigate('/points-history')}
           >
-            <div className="w-6 h-6 bg-amber-50 dark:bg-amber-950/40 rounded-lg flex items-center justify-center text-amber-500">
-              <Star size={13} className="fill-amber-400 text-amber-500" />
+            <div className="w-5 h-5 sm:w-6 sm:h-6 bg-amber-50 dark:bg-amber-950/40 rounded-lg flex items-center justify-center text-amber-500 shrink-0">
+              <Star size={12} className="fill-amber-400 text-amber-500" />
             </div>
             <div className="flex flex-col">
-              <span className="text-[9px] font-semibold text-slate-400 uppercase tracking-wider leading-none">Loyalty</span>
-              <span className="text-xs font-bold text-slate-800 dark:text-slate-100 leading-none mt-0.5">{(points || 75).toLocaleString()} <span className="text-slate-400 font-medium">pts</span></span>
+              <span className="hidden md:block text-[9px] font-semibold text-slate-400 uppercase tracking-wider leading-none">{t('header.loyalty')}</span>
+              <span className="text-xs font-bold text-slate-800 dark:text-slate-100 leading-none sm:mt-0.5">{(points || 75).toLocaleString()} <span className="text-slate-400 font-medium">{t('header.pts')}</span></span>
             </div>
           </motion.div>
         )}
@@ -184,9 +203,9 @@ export const Header: React.FC = () => {
                   className="absolute right-0 mt-2 w-80 sm:w-96 bg-white dark:bg-slate-900/95 backdrop-blur-xl rounded-xl border border-slate-200/80 dark:border-white/10 shadow-xl p-3 z-50 overflow-hidden"
                 >
                   <div className="flex items-center justify-between px-2 py-1.5 border-b border-slate-100 dark:border-white/5 mb-2">
-                    <h3 className="font-semibold text-slate-800 dark:text-slate-100 text-xs">Notifications</h3>
+                    <h3 className="font-semibold text-slate-800 dark:text-slate-100 text-xs">{t('header.notifications')}</h3>
                     <span className="text-[10px] font-bold bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded-md">
-                      {notifications.length} Info
+                      {notifications.length} {t('header.info')}
                     </span>
                   </div>
                   <div className="max-h-[300px] overflow-y-auto space-y-1">
@@ -218,7 +237,7 @@ export const Header: React.FC = () => {
                         </div>
                       ))
                     ) : (
-                      <p className="text-xs text-slate-400 text-center py-6">No new notifications.</p>
+                      <p className="text-xs text-slate-400 text-center py-6">{t('header.no_notifications')}</p>
                     )}
                   </div>
                 </motion.div>
@@ -226,6 +245,41 @@ export const Header: React.FC = () => {
             )}
           </AnimatePresence>
         </div>
+
+        {/* Language Quick Toggle (Pill model with flag & code) */}
+        <button
+          onClick={toggleLanguage}
+          title={language === 'id' ? 'Switch to English' : 'Ganti ke Bahasa Indonesia'}
+          className="h-7 sm:h-8 px-2.5 sm:px-3 rounded-full border border-blue-500 hover:border-blue-600 dark:border-blue-400/90 bg-white dark:bg-slate-900/90 hover:bg-blue-50/40 dark:hover:bg-blue-950/30 flex items-center gap-1.5 transition-all shadow-xs active:scale-95 cursor-pointer select-none"
+        >
+          {language === 'id' ? (
+            <span className="inline-flex w-4 h-2.5 rounded-[2px] overflow-hidden shadow-2xs border border-slate-300/80 dark:border-white/20 shrink-0 flex-col">
+              <span className="h-1/2 bg-[#e00000] w-full" />
+              <span className="h-1/2 bg-white w-full" />
+            </span>
+          ) : (
+            <span className="inline-flex w-4 h-2.5 rounded-[2px] overflow-hidden shadow-2xs border border-slate-300/80 dark:border-white/20 shrink-0 relative bg-[#012169]">
+              <svg viewBox="0 0 60 30" className="w-full h-full object-cover">
+                <clipPath id="uk-flag-header">
+                  <path d="M0,0 v30 h60 v-30 z"/>
+                </clipPath>
+                <clipPath id="uk-diag-header">
+                  <path d="M30,15 h30 v15 z v15 h-30 z h-30 v-15 z v-15 h30 z"/>
+                </clipPath>
+                <g clipPath="url(#uk-flag-header)">
+                  <path d="M0,0 v30 h60 v-30 z" fill="#012169"/>
+                  <path d="M0,0 L60,30 M60,0 L0,30" stroke="#fff" strokeWidth="6"/>
+                  <path d="M0,0 L60,30 M60,0 L0,30" clipPath="url(#uk-diag-header)" stroke="#C8102E" strokeWidth="4"/>
+                  <path d="M30,0 v30 M0,15 h60" stroke="#fff" strokeWidth="10"/>
+                  <path d="M30,0 v30 M0,15 h60" stroke="#C8102E" strokeWidth="6"/>
+                </g>
+              </svg>
+            </span>
+          )}
+          <span className="font-mono text-xs font-bold text-slate-800 dark:text-slate-100 tracking-wide uppercase">
+            {language === 'id' ? 'ID' : 'EN'}
+          </span>
+        </button>
 
         {/* Theme Quick Toggle */}
         <button
@@ -287,14 +341,14 @@ export const Header: React.FC = () => {
                       className="w-full flex items-center gap-2.5 px-2.5 py-2 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-blue-600 rounded-lg transition-all text-xs font-medium"
                     >
                       <User size={14} className="text-slate-400" />
-                      Edit Profile
+                      {t('header.edit_profile')}
                     </button>
                     <button 
                       onClick={() => { setShowDropdown(false); navigate('/settings'); }}
                       className="w-full flex items-center gap-2.5 px-2.5 py-2 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-blue-600 rounded-lg transition-all text-xs font-medium"
                     >
                       <Settings size={14} className="text-slate-400" />
-                      Account Settings
+                      {t('header.account_settings')}
                     </button>
                     <div className="h-px bg-slate-100 dark:bg-slate-800 my-1" />
                     <button 
@@ -302,7 +356,7 @@ export const Header: React.FC = () => {
                       className="w-full flex items-center gap-2.5 px-2.5 py-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg transition-all text-xs font-semibold"
                     >
                       <LogOut size={14} />
-                      Log Out
+                      {t('header.logout')}
                     </button>
                   </div>
                 </motion.div>

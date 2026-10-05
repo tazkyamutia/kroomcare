@@ -23,7 +23,7 @@ import { SSOPage } from './pages/auth/SSOPage';
 import { LandingPage } from './pages/LandingPage';
 import { AnimatePresence } from 'motion/react';
 import { useUser } from './context/UserContext';
-
+import { cn } from './lib/utils';
 import { ForumPage } from './pages/ForumPage';
 
 function ScrollToTop() {
@@ -40,6 +40,28 @@ function ScrollToTop() {
 
 export default function App() {
   const { user, logout } = useUser();
+  const [sidebarOpen, setSidebarOpen] = React.useState(false);
+  const isEmbedded = typeof window !== 'undefined' && window.parent && window.parent !== window;
+
+  // Auto-report iframe height to parent Kroombox Panel
+  React.useEffect(() => {
+    if (!isEmbedded) return;
+    const sendHeight = () => {
+      try {
+        const height = document.documentElement.scrollHeight || document.body.scrollHeight;
+        window.parent.postMessage({ type: 'KROOMCARE_HEIGHT', height, source: 'kroomcare' }, '*');
+        window.parent.postMessage({ type: 'RESIZE_IFRAME', height, source: 'kroomcare' }, '*');
+      } catch (_) {}
+    };
+    sendHeight();
+    const observer = new ResizeObserver(sendHeight);
+    if (document.body) observer.observe(document.body);
+    window.addEventListener('resize', sendHeight);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', sendHeight);
+    };
+  }, [isEmbedded]);
 
   if (!user) {
     return (
@@ -60,12 +82,24 @@ export default function App() {
   return (
     <Router>
       <ScrollToTop />
-      <div className="flex min-h-screen bg-slate-50/60 dark:bg-[#0b0f19] transition-colors duration-300">
-        <Sidebar />
+      <div className={cn(
+        "flex min-h-screen transition-colors duration-300",
+        isEmbedded ? "min-h-0 bg-transparent w-full overflow-x-hidden" : "bg-slate-50/60 dark:bg-[#0b0f19]"
+      )}>
+        <Sidebar 
+          isOpen={sidebarOpen} 
+          onClose={() => setSidebarOpen(false)} 
+          isEmbedded={isEmbedded} 
+        />
         
-        <main className="flex-1 lg:ml-64 p-3 sm:p-5 md:p-6 lg:p-8 pb-20 lg:pb-8 min-w-0">
+        <main className={cn(
+          "min-w-0 transition-all duration-200",
+          isEmbedded 
+            ? "w-full p-2.5 sm:p-4 md:p-6 pb-12" 
+            : "flex-1 lg:ml-64 p-3 sm:p-5 md:p-6 lg:p-8 pb-20 lg:pb-8"
+        )}>
           <div className="max-w-6xl mx-auto w-full">
-            <Header />
+            <Header onToggleSidebar={() => setSidebarOpen(prev => !prev)} isEmbedded={isEmbedded} />
             <AnimatePresence mode="wait">
               <Routes>
                 {/* Customer Routes */}

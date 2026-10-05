@@ -7,6 +7,7 @@ export type Theme = 'light' | 'dark';
 export interface LanguageThemeContextType {
   language: Language;
   setLanguage: (lang: Language) => void;
+  toggleLanguage: () => void;
   theme: Theme;
   themeMode: ThemeMode;
   setTheme: (theme: ThemeMode) => void;
@@ -20,26 +21,82 @@ const translations = {
     'nav.dashboard': 'Dashboard',
     'nav.forum': 'Forum Komunitas',
     'nav.my_tickets': 'Tiket Saya',
-    'nav.rewards': 'Rewards',
+    'nav.rewards': 'Hadiah & Rewards',
     'nav.points_history': 'Riwayat Poin',
     'nav.profile': 'Profil Saya',
     'nav.settings': 'Pengaturan',
     'nav.staff_dashboard': 'Dashboard Staff',
     'nav.ticket_queue': 'Antrean Keluhan',
-    'nav.user_management': 'Manajemen User',
+    'nav.user_management': 'Manajemen Pengguna',
     'nav.ticket_settings': 'Pengaturan Tiket',
+    'nav.api_integration': 'Integrasi API',
+
+    // Header
+    'header.notifications': 'Notifikasi',
+    'header.no_notifications': 'Belum ada notifikasi baru.',
+    'header.info': 'Info',
+    'header.loyalty': 'Loyalitas',
+    'header.pts': 'pts',
+    'header.edit_profile': 'Edit Profil',
+    'header.account_settings': 'Pengaturan Akun',
+    'header.logout': 'Keluar',
+    'header.switch_lang': 'Ganti Bahasa',
+    'header.switch_theme': 'Ganti Tema',
 
     // Settings Page
     'settings.title': 'Pengaturan Sistem',
-    'settings.subtitle': 'Sesuaikan preferensi tampilan dan tema aplikasi KroomCare Anda.',
+    'settings.subtitle': 'Sesuaikan preferensi tampilan dan bahasa aplikasi KroomCare Anda.',
     'settings.language_section': 'Pilih Bahasa',
-    'settings.language_desc': 'Ubah bahasa antarmuka aplikasi.',
+    'settings.language_desc': 'Ubah bahasa antarmuka aplikasi ke Bahasa Indonesia atau English.',
     'settings.theme_section': 'Pilih Tema Tampilan',
     'settings.theme_desc': 'Pilih tema gelap, terang, atau otomatis mengikuti sistem/panel.',
     'settings.theme_system': 'Otomatis (Sistem / Panel)',
     'settings.theme_light': 'Tema Terang',
     'settings.theme_dark': 'Tema Gelap',
-    'settings.save_success': 'Pengaturan tema berhasil diperbarui!',
+    'settings.save_success': 'Pengaturan berhasil diperbarui!',
+    'settings.lang_id': 'Bahasa Indonesia',
+    'settings.lang_en': 'English',
+
+    // Dashboard Home
+    'dashboard.welcome': 'Selamat Datang di Support Center Kroombox',
+    'dashboard.subtitle_customer': 'Pantau status layanan dan reward Anda di satu tempat.',
+    'dashboard.subtitle_staff': 'Pantau kinerja sistem layanan pelanggan dan antrean tiket aktif.',
+    'dashboard.system_normal': 'Semua Sistem Normal',
+    'dashboard.open_ticket': 'Buka Tiket',
+    'dashboard.open_ticket_desc': 'Laporkan kendala teknis layanan',
+    'dashboard.redeem_points': 'Tukar Poin',
+    'dashboard.redeem_points_desc': 'Gunakan voucher diskon belanja',
+    'dashboard.community_forum': 'Forum Komunitas',
+    'dashboard.community_forum_desc': 'Bantuan instan cerdas 24/7',
+    'dashboard.active_services': 'Status Layanan Aktif',
+    'dashboard.services_connected': '2 Layanan Terhubung',
+    'dashboard.expires_on': 'Berakhir pada',
+    'dashboard.active': 'Aktif',
+    'dashboard.managed_by': 'Dikelola otomatis oleh Cloud Hosting Kroombox',
+    'dashboard.uptime': 'Uptime',
+    'dashboard.loyalty_points': 'POIN LOYALITAS',
+    'dashboard.points_needed_prefix': 'poin lagi untuk',
+    'dashboard.free_domain': 'Free Domain',
+    'dashboard.can_redeem_domain': '✨ Bisa ditukar voucher Free Domain!',
+    'dashboard.redeem_now': 'Tukar Sekarang',
+    'dashboard.ticket_queue': 'Antrean Keluhan',
+    'dashboard.ticket_queue_desc': 'Tinjau dan respon tiket customer',
+    'dashboard.user_management': 'Manajemen Pengguna',
+    'dashboard.user_management_desc': 'Kelola akun pengguna, staf, dan admin',
+    'dashboard.ticket_settings': 'Pengaturan Tiket',
+    'dashboard.ticket_settings_desc': 'Kategori, prioritas & konfigurasi SLA',
+    'dashboard.tickets_in_progress': 'Tiket Diproses',
+    'dashboard.tickets_in_progress_desc': 'Butuh penyelesaian segera',
+    'dashboard.tickets_resolved': 'Tiket Selesai',
+    'dashboard.tickets_resolved_desc': '+12% dari kemarin',
+    'dashboard.csat_rating': 'Rating CSAT',
+    'dashboard.csat_rating_desc': 'Berdasarkan 120 feedback',
+    'dashboard.response_time': 'Waktu Respon',
+    'dashboard.response_time_desc': 'Performa sangat baik',
+    'dashboard.process_tickets_desc': 'Proses tiket masuk pelanggan',
+    'dashboard.monitor_forum_desc': 'Pantau dan kelola diskusi publik',
+    'dashboard.manage_users_desc': 'Kelola data pelanggan & staf',
+    'dashboard.view_profile_desc': 'Lihat status kerja & personal info',
 
     // Profile Page
     'profile.title': 'Profil Pengguna',
@@ -53,6 +110,8 @@ const translations = {
     // Shared / Button
     'btn.back': 'Kembali',
     'btn.logout': 'Keluar',
+    'btn.save': 'Simpan',
+    'btn.cancel': 'Batal',
 
     // Landing Page
     'landing.login_btn': 'Masuk',
@@ -86,18 +145,74 @@ const translations = {
     'nav.ticket_queue': 'Ticket Queue',
     'nav.user_management': 'User Management',
     'nav.ticket_settings': 'Ticket Settings',
+    'nav.api_integration': 'API Integration',
+
+    // Header
+    'header.notifications': 'Notifications',
+    'header.no_notifications': 'No new notifications.',
+    'header.info': 'Info',
+    'header.loyalty': 'Loyalty',
+    'header.pts': 'pts',
+    'header.edit_profile': 'Edit Profile',
+    'header.account_settings': 'Account Settings',
+    'header.logout': 'Log Out',
+    'header.switch_lang': 'Switch Language',
+    'header.switch_theme': 'Toggle Theme',
 
     // Settings Page
     'settings.title': 'System Settings',
-    'settings.subtitle': 'Customize KroomCare application appearance and theme.',
+    'settings.subtitle': 'Customize KroomCare application appearance and language preferences.',
     'settings.language_section': 'Choose Language',
-    'settings.language_desc': 'Change the application interface language.',
+    'settings.language_desc': 'Change the application interface language to Indonesian or English.',
     'settings.theme_section': 'Choose Theme Mode',
     'settings.theme_desc': 'Choose light, dark, or automatic system/panel theme.',
     'settings.theme_system': 'Auto (System / Panel)',
     'settings.theme_light': 'Light Theme',
     'settings.theme_dark': 'Dark Theme',
-    'settings.save_success': 'Theme settings saved successfully!',
+    'settings.save_success': 'Settings saved successfully!',
+    'settings.lang_id': 'Indonesian',
+    'settings.lang_en': 'English',
+
+    // Dashboard Home
+    'dashboard.welcome': 'Welcome to Kroombox Support Center',
+    'dashboard.subtitle_customer': 'Monitor your service status and rewards in one place.',
+    'dashboard.subtitle_staff': 'Monitor customer service system performance and active ticket queue.',
+    'dashboard.system_normal': 'All Systems Operational',
+    'dashboard.open_ticket': 'Open Ticket',
+    'dashboard.open_ticket_desc': 'Report technical service issues',
+    'dashboard.redeem_points': 'Redeem Points',
+    'dashboard.redeem_points_desc': 'Use discount shopping vouchers',
+    'dashboard.community_forum': 'Community Forum',
+    'dashboard.community_forum_desc': '24/7 intelligent instant help',
+    'dashboard.active_services': 'Active Services Status',
+    'dashboard.services_connected': '2 Services Connected',
+    'dashboard.expires_on': 'Expires on',
+    'dashboard.active': 'Active',
+    'dashboard.managed_by': 'Managed automatically by Kroombox Cloud Hosting',
+    'dashboard.uptime': 'Uptime',
+    'dashboard.loyalty_points': 'LOYALTY POINTS',
+    'dashboard.points_needed_prefix': 'more points for',
+    'dashboard.free_domain': 'Free Domain',
+    'dashboard.can_redeem_domain': '✨ Eligible to redeem Free Domain voucher!',
+    'dashboard.redeem_now': 'Redeem Now',
+    'dashboard.ticket_queue': 'Ticket Queue',
+    'dashboard.ticket_queue_desc': 'Review and respond to customer tickets',
+    'dashboard.user_management': 'User Management',
+    'dashboard.user_management_desc': 'Manage user, staff, and admin accounts',
+    'dashboard.ticket_settings': 'Ticket Settings',
+    'dashboard.ticket_settings_desc': 'Categories, priorities & SLA configuration',
+    'dashboard.tickets_in_progress': 'Tickets in Progress',
+    'dashboard.tickets_in_progress_desc': 'Requires prompt action',
+    'dashboard.tickets_resolved': 'Tickets Resolved',
+    'dashboard.tickets_resolved_desc': '+12% from yesterday',
+    'dashboard.csat_rating': 'CSAT Rating',
+    'dashboard.csat_rating_desc': 'Based on 120 feedback',
+    'dashboard.response_time': 'Response Time',
+    'dashboard.response_time_desc': 'Optimal performance',
+    'dashboard.process_tickets_desc': 'Process incoming customer tickets',
+    'dashboard.monitor_forum_desc': 'Monitor and manage public discussions',
+    'dashboard.manage_users_desc': 'Manage customers & staff data',
+    'dashboard.view_profile_desc': 'View work status & personal info',
 
     // Profile Page
     'profile.title': 'User Profile',
@@ -111,6 +226,8 @@ const translations = {
     // Shared / Button
     'btn.back': 'Back',
     'btn.logout': 'Log Out',
+    'btn.save': 'Save',
+    'btn.cancel': 'Cancel',
 
     // Landing Page
     'landing.login_btn': 'Log In',
@@ -335,7 +452,15 @@ function resolveSystemTheme(): Theme {
 const LanguageThemeContext = createContext<LanguageThemeContextType | undefined>(undefined);
 
 export const LanguageThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [language, setLanguageState] = useState<Language>('en');
+  const [language, setLanguageState] = useState<Language>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('kroomcare_lang');
+        if (saved === 'id' || saved === 'en') return saved as Language;
+      } catch (_) {}
+    }
+    return 'id';
+  });
 
   const isEmbedded = typeof window !== 'undefined' && window.parent && window.parent !== window;
 
@@ -379,8 +504,18 @@ export const LanguageThemeProvider: React.FC<{ children: React.ReactNode }> = ({
   }, []);
 
   const setLanguage = (lang: Language) => {
-    setLanguageState('en');
-    localStorage.setItem('kroomcare_lang', 'en');
+    setLanguageState(lang);
+    try {
+      localStorage.setItem('kroomcare_lang', lang);
+      if (typeof document !== 'undefined') {
+        document.documentElement.lang = lang;
+      }
+    } catch (_) {}
+  };
+
+  const toggleLanguage = () => {
+    const nextLang: Language = language === 'id' ? 'en' : 'id';
+    setLanguage(nextLang);
   };
 
   const setTheme = (mode: ThemeMode) => {
@@ -564,12 +699,14 @@ export const LanguageThemeProvider: React.FC<{ children: React.ReactNode }> = ({
   }, [themeMode, applyThemeToDOM]);
 
   const t = (key: string): string => {
-    const langDict = translations[language] as Record<string, string>;
-    return langDict[key] || translations['id'][key as keyof typeof translations['id']] || key;
+    const langDict = (translations[language] || translations['id']) as Record<string, string>;
+    const defaultDict = translations['id'] as Record<string, string>;
+    const enDict = translations['en'] as Record<string, string>;
+    return langDict[key] || defaultDict[key] || enDict[key] || key;
   };
 
   return (
-    <LanguageThemeContext.Provider value={{ language, setLanguage, theme: resolvedTheme, themeMode, setTheme, toggleTheme, t }}>
+    <LanguageThemeContext.Provider value={{ language, setLanguage, toggleLanguage, theme: resolvedTheme, themeMode, setTheme, toggleTheme, t }}>
       {children}
     </LanguageThemeContext.Provider>
   );

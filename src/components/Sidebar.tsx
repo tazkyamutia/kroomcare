@@ -11,10 +11,29 @@ import { UserRole } from '../types';
 import { useUser } from '../context/UserContext';
 import { useLanguageTheme } from '../context/LanguageThemeContext';
 
-export const Sidebar: React.FC = () => {
+interface SidebarProps {
+  isOpen?: boolean;
+  onClose?: () => void;
+  isEmbedded?: boolean;
+}
+
+export const Sidebar: React.FC<SidebarProps> = ({
+  isOpen: controlledIsOpen,
+  onClose: controlledOnClose,
+  isEmbedded = false
+}) => {
   const { user, logout: onLogout } = useUser();
   const { t } = useLanguageTheme();
-  const [isOpen, setIsOpen] = React.useState(false);
+  const [internalIsOpen, setInternalIsOpen] = React.useState(false);
+
+  const isOpen = controlledIsOpen !== undefined ? controlledIsOpen : internalIsOpen;
+  const closeSidebar = () => {
+    if (controlledOnClose) {
+      controlledOnClose();
+    } else {
+      setInternalIsOpen(false);
+    }
+  };
 
   if (!user) return null;
 
@@ -46,7 +65,7 @@ export const Sidebar: React.FC = () => {
           { name: t('nav.forum'), path: '/forum', icon: MessageSquare },
           { name: t('nav.user_management'), path: '/admin/users', icon: Users },
           { name: t('nav.ticket_settings'), path: '/admin/tickets', icon: Settings },
-          { name: 'Integrasi API', path: '/admin/api', icon: ShieldCheck },
+          { name: t('nav.api_integration'), path: '/admin/api', icon: ShieldCheck },
           { name: t('nav.profile'), path: '/profile', icon: User },
           { name: t('nav.settings'), path: '/settings', icon: Settings },
         ];
@@ -59,17 +78,20 @@ export const Sidebar: React.FC = () => {
 
   return (
     <>
-      {/* Mobile Toggle */}
-      <button 
-        onClick={() => setIsOpen(!isOpen)}
-        className="lg:hidden fixed top-3 left-3 z-50 p-2 bg-white dark:bg-slate-900/80 border border-slate-200/60 dark:border-white/[0.06] rounded-xl shadow-xs text-slate-700 dark:text-white hover:bg-slate-50 dark:hover:bg-white/[0.05] backdrop-blur-sm"
-      >
-        {isOpen ? <X size={20} /> : <Menu size={20} />}
-      </button>
+      {/* Standalone Mobile Toggle (only rendered when not controlled via Header) */}
+      {controlledIsOpen === undefined && (
+        <button 
+          onClick={() => setInternalIsOpen(!internalIsOpen)}
+          className="lg:hidden fixed top-3 left-3 z-50 p-2 bg-white dark:bg-slate-900/80 border border-slate-200/60 dark:border-white/[0.06] rounded-xl shadow-xs text-slate-700 dark:text-white hover:bg-slate-50 dark:hover:bg-white/[0.05] backdrop-blur-sm"
+        >
+          {internalIsOpen ? <X size={20} /> : <Menu size={20} />}
+        </button>
+      )}
 
       {/* Sidebar */}
       <aside className={cn(
-        "fixed inset-y-0 left-0 z-40 w-60 bg-white dark:bg-[#0b0f19] border-r border-slate-200/60 dark:border-white/[0.04] transform transition-transform duration-300 ease-in-out lg:translate-x-0 shadow-xs",
+        "fixed inset-y-0 left-0 z-50 w-60 bg-white dark:bg-[#0b0f19] border-r border-slate-200/60 dark:border-white/[0.04] transform transition-transform duration-300 ease-in-out shadow-xl",
+        !isEmbedded && "lg:translate-x-0 lg:shadow-xs",
         isOpen ? "translate-x-0" : "-translate-x-full"
       )}>
         <div className="flex flex-col h-full">
@@ -85,8 +107,8 @@ export const Sidebar: React.FC = () => {
             </div>
             {isOpen && (
               <button 
-                onClick={() => setIsOpen(false)}
-                className="lg:hidden p-1 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-lg"
+                onClick={closeSidebar}
+                className={cn("p-1 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-lg", !isEmbedded && "lg:hidden")}
               >
                 <X size={18} />
               </button>
@@ -98,7 +120,7 @@ export const Sidebar: React.FC = () => {
               <NavLink
                 key={item.path}
                 to={item.path}
-                onClick={() => setIsOpen(false)}
+                onClick={closeSidebar}
                 className={({ isActive }) => cn(
                   "flex items-center gap-2.5 px-3 py-2 rounded-xl transition-all duration-200 text-xs sm:text-sm font-medium",
                   isActive 
@@ -134,7 +156,7 @@ export const Sidebar: React.FC = () => {
               <button 
                 onClick={onLogout}
                 className="text-slate-400 hover:text-red-500 transition-colors p-1"
-                title="Log Out"
+                title={t('header.logout')}
               >
                 <LogOut size={16} />
               </button>
@@ -150,8 +172,8 @@ export const Sidebar: React.FC = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={() => setIsOpen(false)}
-            className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-30 lg:hidden"
+            onClick={closeSidebar}
+            className={cn("fixed inset-0 bg-slate-900/30 backdrop-blur-xs z-40", !isEmbedded && "lg:hidden")}
           />
         )}
       </AnimatePresence>
