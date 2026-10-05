@@ -4,10 +4,12 @@ import { motion } from 'motion/react';
 import { Link, useNavigate } from 'react-router-dom';
 import { cn } from '../lib/utils';
 import { useUser } from '../context/UserContext';
+import { useLanguageTheme } from '../context/LanguageThemeContext';
 
 export const TicketingPage = () => {
   const navigate = useNavigate();
   const { user } = useUser();
+  const { t, language } = useLanguageTheme();
   const [searchQuery, setSearchQuery] = React.useState('');
   const [statusFilter, setStatusFilter] = React.useState<'active' | 'resolved' | 'all'>('active');
   const [tickets, setTickets] = React.useState<any[]>([]);
@@ -58,10 +60,10 @@ export const TicketingPage = () => {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="max-w-xl">
             <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight mb-1">
-              Tiket Saya
+              {t('tickets.title')}
             </h1>
             <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
-              Daftar keluhan privat Anda. Hanya Anda dan Tim Support KroomCare yang dapat melihat diskusi di sini.
+              {t('tickets.subtitle')}
             </p>
           </div>
           
@@ -70,7 +72,7 @@ export const TicketingPage = () => {
             className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-xs transition-all active:scale-[0.98] whitespace-nowrap self-start sm:self-auto"
           >
             <Plus size={18} />
-            Buat Keluhan
+            {t('tickets.create_btn')}
           </Link>
         </div>
       </section>
@@ -88,7 +90,7 @@ export const TicketingPage = () => {
                 : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
             )}
           >
-            Aktif
+            {t('tickets.tab_active')}
           </button>
           <button
             onClick={() => setStatusFilter('resolved')}
@@ -99,7 +101,7 @@ export const TicketingPage = () => {
                 : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
             )}
           >
-            Selesai
+            {t('tickets.tab_resolved')}
           </button>
           <button
             onClick={() => setStatusFilter('all')}
@@ -110,7 +112,7 @@ export const TicketingPage = () => {
                 : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
             )}
           >
-            Semua
+            {t('tickets.tab_all')}
           </button>
         </div>
 
@@ -119,7 +121,7 @@ export const TicketingPage = () => {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
           <input 
             type="text" 
-            placeholder="Cari dalam tiket saya..." 
+            placeholder={t('tickets.search_placeholder')} 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-9 pr-3.5 py-2 text-xs sm:text-sm bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-slate-900 dark:text-white rounded-xl shadow-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:text-slate-400"
@@ -155,10 +157,10 @@ export const TicketingPage = () => {
                       "text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md",
                       ticket.isPriority ? "bg-red-500 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300"
                     )}>
-                      {ticket.isPriority ? 'Prioritas' : (ticket.category || ticket.kategori || 'Umum')}
+                      {ticket.isPriority ? t('tickets.priority') : (ticket.category || ticket.kategori || 'General')}
                     </span>
                     <span className="text-xs text-slate-400 font-medium whitespace-nowrap">
-                      #{ticket.id} • {new Date(ticket.createdAt || ticket.created_at).toLocaleDateString('id-ID')}
+                      #{ticket.id} • {new Date(ticket.createdAt || ticket.created_at).toLocaleDateString(language === 'en' ? 'en-US' : 'id-ID')}
                     </span>
                   </div>
                   
@@ -178,7 +180,9 @@ export const TicketingPage = () => {
                     (ticket.status === 'In Progress' || ticket.status === 'proses') ? "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400" : 
                     "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400"
                   )}>
-                    {ticket.status}
+                    {(ticket.status === 'Resolved' || ticket.status === 'selesai') ? t('tickets.status_resolved') :
+                     (ticket.status === 'In Progress' || ticket.status === 'proses') ? t('tickets.status_processing') :
+                     t('tickets.status_waiting')}
                   </span>
                   <div className="inline-flex items-center gap-1.5 text-blue-600 dark:text-blue-400 font-semibold text-xs bg-blue-50 dark:bg-blue-950/40 px-2.5 py-1 rounded-lg border border-blue-100 dark:border-blue-900">
                     <MessageSquare size={13} />
@@ -199,16 +203,16 @@ export const TicketingPage = () => {
             <div className="w-12 h-12 bg-slate-100 dark:bg-slate-800 rounded-xl flex items-center justify-center text-slate-400 mb-3">
               <Ticket size={24} />
             </div>
-            <h3 className="text-base font-semibold text-slate-900 dark:text-white mb-1">Belum ada tiket keluhan</h3>
+            <h3 className="text-base font-semibold text-slate-900 dark:text-white mb-1">{t('tickets.no_tickets')}</h3>
             <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-sm mb-5">
-              Punya kendala teknis atau billing? Tim support kami siap membantu Anda secara privat.
+              {t('tickets.no_tickets_desc')}
             </p>
             <Link 
               to="/tickets/new"
               className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-xs transition-all"
             >
               <Plus size={16} />
-              Buat Tiket Sekarang
+              {t('tickets.create_btn')}
             </Link>
           </div>
         )}

@@ -131,6 +131,51 @@ const translations = {
     'landing.feature_3_desc': 'Dilengkapi dengan sistem Autentikasi Dua Faktor (2FA) mandiri menggunakan Google Authenticator untuk mengamankan data sensitif pengguna.',
     'landing.feature_3_cta': 'Masuk untuk Pengaturan 2FA',
     'landing.footer_text': 'Meningkatkan loyalitas pelanggan melalui ekosistem CRM cerdas.',
+
+    // Tickets
+    'tickets.title': 'Tiket Saya',
+    'tickets.subtitle': 'Daftar keluhan privat Anda. Hanya Anda dan Tim Support KroomCare yang dapat melihat diskusi di sini.',
+    'tickets.create_btn': 'Buat Keluhan',
+    'tickets.tab_active': 'Aktif',
+    'tickets.tab_resolved': 'Selesai',
+    'tickets.tab_all': 'Semua',
+    'tickets.search_placeholder': 'Cari berdasarkan judul atau isi kendala...',
+    'tickets.no_tickets': 'Belum ada tiket keluhan.',
+    'tickets.no_tickets_desc': 'Jika Anda mengalami kendala teknis atau pertanyaan, buat tiket keluhan baru untuk bantuan tim kami.',
+    'tickets.status_resolved': 'Selesai',
+    'tickets.status_waiting': 'Menunggu',
+    'tickets.status_processing': 'Diproses',
+    'tickets.priority': 'Prioritas',
+    'tickets.create_title': 'Buat Tiket Baru',
+    'tickets.create_subtitle': 'Ajukan keluhan atau kendala teknis layanan Anda',
+    'tickets.subject': 'Subjek Kendala',
+    'tickets.subject_placeholder': 'Contoh: Website Error 500',
+    'tickets.category': 'Kategori',
+    'tickets.priority_label': 'Tingkat Prioritas',
+    'tickets.priority_normal': 'Normal (Reguler)',
+    'tickets.priority_high': 'Tinggi (Urgent)',
+    'tickets.description': 'Detail Keluhan',
+    'tickets.description_placeholder': 'Jelaskan kendala Anda secara rinci...',
+    'tickets.submit_btn': 'Kirim Tiket',
+    'tickets.submitting': 'Mengirim...',
+    'tickets.coin_reward_notice': 'Dapatkan +50 Kroom Poin setelah tiket dibuat!',
+    'tickets.success_created': 'Tiket berhasil dibuat!',
+    'tickets.error_created': 'Gagal membuat tiket.',
+    'tickets.must_login': 'Anda harus login terlebih dahulu.',
+
+    // Forum
+    'forum.title': 'Forum Komunitas',
+    'forum.subtitle': 'Tempat berdiskusi, berbagi pengetahuan teknis, dan solusi sesama pengguna Cloud.',
+    'forum.create_btn': 'Buat Diskusi',
+    'forum.search_placeholder': 'Cari topik diskusi atau kendala teknis...',
+    'forum.replies': 'balasan',
+    'forum.no_threads': 'Belum ada diskusi.',
+
+    // Rewards
+    'rewards.title': 'Katalog Hadiah & Voucher',
+    'rewards.subtitle': 'Tukarkan koin loyalitas Anda dengan berbagai diskon dan reward eksklusif.',
+    'rewards.my_balance': 'Saldo Koin Saya',
+    'rewards.redeem_btn': 'Tukar Voucher',
   },
   en: {
     // Sidebar
@@ -247,6 +292,51 @@ const translations = {
     'landing.feature_3_desc': 'Dashboard security reinforced with Google Authenticator TOTP 2FA. Safeguards your administrative and personal workspace data.',
     'landing.feature_3_cta': 'Login to Set up 2FA',
     'landing.footer_text': 'Driving customer loyalty through innovative CRM ecosystem.',
+
+    // Tickets
+    'tickets.title': 'My Tickets',
+    'tickets.subtitle': 'Your private support requests. Only you and the KroomCare Support Team can access discussions here.',
+    'tickets.create_btn': 'Create Ticket',
+    'tickets.tab_active': 'Active',
+    'tickets.tab_resolved': 'Resolved',
+    'tickets.tab_all': 'All',
+    'tickets.search_placeholder': 'Search by subject or description...',
+    'tickets.no_tickets': 'No tickets found.',
+    'tickets.no_tickets_desc': 'If you are facing technical issues or have inquiries, open a support ticket for assistance.',
+    'tickets.status_resolved': 'Resolved',
+    'tickets.status_waiting': 'Waiting',
+    'tickets.status_processing': 'Processing',
+    'tickets.priority': 'Priority',
+    'tickets.create_title': 'Create New Ticket',
+    'tickets.create_subtitle': 'Submit a technical inquiry or issue with your service',
+    'tickets.subject': 'Issue Subject',
+    'tickets.subject_placeholder': 'e.g. Website Error 500',
+    'tickets.category': 'Category',
+    'tickets.priority_label': 'Priority Level',
+    'tickets.priority_normal': 'Normal (Standard)',
+    'tickets.priority_high': 'High (Urgent)',
+    'tickets.description': 'Issue Description',
+    'tickets.description_placeholder': 'Describe your issue in detail...',
+    'tickets.submit_btn': 'Submit Ticket',
+    'tickets.submitting': 'Submitting...',
+    'tickets.coin_reward_notice': 'Earn +50 Kroom Points once ticket is submitted!',
+    'tickets.success_created': 'Ticket created successfully!',
+    'tickets.error_created': 'Failed to create ticket.',
+    'tickets.must_login': 'You must be logged in first.',
+
+    // Forum
+    'forum.title': 'Community Forum',
+    'forum.subtitle': 'Discuss, share technical insights, and discover solutions with cloud users.',
+    'forum.create_btn': 'New Discussion',
+    'forum.search_placeholder': 'Search topics or technical questions...',
+    'forum.replies': 'replies',
+    'forum.no_threads': 'No discussions found.',
+
+    // Rewards
+    'rewards.title': 'Rewards & Voucher Catalog',
+    'rewards.subtitle': 'Exchange your loyalty coins for exclusive discounts and rewards.',
+    'rewards.my_balance': 'My Coin Balance',
+    'rewards.redeem_btn': 'Redeem Voucher',
   }
 };
 
@@ -290,8 +380,8 @@ function detectParentLanguage(): Language | null {
     }
   } catch (_) {}
 
-  // 2. Shared cookies with Kroombox Panel (kp_lang, kroombox_lang, lang, locale)
-  const cookieNames = ['kp_lang', 'kroombox_lang', 'kroombox_language', 'panel_lang', 'lang', 'locale'];
+  // 2. Shared cookies with Kroombox Panel (kp_language, kp_lang, kroombox_lang, lang, locale)
+  const cookieNames = ['kp_language', 'kp_lang', 'kroombox_lang', 'kroombox_language', 'panel_lang', 'lang', 'locale'];
   for (const name of cookieNames) {
     const val = getSharedCookie(name)?.toLowerCase().trim();
     if (val) {
@@ -311,19 +401,9 @@ function detectParentLanguage(): Language | null {
     if (window.parent && window.parent !== window) {
       const pDoc = window.parent.document;
       if (pDoc) {
-        const docLang = (pDoc.documentElement.lang || pDoc.body?.getAttribute('data-lang') || pDoc.body?.getAttribute('data-locale') || '').toLowerCase().trim();
-        if (docLang.startsWith('en')) {
-          lastKnownParentLang = 'en';
-          return 'en';
-        }
-        if (docLang.startsWith('id')) {
-          lastKnownParentLang = 'id';
-          return 'id';
-        }
-
         const pStorage = window.parent.localStorage;
         if (pStorage) {
-          for (const key of ['kp_lang', 'kroombox_lang', 'lang', 'language', 'locale', 'i18nextLng']) {
+          for (const key of ['kp_language', 'kp_lang', 'kroombox_lang', 'lang', 'language', 'locale', 'i18nextLng']) {
             const val = (pStorage.getItem(key) || '').toLowerCase().trim();
             if (val.startsWith('en')) {
               lastKnownParentLang = 'en';
@@ -334,6 +414,16 @@ function detectParentLanguage(): Language | null {
               return 'id';
             }
           }
+        }
+
+        const docLang = (pDoc.documentElement.lang || pDoc.body?.getAttribute('data-lang') || pDoc.body?.getAttribute('data-locale') || '').toLowerCase().trim();
+        if (docLang.startsWith('en')) {
+          lastKnownParentLang = 'en';
+          return 'en';
+        }
+        if (docLang.startsWith('id')) {
+          lastKnownParentLang = 'id';
+          return 'id';
         }
       }
     }

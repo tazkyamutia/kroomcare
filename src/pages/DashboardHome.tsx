@@ -13,6 +13,7 @@ export const DashboardHome = () => {
 
   const userDisplayName = user?.name || 'tazkyaa';
   const role = user?.role || 'customer';
+  const isCustomer = role === 'customer' || (role as string) === 'member';
   // Use user's points or default to 75 as in mockup specification
   const points = user?.points !== undefined && user?.points !== null ? user.points : 75;
 
@@ -30,7 +31,7 @@ export const DashboardHome = () => {
             {t('dashboard.welcome')}, {userDisplayName}!
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-            {role === 'customer'
+            {isCustomer
               ? t('dashboard.subtitle_customer')
               : t('dashboard.subtitle_staff')}
           </p>
@@ -47,7 +48,7 @@ export const DashboardHome = () => {
       </div>
 
       {/* RENDER KHUSUS MEMBER / CUSTOMER */}
-      {role === 'customer' && (
+      {isCustomer && (
         <>
           {/* Action Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -240,7 +241,7 @@ export const DashboardHome = () => {
       )}
 
       {/* RENDER KHUSUS STAF / ADMIN */}
-      {role !== 'customer' && (
+      {!isCustomer && (
         <>
           {/* Quick Actions (Staff) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">

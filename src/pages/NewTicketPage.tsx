@@ -3,10 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Send, AlertCircle, Loader2 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useUser } from '../context/UserContext';
+import { useLanguageTheme } from '../context/LanguageThemeContext';
 
 export const NewTicketPage = () => {
   const navigate = useNavigate();
   const { user, updateUser } = useUser();
+  const { t } = useLanguageTheme();
   const [formData, setFormData] = React.useState({
     subject: '',
     category: 'Hosting',
@@ -18,7 +20,7 @@ export const NewTicketPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user?.id) {
-      alert('Anda harus login terlebih dahulu.');
+      alert(t('tickets.must_login'));
       return;
     }
 
@@ -37,14 +39,14 @@ export const NewTicketPage = () => {
       const result = await response.json();
       if (response.ok && result.success) {
         updateUser({ points: (user.points || 0) + 50 });
-        alert('Tiket berhasil dibuat!');
+        alert(t('tickets.success_created'));
         navigate('/tickets');
       } else {
-        alert(result.message || 'Gagal membuat tiket.');
+        alert(result.message || t('tickets.error_created'));
       }
     } catch (error) {
       console.error('Failed to create ticket:', error);
-      alert('Terjadi kesalahan koneksi server.');
+      alert(t('tickets.error_created'));
     } finally {
       setIsSubmitting(false);
     }
@@ -60,8 +62,8 @@ export const NewTicketPage = () => {
           <ArrowLeft size={16} />
         </button>
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Buat Tiket Baru</h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400">Ajukan keluhan atau kendala teknis layanan Anda</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">{t('tickets.create_title')}</h1>
+          <p className="text-xs text-slate-500 dark:text-slate-400">{t('tickets.create_subtitle')}</p>
         </div>
       </div>
 
@@ -72,11 +74,11 @@ export const NewTicketPage = () => {
         className="bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4"
       >
         <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Subjek Kendala</label>
+          <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">{t('tickets.subject')}</label>
           <input 
             required
             type="text"
-            placeholder="Contoh: Website Error 500"
+            placeholder={t('tickets.subject_placeholder')}
             className="w-full px-3 py-2 text-xs sm:text-sm bg-white dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:text-slate-400"
             value={formData.subject}
             onChange={e => setFormData({...formData, subject: e.target.value})}
@@ -85,7 +87,7 @@ export const NewTicketPage = () => {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Kategori</label>
+            <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">{t('tickets.category')}</label>
             <select 
               className="w-full px-3 py-2 text-xs sm:text-sm bg-white dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
               value={formData.category}
@@ -99,35 +101,35 @@ export const NewTicketPage = () => {
             </select>
           </div>
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Prioritas</label>
+            <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">{t('tickets.priority_label')}</label>
             <select 
               className="w-full px-3 py-2 text-xs sm:text-sm bg-white dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
               value={formData.priority}
               onChange={e => setFormData({...formData, priority: e.target.value})}
             >
               <option value="Low">Low</option>
-              <option value="Medium">Medium</option>
-              <option value="High">High</option>
+              <option value="Medium">{t('tickets.priority_normal')}</option>
+              <option value="High">{t('tickets.priority_high')}</option>
             </select>
           </div>
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Deskripsi Detail</label>
+          <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">{t('tickets.description')}</label>
           <textarea 
             required
             rows={4}
-            placeholder="Jelaskan kendala Anda secara mendetail..."
+            placeholder={t('tickets.description_placeholder')}
             className="w-full px-3 py-2 text-xs sm:text-sm bg-white dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all resize-none placeholder:text-slate-400"
             value={formData.description}
             onChange={e => setFormData({...formData, description: e.target.value})}
           />
         </div>
 
-        <div className="p-3 bg-amber-50 dark:bg-amber-950/30 rounded-xl border border-amber-200/60 dark:border-amber-900/40 flex items-start gap-2.5">
-          <AlertCircle size={16} className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-          <p className="text-[11px] text-amber-800 dark:text-amber-300 leading-relaxed">
-            Tim dukungan kami akan merespons tiket Anda dalam waktu maksimal 24 jam kerja. Pastikan deskripsi sudah lengkap untuk mempercepat proses mitigasi.
+        <div className="p-3 bg-blue-50 dark:bg-blue-950/30 rounded-xl border border-blue-200/60 dark:border-blue-900/40 flex items-start gap-2.5">
+          <AlertCircle size={16} className="text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+          <p className="text-[11px] text-blue-800 dark:text-blue-300 leading-relaxed font-medium">
+            ✨ {t('tickets.coin_reward_notice')}
           </p>
         </div>
 
@@ -139,12 +141,12 @@ export const NewTicketPage = () => {
           {isSubmitting ? (
             <>
               <Loader2 className="animate-spin" size={16} />
-              Mengirim...
+              {t('tickets.submitting')}
             </>
           ) : (
             <>
               <Send size={16} />
-              Kirim Tiket
+              {t('tickets.submit_btn')}
             </>
           )}
         </button>

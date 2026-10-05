@@ -42,6 +42,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const getNavItems = () => {
     switch (role) {
       case 'customer':
+      case 'member' as any:
         return [
           { name: t('nav.dashboard'), path: '/', icon: LayoutDashboard },
           { name: t('nav.forum'), path: '/forum', icon: MessageSquare },
