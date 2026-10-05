@@ -677,13 +677,15 @@ const ssoExchange = async (req, res) => {
       success: true,
       message: 'Autentikasi SSO berhasil.',
       token: sessionToken,
+      lang: payload.lang || payload.language || null,
       data: {
         id: user.id.toString(),
         name: user.nama,
         email: user.email,
         role: roleMapped,
         points: user.koin_reward || 0,
-        avatar: user.foto || ''
+        avatar: user.foto || '',
+        lang: payload.lang || payload.language || null
       }
     });
   } catch (error) {

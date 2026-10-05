@@ -17,7 +17,17 @@ export const SSOPage: React.FC = () => {
 
     const ticket = searchParams.get('ticket');
     const rawRedirect = searchParams.get('redirect') || '/tickets';
-    const redirectPath = rawRedirect.startsWith('/') ? rawRedirect : `/${rawRedirect}`;
+    const lang = searchParams.get('lang') || searchParams.get('locale');
+
+    let redirectPath = rawRedirect.startsWith('/') ? rawRedirect : `/${rawRedirect}`;
+    if (lang) {
+      try {
+        localStorage.setItem('kroombox_parent_lang', lang);
+        if (!redirectPath.includes('lang=')) {
+          redirectPath += (redirectPath.includes('?') ? '&' : '?') + `lang=${lang}`;
+        }
+      } catch (_) {}
+    }
 
     const savedUserStr = typeof window !== 'undefined' ? localStorage.getItem('kroomcare_user') : null;
 
@@ -57,6 +67,15 @@ export const SSOPage: React.FC = () => {
         // 1. Simpan token & user ke storage
         saveTokenUtil(data.token);
         localStorage.setItem('kroomcare_user', JSON.stringify(data.data));
+        if (data.lang || data.data?.lang) {
+          const l = data.lang || data.data.lang;
+          try {
+            localStorage.setItem('kroombox_parent_lang', l);
+            if (!redirectPath.includes('lang=')) {
+              redirectPath += (redirectPath.includes('?') ? '&' : '?') + `lang=${l}`;
+            }
+          } catch (_) {}
+        }
         if (setUser) setUser(data.data);
 
         setStatus('success');
