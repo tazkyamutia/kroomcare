@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import React, { useEffect, useState, useRef } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useUser } from '../../context/UserContext';
 import { setToken as saveTokenUtil } from '../../utils/token';
 import { Loader2, ShieldCheck, AlertCircle, Headphones } from 'lucide-react';
@@ -10,21 +10,28 @@ export const SSOPage: React.FC = () => {
   const { user, setUser } = useUser();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const executedRef = useRef(false);
 
   useEffect(() => {
-    let isMounted = true;
+    if (executedRef.current) return;
+
     const ticket = searchParams.get('ticket');
-    const redirectPath = searchParams.get('redirect') || '/tickets';
+    const rawRedirect = searchParams.get('redirect') || '/tickets';
+    const redirectPath = rawRedirect.startsWith('/') ? rawRedirect : `/${rawRedirect}`;
+
+    const savedUserStr = typeof window !== 'undefined' ? localStorage.getItem('kroomcare_user') : null;
 
     if (!ticket) {
-      if (user) {
-        navigate(redirectPath, { replace: true });
+      if (savedUserStr || user) {
+        window.location.replace(redirectPath);
         return;
       }
       setStatus('error');
       setErrorMessage('Tiket autentikasi SSO tidak ditemukan dalam URL.');
       return;
     }
+
+    executedRef.current = true;
 
     const performExchange = async () => {
       try {
@@ -39,28 +46,28 @@ export const SSOPage: React.FC = () => {
         const data = await response.json();
 
         if (!response.ok || !data.success) {
+          // If ticket was already used/expired but we have a saved user session, proceed directly
+          if (savedUserStr || user) {
+            window.location.replace(redirectPath);
+            return;
+          }
           throw new Error(data.message || 'Gagal memverifikasi tiket SSO.');
         }
 
-        if (!isMounted) return;
-
-        // 1. Simpan token ke storage via utility
+        // 1. Simpan token & user ke storage
         saveTokenUtil(data.token);
-
-        // 2. Set user di context & localStorage
-        if (setUser) setUser(data.data);
         localStorage.setItem('kroomcare_user', JSON.stringify(data.data));
+        if (setUser) setUser(data.data);
 
         setStatus('success');
 
-        // 3. Navigasi ke rute tujuan
-        setTimeout(() => {
-          if (isMounted) {
-            navigate(redirectPath, { replace: true });
-          }
-        }, 300);
+        // 2. Langsung redirect menggunakan window.location.replace agar URL bersih dari tiket SSO
+        window.location.replace(redirectPath);
       } catch (err: any) {
-        if (!isMounted) return;
+        if (savedUserStr || user) {
+          window.location.replace(redirectPath);
+          return;
+        }
         console.error('[SSO] Handshake failed:', err);
         setStatus('error');
         setErrorMessage(err.message || 'Terjadi kesalahan saat memproses login SSO.');
@@ -68,11 +75,7 @@ export const SSOPage: React.FC = () => {
     };
 
     performExchange();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [searchParams, navigate, setUser, user]);
+  }, []);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 p-4 transition-colors">

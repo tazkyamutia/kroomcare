@@ -103,7 +103,7 @@ export default function App() {
             <AnimatePresence mode="wait">
               <Routes>
                 {/* Customer Routes */}
-                {user.role === 'customer' && (
+                {(user.role === 'customer' || (user.role as string) === 'member') && (
                   <>
                     <Route path="/" element={<DashboardHome />} />
                     <Route path="/forum" element={<ForumPage />} />
@@ -155,7 +155,7 @@ export default function App() {
           </div>
         </main>
 
-        {user.role === 'customer' && <ChatWidget />}
+        {(user.role === 'customer' || (user.role as string) === 'member') && <ChatWidget />}
       </div>
     </Router>
   );

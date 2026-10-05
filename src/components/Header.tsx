@@ -159,7 +159,7 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar, isEmbedded = fa
       <div className="flex-1 min-w-0" />
       
       <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
-        {role === 'customer' && (
+        {(role === 'customer' || (role as string) === 'member') && (
           <motion.div 
             whileHover={{ scale: 1.01 }}
             className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 bg-white dark:bg-slate-900/50 rounded-xl border border-slate-200/60 dark:border-white/5 shadow-xs transition-all hover:border-blue-300 dark:hover:border-white/15 dark:hover:bg-slate-900/80 group cursor-pointer backdrop-blur-sm shrink-0"
