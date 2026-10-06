@@ -284,14 +284,16 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar, isEmbedded = fa
           </button>
         )}
 
-        {/* Theme Quick Toggle */}
-        <button
-          onClick={toggleTheme}
-          title={theme === 'dark' ? 'Ganti ke tema terang' : 'Ganti ke tema gelap'}
-          className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl border border-slate-200/60 dark:border-white/5 bg-white dark:bg-slate-900/50 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-amber-400 hover:border-blue-200 dark:hover:border-white/15 dark:hover:bg-slate-900/80 transition-all shadow-xs backdrop-blur-sm"
-        >
-          {theme === 'dark' ? <Sun size={16} className="text-amber-400" /> : <Moon size={16} />}
-        </button>
+        {/* Theme Quick Toggle - Hidden in Support Center / Embedded panel */}
+        {!isEmbeddedEffective && (
+          <button
+            onClick={toggleTheme}
+            title={theme === 'dark' ? 'Ganti ke tema terang' : 'Ganti ke tema gelap'}
+            className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl border border-slate-200/60 dark:border-white/5 bg-white dark:bg-slate-900/50 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-amber-400 hover:border-blue-200 dark:hover:border-white/15 dark:hover:bg-slate-900/80 transition-all shadow-xs backdrop-blur-sm cursor-pointer"
+          >
+            {theme === 'dark' ? <Sun size={16} className="text-amber-400" /> : <Moon size={16} />}
+          </button>
+        )}
 
         {/* Interactive Avatar */}
         <div className="relative">

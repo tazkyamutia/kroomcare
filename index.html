@@ -30,24 +30,35 @@
             isEmbedded = true;
           }
 
-          var cookieTheme = getCookie('kp_theme');
+          var cookieTheme = getCookie('kp_theme') || getCookie('kroombox_theme') || getCookie('theme');
           var isDark = false;
 
           var params = new URLSearchParams(window.location.search);
           var pTheme = params.get('theme') || params.get('mode');
-          var userMode = localStorage.getItem('kroomcare_theme_mode');
 
           if (pTheme === 'dark') {
             isDark = true;
           } else if (pTheme === 'light') {
             isDark = false;
-          } else if (userMode === 'dark') {
-            isDark = true;
-          } else if (userMode === 'light') {
-            isDark = false;
           } else if (isEmbedded) {
-            // When embedded in Kroombox Panel: prioritize cookie or parent broadcast
-            if (cookieTheme === 'dark') {
+            // When embedded in Kroombox Panel: ALWAYS prioritize panel theme!
+            var parentDetected = null;
+            try {
+              if (window.parent && window.parent.document) {
+                var pDoc = window.parent.document;
+                var pHtml = pDoc.documentElement;
+                var pBody = pDoc.body;
+                if (pHtml.classList.contains('dark') || (pBody && pBody.classList.contains('dark')) || pHtml.getAttribute('data-theme') === 'dark' || pHtml.getAttribute('data-mode') === 'dark') {
+                  parentDetected = true;
+                } else if (pHtml.classList.contains('light') || (pBody && pBody.classList.contains('light')) || pHtml.getAttribute('data-theme') === 'light' || pHtml.getAttribute('data-mode') === 'light') {
+                  parentDetected = false;
+                }
+              }
+            } catch(e) {}
+
+            if (parentDetected !== null) {
+              isDark = parentDetected;
+            } else if (cookieTheme === 'dark') {
               isDark = true;
             } else if (cookieTheme === 'light') {
               isDark = false;
@@ -55,13 +66,22 @@
               var stored = localStorage.getItem('kroombox_parent_theme');
               if (stored === 'dark') isDark = true;
               else if (stored === 'light') isDark = false;
-              else isDark = false; // Default embedded mode to light matching Kroombox panel
+              else isDark = true; // Default embedded mode to dark matching Kroombox panel's dark UI
             }
           } else {
-            // Standalone mode
-            if (cookieTheme === 'dark') isDark = true;
-            else if (cookieTheme === 'light') isDark = false;
-            else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) isDark = true;
+            // Standalone mode: honor user's explicit preference or system media query
+            var userMode = localStorage.getItem('kroomcare_theme_mode');
+            if (userMode === 'dark') {
+              isDark = true;
+            } else if (userMode === 'light') {
+              isDark = false;
+            } else if (cookieTheme === 'dark') {
+              isDark = true;
+            } else if (cookieTheme === 'light') {
+              isDark = false;
+            } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+              isDark = true;
+            }
           }
 
           if (isDark) {

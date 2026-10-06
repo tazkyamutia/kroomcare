@@ -469,8 +469,10 @@ function getSharedCookie(name: string): string | null {
 }
 
 function getSharedCookieTheme(): Theme | null {
-  const val = getSharedCookie('kp_theme')?.toLowerCase();
-  if (val === 'dark' || val === 'light') return val as Theme;
+  for (const name of ['kp_theme', 'kroombox_theme', 'theme', 'panel_theme', 'theme_mode']) {
+    const val = getSharedCookie(name)?.toLowerCase().trim();
+    if (val === 'dark' || val === 'light') return val as Theme;
+  }
   return null;
 }
 
@@ -623,103 +625,128 @@ function detectParentTheme(): Theme | null {
       } catch (_) {}
 
       const pDoc = window.parent.document;
-      const pHtml = pDoc.documentElement;
-      const pBody = pDoc.body;
+      if (pDoc) {
+        const pHtml = pDoc.documentElement;
+        const pBody = pDoc.body;
 
-      // 3. Check if parent explicitly has dark classes or data attributes
-      if (
-        pHtml.classList.contains('dark') ||
-        pHtml.classList.contains('theme-dark') ||
-        pHtml.classList.contains('dark-mode') ||
-        pHtml.classList.contains('night') ||
-        pBody.classList.contains('dark') ||
-        pBody.classList.contains('theme-dark') ||
-        pBody.classList.contains('dark-mode') ||
-        pBody.classList.contains('night') ||
-        pHtml.getAttribute('data-theme') === 'dark' ||
-        pHtml.getAttribute('data-mode') === 'dark' ||
-        pHtml.getAttribute('data-color-mode') === 'dark' ||
-        pBody.getAttribute('data-theme') === 'dark' ||
-        pBody.getAttribute('data-mode') === 'dark' ||
-        pBody.getAttribute('data-color-mode') === 'dark'
-      ) {
-        lastKnownParentTheme = 'dark';
-        try { localStorage.setItem('kroombox_parent_theme', 'dark'); } catch (_) {}
-        return 'dark';
-      }
-
-      // Check root container in parent
-      const pRoot = pDoc.getElementById('root') || pDoc.querySelector('#app') || pDoc.querySelector('main');
-      if (pRoot) {
+        // 3. Check if parent explicitly has dark classes or data attributes
         if (
-          pRoot.classList.contains('dark') ||
-          pRoot.classList.contains('theme-dark') ||
-          pRoot.getAttribute('data-theme') === 'dark' ||
-          pRoot.getAttribute('data-mode') === 'dark'
+          pHtml.classList.contains('dark') ||
+          pHtml.classList.contains('theme-dark') ||
+          pHtml.classList.contains('dark-mode') ||
+          pHtml.classList.contains('night') ||
+          pBody?.classList.contains('dark') ||
+          pBody?.classList.contains('theme-dark') ||
+          pBody?.classList.contains('dark-mode') ||
+          pBody?.classList.contains('night') ||
+          pHtml.getAttribute('data-theme') === 'dark' ||
+          pHtml.getAttribute('data-mode') === 'dark' ||
+          pHtml.getAttribute('data-color-mode') === 'dark' ||
+          pBody?.getAttribute('data-theme') === 'dark' ||
+          pBody?.getAttribute('data-mode') === 'dark' ||
+          pBody?.getAttribute('data-color-mode') === 'dark'
         ) {
           lastKnownParentTheme = 'dark';
           try { localStorage.setItem('kroombox_parent_theme', 'dark'); } catch (_) {}
           return 'dark';
         }
-      }
 
-      // 4. Check computed background color brightness of parent elements
-      const checkBg = (el: Element | null): Theme | null => {
-        if (!el) return null;
-        try {
-          const bg = window.parent.getComputedStyle(el).backgroundColor;
-          if (bg && bg !== 'transparent' && bg !== 'rgba(0, 0, 0, 0)') {
-            const rgb = bg.match(/\d+/g);
-            if (rgb && rgb.length >= 3) {
-              const brightness = (parseInt(rgb[0], 10) * 299 + parseInt(rgb[1], 10) * 587 + parseInt(rgb[2], 10) * 114) / 1000;
-              return brightness < 128 ? 'dark' : 'light';
-            }
+        // 4. Check if parent explicitly has light classes or data attributes
+        if (
+          pHtml.classList.contains('light') ||
+          pHtml.classList.contains('theme-light') ||
+          pHtml.classList.contains('light-mode') ||
+          pBody?.classList.contains('light') ||
+          pBody?.classList.contains('theme-light') ||
+          pBody?.classList.contains('light-mode') ||
+          pHtml.getAttribute('data-theme') === 'light' ||
+          pHtml.getAttribute('data-mode') === 'light' ||
+          pHtml.getAttribute('data-color-mode') === 'light' ||
+          pBody?.getAttribute('data-theme') === 'light' ||
+          pBody?.getAttribute('data-mode') === 'light' ||
+          pBody?.getAttribute('data-color-mode') === 'light'
+        ) {
+          lastKnownParentTheme = 'light';
+          try { localStorage.setItem('kroombox_parent_theme', 'light'); } catch (_) {}
+          return 'light';
+        }
+
+        // Check root container in parent
+        const pRoot = pDoc.getElementById('root') || pDoc.querySelector('#app') || pDoc.querySelector('main');
+        if (pRoot) {
+          if (
+            pRoot.classList.contains('dark') ||
+            pRoot.classList.contains('theme-dark') ||
+            pRoot.getAttribute('data-theme') === 'dark' ||
+            pRoot.getAttribute('data-mode') === 'dark'
+          ) {
+            lastKnownParentTheme = 'dark';
+            try { localStorage.setItem('kroombox_parent_theme', 'dark'); } catch (_) {}
+            return 'dark';
           }
-        } catch (_) {}
-        return null;
-      };
+          if (
+            pRoot.classList.contains('light') ||
+            pRoot.classList.contains('theme-light') ||
+            pRoot.getAttribute('data-theme') === 'light' ||
+            pRoot.getAttribute('data-mode') === 'light'
+          ) {
+            lastKnownParentTheme = 'light';
+            try { localStorage.setItem('kroombox_parent_theme', 'light'); } catch (_) {}
+            return 'light';
+          }
+        }
 
-      const bodyTheme = checkBg(pBody);
-      if (bodyTheme) {
-        lastKnownParentTheme = bodyTheme;
-        try { localStorage.setItem('kroombox_parent_theme', bodyTheme); } catch (_) {}
-        return bodyTheme;
-      }
+        // 5. Check computed background color brightness of parent elements
+        const checkBg = (el: Element | null): Theme | null => {
+          if (!el) return null;
+          try {
+            const bg = window.parent.getComputedStyle(el).backgroundColor;
+            if (bg && bg !== 'transparent' && bg !== 'rgba(0, 0, 0, 0)') {
+              const rgb = bg.match(/\d+/g);
+              if (rgb && rgb.length >= 3) {
+                const brightness = (parseInt(rgb[0], 10) * 299 + parseInt(rgb[1], 10) * 587 + parseInt(rgb[2], 10) * 114) / 1000;
+                return brightness < 128 ? 'dark' : 'light';
+              }
+            }
+          } catch (_) {}
+          return null;
+        };
 
-      const htmlTheme = checkBg(pHtml);
-      if (htmlTheme) {
-        lastKnownParentTheme = htmlTheme;
-        try { localStorage.setItem('kroombox_parent_theme', htmlTheme); } catch (_) {}
-        return htmlTheme;
-      }
+        const bodyTheme = checkBg(pBody);
+        if (bodyTheme) {
+          lastKnownParentTheme = bodyTheme;
+          try { localStorage.setItem('kroombox_parent_theme', bodyTheme); } catch (_) {}
+          return bodyTheme;
+        }
 
-      if (pRoot) {
-        const rootTheme = checkBg(pRoot);
-        if (rootTheme) {
-          lastKnownParentTheme = rootTheme;
-          try { localStorage.setItem('kroombox_parent_theme', rootTheme); } catch (_) {}
-          return rootTheme;
+        const htmlTheme = checkBg(pHtml);
+        if (htmlTheme) {
+          lastKnownParentTheme = htmlTheme;
+          try { localStorage.setItem('kroombox_parent_theme', htmlTheme); } catch (_) {}
+          return htmlTheme;
+        }
+
+        if (pRoot) {
+          const rootTheme = checkBg(pRoot);
+          if (rootTheme) {
+            lastKnownParentTheme = rootTheme;
+            try { localStorage.setItem('kroombox_parent_theme', rootTheme); } catch (_) {}
+            return rootTheme;
+          }
         }
       }
-
-      // Parent document was accessible and has NO dark indicators -> Parent is in LIGHT mode!
-      lastKnownParentTheme = 'light';
-      try { localStorage.setItem('kroombox_parent_theme', 'light'); } catch (_) {}
-      return 'light';
     }
   } catch (_) {
-    // Cross-origin restriction: check shared cookie first, then last known parent theme, then stored
-    const fallbackCookie = getSharedCookieTheme();
-    if (fallbackCookie) return fallbackCookie;
-    if (lastKnownParentTheme) {
-      return lastKnownParentTheme;
-    }
-    try {
-      const stored = localStorage.getItem('kroombox_parent_theme') as Theme;
-      if (stored === 'dark' || stored === 'light') return stored;
-    } catch (_) {}
-    return null;
+    // Cross-origin SOP restriction: parent document is not directly inspectable
   }
+
+  // 6. Stored last known parent theme from past sync or broadcast
+  if (lastKnownParentTheme) return lastKnownParentTheme;
+  try {
+    const stored = localStorage.getItem('kroombox_parent_theme') as Theme;
+    if (stored === 'dark' || stored === 'light') return stored;
+  } catch (_) {}
+
   return null;
 }
 
@@ -744,7 +771,7 @@ function resolveSystemTheme(): Theme {
     return cookieTheme;
   }
 
-  // 3. Check parent iframe theme (Kroombox Panel)
+  // 3. Check parent iframe theme (Kroombox Panel Support Center)
   const isEmbedded = typeof window !== 'undefined' && window.parent && window.parent !== window;
   if (isEmbedded) {
     const parentTheme = detectParentTheme();
@@ -754,8 +781,8 @@ function resolveSystemTheme(): Theme {
     if (lastKnownParentTheme) {
       return lastKnownParentTheme;
     }
-    // If embedded and no explicit parent theme detected, default to 'light' (matching Kroombox Panel's base UI)
-    return 'light';
+    // When embedded in Kroombox Panel: default to 'dark' matching Kroombox's cloud hosting theme!
+    return 'dark';
   }
 
   // 4. Standalone direct window or fallback: check system media query
@@ -803,11 +830,15 @@ export const LanguageThemeProvider: React.FC<{ children: React.ReactNode }> = ({
         if (urlTheme === 'light' || urlTheme === 'dark') return urlTheme;
       } catch (_) {}
     }
+    if (isEmbedded) {
+      // In embedded mode, ALWAYS follow panel (system / responsive)
+      return 'system';
+    }
     const savedMode = typeof window !== 'undefined' ? localStorage.getItem('kroomcare_theme_mode') : null;
-    if (savedMode === 'light' || savedMode === 'dark') {
+    if (savedMode === 'light' || savedMode === 'dark' || savedMode === 'system') {
       return savedMode as ThemeMode;
     }
-    return isEmbedded ? 'system' : (savedMode === 'system' ? 'system' : 'system');
+    return 'system';
   });
 
   // Current active resolved theme: 'light' | 'dark'
@@ -818,8 +849,10 @@ export const LanguageThemeProvider: React.FC<{ children: React.ReactNode }> = ({
         const urlTheme = params.get('theme') || params.get('mode');
         if (urlTheme === 'light' || urlTheme === 'dark') return urlTheme;
       } catch (_) {}
-      const savedMode = localStorage.getItem('kroomcare_theme_mode');
-      if (savedMode === 'dark' || savedMode === 'light') return savedMode;
+      if (!isEmbedded) {
+        const savedMode = localStorage.getItem('kroomcare_theme_mode');
+        if (savedMode === 'dark' || savedMode === 'light') return savedMode;
+      }
     }
     return resolveSystemTheme();
   });
@@ -856,7 +889,9 @@ export const LanguageThemeProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const setTheme = (mode: ThemeMode) => {
     setThemeModeState(mode);
-    localStorage.setItem('kroomcare_theme_mode', mode);
+    if (!isEmbedded) {
+      localStorage.setItem('kroomcare_theme_mode', mode);
+    }
     if (mode === 'dark') {
       setResolvedTheme('dark');
       applyThemeToDOM('dark');
@@ -892,6 +927,10 @@ export const LanguageThemeProvider: React.FC<{ children: React.ReactNode }> = ({
       } catch (_) {}
     }
     if (typeof data === 'object') {
+      if (data.type === 'KROOMBOX_THEME_CHANGE' || data.type === 'THEME_CHANGE' || data.type === 'SET_THEME' || data.type === 'KP_THEME_CHANGE') {
+        const val = (data.theme || data.mode || data.colorScheme || '').toLowerCase().trim();
+        if (val === 'dark' || val === 'light') return val as Theme;
+      }
       if (data.theme === 'dark' || data.theme === 'light') return data.theme;
       if (data.mode === 'dark' || data.mode === 'light') return data.mode;
       if (data.colorScheme === 'dark' || data.colorScheme === 'light') return data.colorScheme;
@@ -912,8 +951,8 @@ export const LanguageThemeProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Re-sync with system or parent when in 'system' mode or when embedded
   useEffect(() => {
-    // If user is explicitly locked to 'light' or 'dark', honor it
-    if (themeMode !== 'system') {
+    // If standalone and user explicitly locked to 'light' or 'dark', honor it
+    if (!isEmbedded && themeMode !== 'system') {
       applyThemeToDOM(themeMode);
       setResolvedTheme(themeMode);
       return;

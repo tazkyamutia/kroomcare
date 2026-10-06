@@ -123,61 +123,63 @@ export const SettingsPage: React.FC = () => {
         </section>
         )}
 
-        {/* Theme Mode Card */}
-        <section className="bg-white dark:bg-slate-900 rounded-xl sm:rounded-2xl p-4 sm:p-5 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-blue-50 dark:bg-blue-950/40 rounded-xl flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
-              <Palette size={18} />
+        {/* Theme Mode Card - Hidden in Support Center / Embedded Panel */}
+        {!isEmbedded && (
+          <section className="bg-white dark:bg-slate-900 rounded-xl sm:rounded-2xl p-4 sm:p-5 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-blue-50 dark:bg-blue-950/40 rounded-xl flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
+                <Palette size={18} />
+              </div>
+              <div>
+                <h2 className="text-sm font-semibold text-slate-900 dark:text-white">
+                  {t('settings.theme_section')}
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  {t('settings.theme_desc')}
+                </p>
+              </div>
             </div>
-            <div>
-              <h2 className="text-sm font-semibold text-slate-900 dark:text-white">
-                {t('settings.theme_section')}
-              </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                {t('settings.theme_desc')}
-              </p>
-            </div>
-          </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
-            <button
-              onClick={() => handleThemeChange('system')}
-              className={cn(
-                "p-3 rounded-xl border flex sm:flex-col items-center justify-center gap-2 transition-all font-semibold text-xs sm:text-sm",
-                themeMode === 'system'
-                  ? "border-blue-600 bg-blue-50/50 text-blue-700 dark:border-blue-500 dark:bg-blue-950/20 dark:text-blue-400 shadow-xs ring-2 ring-blue-500/20"
-                  : "border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-400"
-              )}
-            >
-              <Laptop size={18} className="text-blue-500" />
-              <span>{t('settings.theme_system')}</span>
-            </button>
-            <button
-              onClick={() => handleThemeChange('light')}
-              className={cn(
-                "p-3 rounded-xl border flex sm:flex-col items-center justify-center gap-2 transition-all font-semibold text-xs sm:text-sm",
-                themeMode === 'light'
-                  ? "border-blue-600 bg-blue-50/50 text-blue-700 dark:border-blue-500 dark:bg-blue-950/20 dark:text-blue-400 shadow-xs ring-2 ring-blue-500/20"
-                  : "border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-400"
-              )}
-            >
-              <Sun size={18} className="text-amber-500" />
-              <span>{t('settings.theme_light')}</span>
-            </button>
-            <button
-              onClick={() => handleThemeChange('dark')}
-              className={cn(
-                "p-3 rounded-xl border flex sm:flex-col items-center justify-center gap-2 transition-all font-semibold text-xs sm:text-sm",
-                themeMode === 'dark'
-                  ? "border-blue-600 bg-blue-50/50 text-blue-700 dark:border-blue-500 dark:bg-blue-950/20 dark:text-blue-400 shadow-xs ring-2 ring-blue-500/20"
-                  : "border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-400"
-              )}
-            >
-              <Moon size={18} className="text-indigo-400" />
-              <span>{t('settings.theme_dark')}</span>
-            </button>
-          </div>
-        </section>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
+              <button
+                onClick={() => handleThemeChange('system')}
+                className={cn(
+                  "p-3 rounded-xl border flex sm:flex-col items-center justify-center gap-2 transition-all font-semibold text-xs sm:text-sm cursor-pointer",
+                  themeMode === 'system'
+                    ? "border-blue-600 bg-blue-50/50 text-blue-700 dark:border-blue-500 dark:bg-blue-950/20 dark:text-blue-400 shadow-xs ring-2 ring-blue-500/20"
+                    : "border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-400"
+                )}
+              >
+                <Laptop size={18} className="text-blue-500" />
+                <span>{t('settings.theme_system')}</span>
+              </button>
+              <button
+                onClick={() => handleThemeChange('light')}
+                className={cn(
+                  "p-3 rounded-xl border flex sm:flex-col items-center justify-center gap-2 transition-all font-semibold text-xs sm:text-sm cursor-pointer",
+                  themeMode === 'light'
+                    ? "border-blue-600 bg-blue-50/50 text-blue-700 dark:border-blue-500 dark:bg-blue-950/20 dark:text-blue-400 shadow-xs ring-2 ring-blue-500/20"
+                    : "border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-400"
+                )}
+              >
+                <Sun size={18} className="text-amber-500" />
+                <span>{t('settings.theme_light')}</span>
+              </button>
+              <button
+                onClick={() => handleThemeChange('dark')}
+                className={cn(
+                  "p-3 rounded-xl border flex sm:flex-col items-center justify-center gap-2 transition-all font-semibold text-xs sm:text-sm cursor-pointer",
+                  themeMode === 'dark'
+                    ? "border-blue-600 bg-blue-50/50 text-blue-700 dark:border-blue-500 dark:bg-blue-950/20 dark:text-blue-400 shadow-xs ring-2 ring-blue-500/20"
+                    : "border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-400"
+                )}
+              >
+                <Moon size={18} className="text-indigo-400" />
+                <span>{t('settings.theme_dark')}</span>
+              </button>
+            </div>
+          </section>
+        )}
       </div>
 
       {/* Success Notification */}
