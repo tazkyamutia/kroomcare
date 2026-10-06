@@ -482,37 +482,7 @@ let lastKnownParentLang: Language | null = null;
 function detectParentLanguage(): Language | null {
   if (typeof window === 'undefined') return null;
 
-  // 1. URL search params (e.g. ?lang=id or ?lang=en or ?locale=id)
-  try {
-    const params = new URLSearchParams(window.location.search);
-    const urlLang = (params.get('lang') || params.get('locale') || params.get('language') || '').toLowerCase().trim();
-    if (urlLang.startsWith('en')) {
-      lastKnownParentLang = 'en';
-      return 'en';
-    }
-    if (urlLang.startsWith('id')) {
-      lastKnownParentLang = 'id';
-      return 'id';
-    }
-  } catch (_) {}
-
-  // 2. Shared cookies with Kroombox Panel (kp_language, kp_lang, kroombox_lang, lang, locale)
-  const cookieNames = ['kp_language', 'kp_lang', 'kroombox_lang', 'kroombox_language', 'panel_lang', 'lang', 'locale'];
-  for (const name of cookieNames) {
-    const val = getSharedCookie(name)?.toLowerCase().trim();
-    if (val) {
-      if (val.startsWith('en')) {
-        lastKnownParentLang = 'en';
-        return 'en';
-      }
-      if (val.startsWith('id')) {
-        lastKnownParentLang = 'id';
-        return 'id';
-      }
-    }
-  }
-
-  // 3. Parent document inspection if same-origin / accessible
+  // 1. Live parent document inspection if accessible (single source of truth)
   try {
     if (window.parent && window.parent !== window) {
       const pDoc = window.parent.document;
@@ -545,11 +515,41 @@ function detectParentLanguage(): Language | null {
     }
   } catch (_) {}
 
-  // 4. Stored last known parent language
+  // 2. Shared cookies with Kroombox Panel (kp_language, kp_lang, kroombox_lang)
+  const cookieNames = ['kp_language', 'kp_lang', 'kroombox_lang', 'kroombox_language', 'panel_lang', 'lang', 'locale'];
+  for (const name of cookieNames) {
+    const val = getSharedCookie(name)?.toLowerCase().trim();
+    if (val) {
+      if (val.startsWith('en')) {
+        lastKnownParentLang = 'en';
+        return 'en';
+      }
+      if (val.startsWith('id')) {
+        lastKnownParentLang = 'id';
+        return 'id';
+      }
+    }
+  }
+
+  // 3. Stored last known parent language (from live postMessage broadcast)
   if (lastKnownParentLang) return lastKnownParentLang;
   try {
     const stored = localStorage.getItem('kroombox_parent_lang');
     if (stored === 'en' || stored === 'id') return stored as Language;
+  } catch (_) {}
+
+  // 4. Initial cold fallback ONLY: URL search params (e.g. ?lang=id or ?lang=en)
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const urlLang = (params.get('lang') || params.get('locale') || params.get('language') || '').toLowerCase().trim();
+    if (urlLang.startsWith('en')) {
+      lastKnownParentLang = 'en';
+      return 'en';
+    }
+    if (urlLang.startsWith('id')) {
+      lastKnownParentLang = 'id';
+      return 'id';
+    }
   } catch (_) {}
 
   return null;
@@ -866,7 +866,7 @@ export const LanguageThemeProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, []);
 
-  const setLanguage = (lang: Language) => {
+  const setLanguage = useCallback((lang: Language) => {
     setLanguageState(lang);
     try {
       if (isEmbedded) {
@@ -879,13 +879,22 @@ export const LanguageThemeProvider: React.FC<{ children: React.ReactNode }> = ({
       if (typeof document !== 'undefined') {
         document.documentElement.lang = lang;
       }
+      if (typeof window !== 'undefined' && window.location.search) {
+        const url = new URL(window.location.href);
+        if (url.searchParams.has('lang') || url.searchParams.has('locale') || url.searchParams.has('language')) {
+          url.searchParams.set('lang', lang);
+          if (url.searchParams.has('locale')) url.searchParams.set('locale', lang);
+          if (url.searchParams.has('language')) url.searchParams.set('language', lang);
+          window.history.replaceState({}, '', url.pathname + url.search + url.hash);
+        }
+      }
     } catch (_) {}
-  };
+  }, [isEmbedded]);
 
-  const toggleLanguage = () => {
+  const toggleLanguage = useCallback(() => {
     const nextLang: Language = language === 'id' ? 'en' : 'id';
     setLanguage(nextLang);
-  };
+  }, [language, setLanguage]);
 
   const setTheme = (mode: ThemeMode) => {
     setThemeModeState(mode);
@@ -1077,12 +1086,38 @@ export const LanguageThemeProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     if (!isEmbedded) return;
 
+    let lastSyncedLang: Language = language;
+
     const syncLanguage = (newLang: Language) => {
+      if (lastSyncedLang === newLang && typeof document !== 'undefined' && document.documentElement.lang === newLang) {
+        return;
+      }
+      lastSyncedLang = newLang;
+      lastKnownParentLang = newLang;
+
+      try {
+        localStorage.setItem('kroombox_parent_lang', newLang);
+      } catch (_) {}
+
+      // Keep URL search parameter synchronized so stale initial URL never reverts language
+      try {
+        if (typeof window !== 'undefined' && window.location.search) {
+          const url = new URL(window.location.href);
+          if (url.searchParams.has('lang') || url.searchParams.has('locale') || url.searchParams.has('language')) {
+            url.searchParams.set('lang', newLang);
+            if (url.searchParams.has('locale')) url.searchParams.set('locale', newLang);
+            if (url.searchParams.has('language')) url.searchParams.set('language', newLang);
+            window.history.replaceState({}, '', url.pathname + url.search + url.hash);
+          }
+        }
+      } catch (_) {}
+
+      if (typeof document !== 'undefined') {
+        document.documentElement.lang = newLang;
+      }
+
       setLanguageState(prev => {
         if (prev !== newLang) {
-          if (typeof document !== 'undefined') {
-            document.documentElement.lang = newLang;
-          }
           return newLang;
         }
         return prev;
@@ -1097,8 +1132,6 @@ export const LanguageThemeProvider: React.FC<{ children: React.ReactNode }> = ({
     const handleMessage = (event: MessageEvent) => {
       const incomingLang = parseLanguageFromData(event.data);
       if (incomingLang) {
-        lastKnownParentLang = incomingLang;
-        try { localStorage.setItem('kroombox_parent_lang', incomingLang); } catch (_) {}
         syncLanguage(incomingLang);
       }
     };
@@ -1111,7 +1144,7 @@ export const LanguageThemeProvider: React.FC<{ children: React.ReactNode }> = ({
       if (typeof window !== 'undefined' && window.parent && window.parent !== window && window.parent.document) {
         const syncFromParent = () => {
           const latest = detectParentLanguage();
-          if (latest) {
+          if (latest && latest !== lastSyncedLang) {
             syncLanguage(latest);
           }
         };
@@ -1143,13 +1176,13 @@ export const LanguageThemeProvider: React.FC<{ children: React.ReactNode }> = ({
       window.parent.postMessage('getLanguage', '*');
     } catch (_) {}
 
-    // 5. Polling interval (400ms) for real-time responsiveness when embedded
+    // 5. Gentle fallback polling (1000ms) only when language actually changed
     const interval = setInterval(() => {
       const latest = detectParentLanguage();
-      if (latest) {
+      if (latest && latest !== lastSyncedLang) {
         syncLanguage(latest);
       }
-    }, 400);
+    }, 1000);
 
     return () => {
       window.removeEventListener('message', handleMessage);
@@ -1163,12 +1196,12 @@ export const LanguageThemeProvider: React.FC<{ children: React.ReactNode }> = ({
     };
   }, [isEmbedded]);
 
-  const t = (key: string): string => {
+  const t = useCallback((key: string): string => {
     const langDict = (translations[language] || translations['id']) as Record<string, string>;
     const defaultDict = translations['id'] as Record<string, string>;
     const enDict = translations['en'] as Record<string, string>;
     return langDict[key] || defaultDict[key] || enDict[key] || key;
-  };
+  }, [language]);
 
   return (
     <LanguageThemeContext.Provider value={{ language, setLanguage, toggleLanguage, theme: resolvedTheme, themeMode, setTheme, toggleTheme, t }}>
