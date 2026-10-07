@@ -1,8 +1,10 @@
 import React from 'react';
 import { Settings, Search, Loader2, CheckCircle2 } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { useLanguageTheme } from '../../context/LanguageThemeContext';
 
 export const TicketSettingsPage = () => {
+  const { t, language } = useLanguageTheme();
   const [tickets, setTickets] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -21,11 +23,11 @@ export const TicketSettingsPage = () => {
       if (response.ok && result.success) {
         setTickets(result.data);
       } else {
-        setError(result.message || 'Gagal memuat tiket.');
+        setError(result.message || (language === 'en' ? 'Failed to load tickets.' : 'Gagal memuat tiket.'));
       }
     } catch (err) {
       console.error(err);
-      setError('Koneksi gagal ke server.');
+      setError(language === 'en' ? 'Failed to connect to server.' : 'Koneksi gagal ke server.');
     } finally {
       setLoading(false);
     }
@@ -47,15 +49,15 @@ export const TicketSettingsPage = () => {
       const result = await response.json();
       if (response.ok && result.success) {
         setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, isPriority } : t));
-        setToastMessage(`Prioritas Tiket #${ticketId} berhasil diperbarui.`);
+        setToastMessage(language === 'en' ? `Ticket #${ticketId} priority updated successfully.` : `Prioritas Tiket #${ticketId} berhasil diperbarui.`);
         setShowToast(true);
         setTimeout(() => setShowToast(false), 3000);
       } else {
-        alert(result.message || 'Gagal mengubah prioritas.');
+        alert(result.message || (language === 'en' ? 'Failed to update priority.' : 'Gagal mengubah prioritas.'));
       }
     } catch (err) {
       console.error(err);
-      alert('Koneksi gagal ke server.');
+      alert(language === 'en' ? 'Failed to connect to server.' : 'Koneksi gagal ke server.');
     } finally {
       setUpdatingId(null);
     }
@@ -72,15 +74,15 @@ export const TicketSettingsPage = () => {
       const result = await response.json();
       if (response.ok && result.success) {
         setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, status } : t));
-        setToastMessage(`Status Tiket #${ticketId} berhasil diperbarui.`);
+        setToastMessage(language === 'en' ? `Ticket #${ticketId} status updated successfully.` : `Status Tiket #${ticketId} berhasil diperbarui.`);
         setShowToast(true);
         setTimeout(() => setShowToast(false), 3000);
       } else {
-        alert(result.message || 'Gagal mengubah status.');
+        alert(result.message || (language === 'en' ? 'Failed to update status.' : 'Gagal mengubah status.'));
       }
     } catch (err) {
       console.error(err);
-      alert('Koneksi gagal ke server.');
+      alert(language === 'en' ? 'Failed to connect to server.' : 'Koneksi gagal ke server.');
     } finally {
       setUpdatingId(null);
     }
@@ -104,8 +106,8 @@ export const TicketSettingsPage = () => {
           <Settings size={20} />
         </div>
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Ticket Settings</h1>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">Konfigurasi prioritas dan pantau semua tiket sistem.</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">{t('admin_tickets.title')}</h1>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">{t('admin_tickets.subtitle')}</p>
         </div>
       </div>
 
@@ -123,7 +125,7 @@ export const TicketSettingsPage = () => {
                     : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
                 )}
               >
-                {s === 'All' ? 'Semua' : s}
+                {s === 'All' ? t('admin_users.filter_all') : s === 'Open' ? (language === 'en' ? 'Open' : 'Baru') : s === 'In Progress' ? (language === 'en' ? 'In Progress' : 'Proses') : (language === 'en' ? 'Resolved' : 'Selesai')}
               </button>
             ))}
           </div>
@@ -132,7 +134,7 @@ export const TicketSettingsPage = () => {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
             <input 
               type="text" 
-              placeholder="Cari ID, nama, subjek..." 
+              placeholder={t('admin_tickets.search_placeholder')} 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-9 pr-3 py-1.5 sm:py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-800 dark:text-slate-200 placeholder:text-slate-400"
@@ -151,11 +153,11 @@ export const TicketSettingsPage = () => {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50/70 dark:bg-slate-800/50 text-[11px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-semibold border-b border-slate-100 dark:border-slate-800">
-                  <th className="px-4 py-3 sm:px-5">ID Tiket</th>
-                  <th className="px-4 py-3 sm:px-5">Pelanggan</th>
-                  <th className="px-4 py-3 sm:px-5">Subjek</th>
-                  <th className="px-4 py-3 sm:px-5">Prioritas</th>
-                  <th className="px-4 py-3 sm:px-5">Status</th>
+                  <th className="px-4 py-3 sm:px-5">{t('admin_tickets.col_id')}</th>
+                  <th className="px-4 py-3 sm:px-5">{t('admin_tickets.col_customer')}</th>
+                  <th className="px-4 py-3 sm:px-5">{t('admin_tickets.col_subject')}</th>
+                  <th className="px-4 py-3 sm:px-5">{t('admin_tickets.col_priority')}</th>
+                  <th className="px-4 py-3 sm:px-5">{t('admin_tickets.col_status')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -181,8 +183,8 @@ export const TicketSettingsPage = () => {
                               : "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700"
                           )}
                         >
-                          <option value="Low">Low (Normal)</option>
-                          <option value="High">High (Priority)</option>
+                          <option value="Low">{t('admin_tickets.priority_normal')}</option>
+                          <option value="High">{t('admin_tickets.priority_high')}</option>
                         </select>
                       </td>
                       <td className="px-4 py-3 sm:px-5">
@@ -197,9 +199,9 @@ export const TicketSettingsPage = () => {
                             "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
                           )}
                         >
-                          <option value="Open">Open</option>
-                          <option value="In Progress">In Progress</option>
-                          <option value="Resolved">Resolved</option>
+                          <option value="Open">{language === 'en' ? 'Open' : 'Baru'}</option>
+                          <option value="In Progress">{language === 'en' ? 'In Progress' : 'Proses'}</option>
+                          <option value="Resolved">{language === 'en' ? 'Resolved' : 'Selesai'}</option>
                         </select>
                       </td>
                     </tr>
@@ -207,7 +209,7 @@ export const TicketSettingsPage = () => {
                 ) : (
                   <tr>
                     <td colSpan={5} className="text-center py-8 text-slate-400 text-xs sm:text-sm">
-                      Tiket tidak ditemukan.
+                      {language === 'en' ? 'No tickets found.' : 'Tiket tidak ditemukan.'}
                     </td>
                   </tr>
                 )}
@@ -227,3 +229,4 @@ export const TicketSettingsPage = () => {
     </div>
   );
 };
+

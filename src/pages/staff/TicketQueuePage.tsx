@@ -3,13 +3,17 @@ import { Ticket, Search, ArrowRight, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '../../lib/utils';
 import { motion } from 'motion/react';
+import { useLanguageTheme } from '../../context/LanguageThemeContext';
 
 export const TicketQueuePage = () => {
   const navigate = useNavigate();
+  const { t, language } = useLanguageTheme();
   const [filter, setFilter] = React.useState('All');
   const [searchQuery, setSearchQuery] = React.useState('');
   const [tickets, setTickets] = React.useState<any[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
+
+  const locale = language === 'en' ? 'en-US' : 'id-ID';
 
   React.useEffect(() => {
     const fetchAllTickets = async () => {
@@ -30,35 +34,42 @@ export const TicketQueuePage = () => {
     fetchAllTickets();
   }, []);
 
-  const filteredTickets = tickets.filter(t => {
-    if (t.status === 'Resolved') return false;
+  const filteredTickets = tickets.filter(tkt => {
+    if (tkt.status === 'Resolved' || tkt.status === 'selesai') return false;
 
     const matchesFilter = filter === 'All' || 
-                        (filter === 'Priority' ? t.isPriority : 
-                         filter === 'High' ? t.isPriority : 
-                         filter === 'Low' ? !t.isPriority : !t.isPriority);
+                        (filter === 'Priority' ? tkt.isPriority : 
+                         filter === 'High' ? tkt.isPriority : 
+                         filter === 'Low' ? !tkt.isPriority : !tkt.isPriority);
                          
-    const matchesSearch = (t.id || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          (t.subject || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          (t.customerName || '').toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = (tkt.id || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          (tkt.subject || tkt.judul || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          (tkt.customerName || '').toLowerCase().includes(searchQuery.toLowerCase());
 
     return matchesFilter && matchesSearch;
   });
 
-  const priorityCount = tickets.filter(t => t.isPriority && t.status !== 'Resolved').length;
+  const priorityCount = tickets.filter(tkt => tkt.isPriority && tkt.status !== 'Resolved' && tkt.status !== 'selesai').length;
+
+  const tabs = [
+    { id: 'All', label: t('queue.filter_all') },
+    { id: 'Priority', label: t('queue.filter_priority') },
+    { id: 'High', label: t('queue.filter_high') },
+    { id: 'Low', label: t('queue.filter_low') }
+  ];
 
   return (
     <div className="space-y-5">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Antrean Keluhan Privat</h1>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">Daftar aduan teknis dan billing yang harus ditangani secara privat.</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">{t('queue.title')}</h1>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">{t('queue.subtitle')}</p>
         </div>
         {priorityCount > 0 && (
           <div className="px-3 py-1.5 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 rounded-xl text-xs font-semibold flex items-center gap-2 self-start sm:self-auto">
             <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-            {priorityCount} Perlu Prioritas
+            {priorityCount} {t('queue.needs_priority')}
           </div>
         )}
       </div>
@@ -67,17 +78,12 @@ export const TicketQueuePage = () => {
         <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           {/* Filter Pills */}
           <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl self-start sm:self-auto overflow-x-auto max-w-full">
-            {[
-              { id: 'All', label: 'Semua' },
-              { id: 'Priority', label: 'Prioritas' },
-              { id: 'High', label: 'High' },
-              { id: 'Low', label: 'Low' }
-            ].map(tab => (
+            {tabs.map(tab => (
               <button 
                 key={tab.id}
                 onClick={() => setFilter(tab.id)}
                 className={cn(
-                  "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap",
+                  "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap cursor-pointer",
                   filter === tab.id 
                     ? "bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs" 
                     : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
@@ -93,7 +99,7 @@ export const TicketQueuePage = () => {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
             <input 
               type="text" 
-              placeholder="Cari ID, subjek, nama..." 
+              placeholder={t('queue.search_placeholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-9 pr-3 py-1.5 sm:py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-xs sm:text-sm text-slate-800 dark:text-slate-200 placeholder:text-slate-400"
@@ -110,11 +116,11 @@ export const TicketQueuePage = () => {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50/70 dark:bg-slate-800/50 text-[11px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-semibold border-b border-slate-100 dark:border-slate-800">
-                  <th className="px-4 py-3 sm:px-5">Detail Aduan</th>
-                  <th className="px-4 py-3 sm:px-5">Pelanggan</th>
-                  <th className="px-4 py-3 sm:px-5">Urgensi</th>
+                  <th className="px-4 py-3 sm:px-5">{language === 'en' ? 'Complaint Details' : 'Detail Aduan'}</th>
+                  <th className="px-4 py-3 sm:px-5">{language === 'en' ? 'Customer' : 'Pelanggan'}</th>
+                  <th className="px-4 py-3 sm:px-5">{language === 'en' ? 'Urgency' : 'Urgensi'}</th>
                   <th className="px-4 py-3 sm:px-5">Status</th>
-                  <th className="px-4 py-3 sm:px-5 text-right">Aksi</th>
+                  <th className="px-4 py-3 sm:px-5 text-right">{language === 'en' ? 'Action' : 'Aksi'}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -136,12 +142,12 @@ export const TicketQueuePage = () => {
                         </span>
                         {ticket.isPriority && (
                           <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 bg-red-500 text-white rounded">
-                            Urgent
+                            {language === 'en' ? 'Urgent' : 'Mendesak'}
                           </span>
                         )}
                       </div>
-                      <p className="font-semibold text-slate-900 dark:text-white group-hover:text-blue-600 transition-colors line-clamp-1">{ticket.subject}</p>
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-1 mt-0.5 font-normal">{ticket.description}</p>
+                      <p className="font-semibold text-slate-900 dark:text-white group-hover:text-blue-600 transition-colors line-clamp-1">{ticket.subject || ticket.judul}</p>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-1 mt-0.5 font-normal">{ticket.description || ticket.deskripsi}</p>
                     </td>
                     <td className="px-4 py-3 sm:px-5">
                       <div className="flex items-center gap-2.5">
@@ -150,7 +156,7 @@ export const TicketQueuePage = () => {
                         </div>
                         <div className="flex flex-col min-w-0">
                           <span className="font-medium text-slate-900 dark:text-slate-100 truncate">{ticket.customerName}</span>
-                          <span className="text-[10px] text-slate-400">{ticket.createdAt ? new Date(ticket.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }) : ''}</span>
+                          <span className="text-[10px] text-slate-400">{ticket.createdAt || ticket.created_at ? new Date(ticket.createdAt || ticket.created_at).toLocaleDateString(locale, { day: 'numeric', month: 'short' }) : ''}</span>
                         </div>
                       </div>
                     </td>
@@ -159,27 +165,29 @@ export const TicketQueuePage = () => {
                         "text-[10px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider",
                         ticket.isPriority ? "bg-red-50 text-red-700 border border-red-200 dark:bg-red-950/40 dark:text-red-300 dark:border-red-800" : "bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
                       )}>
-                        {ticket.isPriority ? 'High' : 'Low'}
+                        {ticket.isPriority ? (language === 'en' ? 'High' : 'Tinggi') : (language === 'en' ? 'Low' : 'Rendah')}
                       </span>
                     </td>
                     <td className="px-4 py-3 sm:px-5">
                       <div className="flex items-center gap-1.5">
                         <div className={cn(
                           "w-2 h-2 rounded-full",
-                          ticket.status === 'Resolved' ? "bg-emerald-500" :
-                          ticket.status === 'In Progress' ? "bg-amber-500" : "bg-blue-500"
+                          (ticket.status === 'Resolved' || ticket.status === 'selesai') ? "bg-emerald-500" :
+                          (ticket.status === 'In Progress' || ticket.status === 'proses') ? "bg-amber-500" : "bg-blue-500"
                         )} />
                         <span className="text-xs font-medium text-slate-600 dark:text-slate-300">
-                          {ticket.status}
+                          {(ticket.status === 'Resolved' || ticket.status === 'selesai') ? t('tickets.status_resolved') :
+                           (ticket.status === 'In Progress' || ticket.status === 'proses') ? t('tickets.status_processing') :
+                           t('tickets.status_waiting')}
                         </span>
                       </div>
                     </td>
                     <td className="px-4 py-3 sm:px-5 text-right">
                       <button 
                         onClick={() => navigate(`/staff/tickets/${ticket.id}`)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:border-blue-500 hover:text-blue-600 transition-colors shadow-xs"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:border-blue-500 hover:text-blue-600 transition-colors shadow-xs cursor-pointer"
                       >
-                        Buka
+                        {language === 'en' ? 'Open' : 'Buka'}
                         <ArrowRight size={13} />
                       </button>
                     </td>
@@ -192,8 +200,8 @@ export const TicketQueuePage = () => {
               <div className="w-10 h-10 bg-slate-50 dark:bg-slate-800 rounded-xl flex items-center justify-center text-slate-400 mb-2">
                 <Ticket size={20} />
               </div>
-              <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Antrean Bersih</h3>
-              <p className="text-slate-400 text-xs mt-0.5">Tidak ada aduan tiket aktif saat ini.</p>
+              <h3 className="text-sm font-semibold text-slate-900 dark:text-white">{t('queue.no_tickets')}</h3>
+              <p className="text-slate-400 text-xs mt-0.5">{language === 'en' ? 'No active ticket complaints in queue.' : 'Tidak ada aduan tiket aktif saat ini.'}</p>
             </div>
           )}
         </div>

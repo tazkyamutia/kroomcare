@@ -3,8 +3,10 @@ import { Shield, Users, Ticket, Settings, MessageSquare, BarChart3, Clock, Loade
 import { motion } from 'motion/react';
 import { cn } from '../lib/utils';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { useLanguageTheme } from '../context/LanguageThemeContext';
 
 export const AdminDashboard = () => {
+  const { t, language } = useLanguageTheme();
   const [data, setData] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -32,11 +34,11 @@ export const AdminDashboard = () => {
         setData(result);
         setError(null);
       } else {
-        setError(result.message || 'Gagal mengambil statistik dashboard.');
+        setError(result.message || (language === 'en' ? 'Failed to fetch dashboard statistics.' : 'Gagal mengambil statistik dashboard.'));
       }
     } catch (err) {
       console.error('Failed to fetch admin stats:', err);
-      setError('Gagal terhubung ke server backend (localhost:5000). Pastikan server backend Anda menyala.');
+      setError(language === 'en' ? 'Failed to connect to backend server. Make sure your server is running.' : 'Gagal terhubung ke server backend (localhost:5000). Pastikan server backend Anda menyala.');
     } finally {
       setLoading(false);
     }
@@ -54,7 +56,7 @@ export const AdminDashboard = () => {
         <div className="w-12 h-12 bg-red-50 dark:bg-red-950/40 text-red-500 rounded-2xl flex items-center justify-center shadow-xs">
           <Shield size={24} />
         </div>
-        <h3 className="font-semibold text-slate-900 dark:text-white text-sm sm:text-base">Gagal Memuat Dashboard</h3>
+        <h3 className="font-semibold text-slate-900 dark:text-white text-sm sm:text-base">{t('admin.load_failed')}</h3>
         <p className="text-slate-500 dark:text-slate-400 text-xs max-w-sm leading-relaxed">{error}</p>
         <button 
           onClick={() => {
@@ -64,7 +66,7 @@ export const AdminDashboard = () => {
           }}
           className="mt-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-xs"
         >
-          Coba Lagi
+          {t('admin.retry')}
         </button>
       </div>
     );
@@ -74,7 +76,7 @@ export const AdminDashboard = () => {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] gap-3">
         <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
-        <p className="text-slate-500 dark:text-slate-400 text-xs font-medium">Memuat Dashboard Admin...</p>
+        <p className="text-slate-500 dark:text-slate-400 text-xs font-medium">{t('admin.loading')}</p>
       </div>
     );
   }
@@ -89,18 +91,18 @@ export const AdminDashboard = () => {
           <Shield size={20} />
         </div>
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Admin CRM Dashboard</h1>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">Kelola operasional dukungan dan performa sistem.</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">{t('admin.title')}</h1>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">{t('admin.subtitle')}</p>
         </div>
       </div>
 
       {/* Admin Stats Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {[
-          { label: 'Total Pengguna', value: stats.totalUsers?.toLocaleString('id-ID') || '0', icon: Users, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-950/40' },
-          { label: 'Tiket Aktif', value: stats.activeTickets?.toString() || '0', icon: Ticket, color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-950/40' },
-          { label: 'Sesi AI Hari Ini', value: stats.aiSessions?.toString() || '0', icon: MessageSquare, color: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-50 dark:bg-indigo-950/40' },
-          { label: 'Resolusi Rate', value: stats.resolutionRate || '0%', icon: BarChart3, color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-950/40' },
+          { label: t('admin.total_users'), value: stats.totalUsers?.toLocaleString(language === 'en' ? 'en-US' : 'id-ID') || '0', icon: Users, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-950/40' },
+          { label: t('admin.active_tickets'), value: stats.activeTickets?.toString() || '0', icon: Ticket, color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-950/40' },
+          { label: t('admin.ai_sessions_today'), value: stats.aiSessions?.toString() || '0', icon: MessageSquare, color: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-50 dark:bg-indigo-950/40' },
+          { label: t('admin.resolution_rate'), value: stats.resolutionRate || '0%', icon: BarChart3, color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-950/40' },
         ].map((stat, i) => (
           <div key={i} className="p-4 sm:p-5 rounded-xl sm:rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
             <div className={cn("w-9 h-9 rounded-xl flex items-center justify-center mb-3", stat.bg, stat.color)}>
@@ -120,7 +122,7 @@ export const AdminDashboard = () => {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
               <h3 className="text-sm sm:text-base font-semibold flex items-center gap-2 text-slate-900 dark:text-white">
                 <BarChart3 size={18} className="text-blue-600 dark:text-blue-400" />
-                Statistik Performa Sistem
+                {t('admin.system_performance')}
               </h3>
               <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl self-start sm:self-auto">
                 {(['day', 'week', 'month'] as const).map((range) => (
@@ -134,7 +136,7 @@ export const AdminDashboard = () => {
                         : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
                     )}
                   >
-                    {range === 'day' ? 'Hari' : range === 'week' ? 'Minggu' : 'Bulan'}
+                    {range === 'day' ? t('admin.range_day') : range === 'week' ? t('admin.range_week') : t('admin.range_month')}
                   </button>
                 ))}
               </div>
@@ -164,8 +166,8 @@ export const AdminDashboard = () => {
                     contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '12px' }}
                   />
                   <Legend wrapperStyle={{ fontSize: 11, fontWeight: 500 }} />
-                  <Bar dataKey="Tiket Masuk" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="Selesai" fill="#10b981" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="Tiket Masuk" name={t('admin.chart_incoming')} fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="Selesai" name={t('admin.chart_resolved')} fill="#10b981" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -176,10 +178,10 @@ export const AdminDashboard = () => {
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm sm:text-base font-semibold flex items-center gap-2 text-slate-900 dark:text-white">
                 <Users size={18} className="text-blue-600 dark:text-blue-400" />
-                Rekap Performa Staff
+                {t('admin.staff_recap')}
               </h3>
               <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 rounded-md border border-blue-100 dark:border-blue-900">
-                Live Data
+                {t('admin.live_data')}
               </span>
             </div>
 
@@ -187,10 +189,10 @@ export const AdminDashboard = () => {
               <table className="w-full border-collapse text-xs sm:text-sm">
                 <thead>
                   <tr className="text-left border-b border-slate-100 dark:border-slate-800 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-                    <th className="pb-3">Nama Staff</th>
-                    <th className="pb-3 text-center">Ditangani</th>
-                    <th className="pb-3 text-center">Selesai</th>
-                    <th className="pb-3 text-right">Efisiensi</th>
+                    <th className="pb-3">{t('admin.col_staff_name')}</th>
+                    <th className="pb-3 text-center">{t('admin.col_dealt')}</th>
+                    <th className="pb-3 text-center">{t('admin.col_done')}</th>
+                    <th className="pb-3 text-right">{t('admin.col_efficiency')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -245,14 +247,14 @@ export const AdminDashboard = () => {
           <div className="rounded-xl sm:rounded-2xl p-4 sm:p-5 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs">
             <h3 className="text-sm sm:text-base font-semibold mb-3.5 flex items-center gap-2 text-slate-900 dark:text-white">
               <Settings size={18} className="text-blue-600 dark:text-blue-400" />
-              Kontrol Sistem
+              {t('admin.system_control')}
             </h3>
             <div className="space-y-3">
               <div 
                 onClick={() => setMaintenanceMode(!maintenanceMode)}
                 className="flex justify-between items-center p-3 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700/60 rounded-xl border border-slate-200/80 dark:border-slate-700 transition-colors cursor-pointer"
               >
-                <span className="text-xs font-medium text-slate-700 dark:text-slate-300">Maintenance Mode</span>
+                <span className="text-xs font-medium text-slate-700 dark:text-slate-300">{t('admin.maintenance_mode')}</span>
                 <div className={cn(
                   "w-9 h-5 rounded-full relative transition-all duration-300",
                   maintenanceMode ? "bg-blue-600" : "bg-slate-300 dark:bg-slate-600"
@@ -267,7 +269,7 @@ export const AdminDashboard = () => {
                 onClick={() => setAutoAssign(!autoAssign)}
                 className="flex justify-between items-center p-3 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700/60 rounded-xl border border-slate-200/80 dark:border-slate-700 transition-colors cursor-pointer"
               >
-                <span className="text-xs font-medium text-slate-700 dark:text-slate-300">Auto-Assign Tiket</span>
+                <span className="text-xs font-medium text-slate-700 dark:text-slate-300">{t('admin.auto_assign')}</span>
                 <div className={cn(
                   "w-9 h-5 rounded-full relative transition-all duration-300",
                   autoAssign ? "bg-blue-600" : "bg-slate-300 dark:bg-slate-600"
@@ -291,9 +293,9 @@ export const AdminDashboard = () => {
                 {isConfigSaving ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
                 ) : configSaved ? (
-                  "Konfigurasi Disimpan!"
+                  t('admin.config_saved')
                 ) : (
-                  "Simpan Konfigurasi"
+                  t('admin.save_config')
                 )}
               </button>
             </div>
@@ -302,7 +304,7 @@ export const AdminDashboard = () => {
           <div className="rounded-xl sm:rounded-2xl p-4 sm:p-5 border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
             <h3 className="text-sm sm:text-base font-semibold mb-4 flex items-center gap-2 text-slate-900 dark:text-white">
               <Clock size={18} className="text-blue-600 dark:text-blue-400" />
-              Log Aktivitas Terbaru
+              {t('admin.recent_activity_logs')}
             </h3>
             <div className="space-y-3.5 relative before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-100 dark:before:bg-slate-800">
               {recentLogs?.map((log: any, i: number) => (
@@ -320,3 +322,4 @@ export const AdminDashboard = () => {
     </div>
   );
 };
+

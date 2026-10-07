@@ -2,8 +2,10 @@ import React from 'react';
 import { UserPlus, Search, Trash2, Shield, User as UserIcon, Coins, X, ArrowUpRight, ArrowDownLeft, History, Loader2, RefreshCw, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../../lib/utils';
+import { useLanguageTheme } from '../../context/LanguageThemeContext';
 
 export const UserManagementPage = () => {
+  const { t, language } = useLanguageTheme();
   const [users, setUsers] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -165,15 +167,15 @@ export const UserManagementPage = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">User Management</h1>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">Kelola data Customer, Staff, dan Administrator secara terpusat.</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">{t('admin_users.title')}</h1>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">{t('admin_users.subtitle')}</p>
         </div>
         <button 
           onClick={() => setIsAddModalOpen(true)}
           className="flex items-center justify-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-xs self-start sm:self-auto transition-colors"
         >
           <UserPlus size={16} />
-          Tambah Pengguna
+          {t('admin_users.add_user')}
         </button>
       </div>
 
@@ -191,7 +193,7 @@ export const UserManagementPage = () => {
                     : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
                 )}
               >
-                {r === 'All' ? 'Semua' : r}
+                {r === 'All' ? t('admin_users.filter_all') : r}
               </button>
             ))}
           </div>
@@ -199,7 +201,7 @@ export const UserManagementPage = () => {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
             <input 
               type="text" 
-              placeholder="Cari nama atau email..." 
+              placeholder={t('admin_users.search_placeholder')} 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-9 pr-3 py-1.5 sm:py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-800 dark:text-slate-200 placeholder:text-slate-400"
@@ -218,11 +220,11 @@ export const UserManagementPage = () => {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50/70 dark:bg-slate-800/50 text-[11px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-semibold border-b border-slate-100 dark:border-slate-800">
-                  <th className="px-4 py-3 sm:px-5">Pengguna</th>
-                  <th className="px-4 py-3 sm:px-5">Role</th>
-                  <th className="px-4 py-3 sm:px-5">Poin</th>
+                  <th className="px-4 py-3 sm:px-5">{t('admin_users.col_user')}</th>
+                  <th className="px-4 py-3 sm:px-5">{t('admin_users.col_role')}</th>
+                  <th className="px-4 py-3 sm:px-5">{t('admin_users.col_points')}</th>
                   <th className="px-4 py-3 sm:px-5">Email</th>
-                  <th className="px-4 py-3 sm:px-5 text-right">Aksi</th>
+                  <th className="px-4 py-3 sm:px-5 text-right">{t('admin_users.col_action')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -254,7 +256,7 @@ export const UserManagementPage = () => {
                               onClick={() => handleOpenHistory(u)}
                               className="text-[10px] text-blue-600 dark:text-blue-400 font-medium hover:underline text-left"
                             >
-                              Lihat Riwayat
+                              {t('admin_users.history_points')}
                             </button>
                           </div>
                         </div>
@@ -282,13 +284,13 @@ export const UserManagementPage = () => {
                             onClick={() => handleOpenHistory(u)}
                             className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400 dark:hover:bg-blue-950/60 rounded-lg transition-colors font-semibold text-[11px]"
                           >
-                            Riwayat
+                            {t('admin_users.history_points')}
                           </button>
                           {u.role === 'customer' && (
                             <button 
                               onClick={() => handleResetPoints(u.id)}
                               className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-blue-600 rounded-lg transition-colors btn_reset_points_user"
-                              title="Reset Points"
+                              title={t('admin_users.reset_points')}
                             >
                               <RefreshCw size={13} />
                             </button>
@@ -296,7 +298,7 @@ export const UserManagementPage = () => {
                           <button 
                             onClick={() => handleDeleteUser(u.id, u.name)}
                             className="p-1.5 hover:bg-red-50 dark:hover:bg-red-950/40 text-slate-400 hover:text-red-600 rounded-lg transition-colors"
-                            title="Hapus Pengguna"
+                            title={t('admin_users.delete_user')}
                           >
                             <Trash2 size={13} />
                           </button>
@@ -307,7 +309,7 @@ export const UserManagementPage = () => {
                 ) : (
                   <tr>
                     <td colSpan={5} className="text-center py-8 text-slate-400 text-xs sm:text-sm">
-                      Pengguna tidak ditemukan.
+                      {language === 'en' ? 'No users found.' : 'Pengguna tidak ditemukan.'}
                     </td>
                   </tr>
                 )}
@@ -335,7 +337,7 @@ export const UserManagementPage = () => {
               className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-xl overflow-hidden border border-slate-200 dark:border-slate-800 p-5 sm:p-6 space-y-4"
             >
               <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-                <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">Tambah Pengguna Baru</h3>
+                <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">{t('admin_users.modal_add_title')}</h3>
                 <button 
                   onClick={() => setIsAddModalOpen(false)}
                   className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 transition-colors"
@@ -346,11 +348,11 @@ export const UserManagementPage = () => {
 
               <form onSubmit={handleCreateUser} className="space-y-3 text-xs sm:text-sm">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Nama Lengkap</label>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">{t('admin_users.modal_fullname')}</label>
                   <input 
                     required
                     type="text"
-                    placeholder="Nama Lengkap"
+                    placeholder={t('admin_users.modal_fullname')}
                     value={nama}
                     onChange={(e) => setNama(e.target.value)}
                     className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-800 dark:text-slate-200"
@@ -358,7 +360,7 @@ export const UserManagementPage = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Alamat Email</label>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">{t('admin_users.modal_email')}</label>
                   <input 
                     required
                     type="email"
@@ -370,11 +372,11 @@ export const UserManagementPage = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Password</label>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">{t('admin_users.modal_password')}</label>
                   <input 
                     required
                     type="password"
-                    placeholder="Password"
+                    placeholder={t('admin_users.modal_password')}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-800 dark:text-slate-200"
@@ -382,7 +384,7 @@ export const UserManagementPage = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Role</label>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">{t('admin_users.modal_role')}</label>
                   <select 
                     value={role}
                     onChange={(e) => setRole(e.target.value)}
@@ -395,7 +397,7 @@ export const UserManagementPage = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Koin Reward Awal</label>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">{t('admin_users.modal_initial_points')}</label>
                   <input 
                     type="number"
                     placeholder="0"
@@ -413,12 +415,12 @@ export const UserManagementPage = () => {
                   {submitting ? (
                     <>
                       <Loader2 className="animate-spin" size={16} />
-                      Menyimpan...
+                      {t('admin_users.saving')}
                     </>
                   ) : (
                     <>
                       <UserPlus size={16} />
-                      Simpan Pengguna
+                      {t('admin_users.save')}
                     </>
                   )}
                 </button>
@@ -452,7 +454,9 @@ export const UserManagementPage = () => {
                     <Coins size={20} />
                   </div>
                   <div>
-                    <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">Riwayat Poin Detail</h3>
+                    <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
+                      {language === 'en' ? 'Detailed Points History' : 'Riwayat Poin Detail'}
+                    </h3>
                     <p className="text-xs text-slate-500 dark:text-slate-400">{selectedUser.name} ({selectedUser.email})</p>
                   </div>
                 </div>
@@ -468,13 +472,17 @@ export const UserManagementPage = () => {
               <div className="p-4 sm:p-5 max-h-[60vh] overflow-y-auto space-y-4">
                 <div className="grid grid-cols-2 gap-3">
                   <div className="bg-emerald-50 dark:bg-emerald-950/30 p-3.5 rounded-xl border border-emerald-100 dark:border-emerald-900">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 mb-0.5">Poin Masuk</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 mb-0.5">
+                      {language === 'en' ? 'Points In' : 'Poin Masuk'}
+                    </p>
                     <p className="text-lg sm:text-xl font-bold text-emerald-700 dark:text-emerald-300">
                       +{pointHistory.filter(tx => tx.type === 'Earned').reduce((acc, curr) => acc + (curr.amount || 0), 0)}
                     </p>
                   </div>
                   <div className="bg-red-50 dark:bg-red-950/30 p-3.5 rounded-xl border border-red-100 dark:border-red-900">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-red-700 dark:text-red-400 mb-0.5">Poin Keluar</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-red-700 dark:text-red-400 mb-0.5">
+                      {language === 'en' ? 'Points Out' : 'Poin Keluar'}
+                    </p>
                     <p className="text-lg sm:text-xl font-bold text-red-700 dark:text-red-300">
                       -{pointHistory.filter(tx => tx.type === 'Spent').reduce((acc, curr) => acc + (curr.amount || 0), 0)}
                     </p>
@@ -482,7 +490,9 @@ export const UserManagementPage = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <h4 className="text-xs font-semibold text-slate-500 dark:text-slate-400">Log Transaksi</h4>
+                  <h4 className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                    {language === 'en' ? 'Transaction Log' : 'Log Transaksi'}
+                  </h4>
                   {loadingPoints ? (
                     <div className="flex justify-center py-6">
                       <Loader2 className="animate-spin text-blue-600" size={20} />
@@ -500,7 +510,7 @@ export const UserManagementPage = () => {
                           <div>
                             <p className="font-semibold text-slate-900 dark:text-white">{tx.description}</p>
                             <p className="text-[10px] text-slate-400">
-                              {new Date(tx.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                              {new Date(tx.date).toLocaleDateString(language === 'en' ? 'en-US' : 'id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
                             </p>
                           </div>
                         </div>
@@ -515,7 +525,7 @@ export const UserManagementPage = () => {
                   ) : (
                     <div className="py-8 flex flex-col items-center text-center text-slate-400">
                       <History className="w-8 h-8 mb-2 opacity-50" />
-                      <p className="text-xs">Belum ada riwayat transaksi poin</p>
+                      <p className="text-xs">{language === 'en' ? 'No points transaction history yet' : 'Belum ada riwayat transaksi poin'}</p>
                     </div>
                   )}
                 </div>
@@ -527,7 +537,7 @@ export const UserManagementPage = () => {
                   onClick={() => setSelectedUser(null)}
                   className="px-4 py-1.5 bg-slate-900 dark:bg-slate-700 text-white rounded-xl font-semibold text-xs transition-colors"
                 >
-                  Tutup
+                  {language === 'en' ? 'Close' : 'Tutup'}
                 </button>
               </div>
             </motion.div>
@@ -542,7 +552,7 @@ export const UserManagementPage = () => {
           className="toast_reset_success fixed bottom-20 right-6 bg-slate-900 text-white px-4 py-2.5 rounded-xl shadow-lg border border-slate-800 flex items-center gap-2 z-50 text-xs font-semibold animate-bounce"
         >
           <CheckCircle2 size={16} className="text-emerald-400" />
-          <span>Poin customer berhasil direset ke 0</span>
+          <span>{language === 'en' ? 'Customer points reset to 0' : 'Poin customer berhasil direset ke 0'}</span>
         </div>
       )}
     </div>

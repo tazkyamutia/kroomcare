@@ -186,7 +186,7 @@ export const TicketingPage = () => {
                   </span>
                   <div className="inline-flex items-center gap-1.5 text-blue-600 dark:text-blue-400 font-semibold text-xs bg-blue-50 dark:bg-blue-950/40 px-2.5 py-1 rounded-lg border border-blue-100 dark:border-blue-900">
                     <MessageSquare size={13} />
-                    <span>Chat Support</span>
+                    <span>{language === 'en' ? 'Chat Support' : 'Dukungan Chat'}</span>
                   </div>
                 </div>
               </div>

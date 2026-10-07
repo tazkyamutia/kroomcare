@@ -1,15 +1,18 @@
 import React from 'react';
 import { 
-  User, Mail, Camera, Coins, History, CheckCircle2, Save, ArrowUpRight, Gift, Activity,
+  User, Mail, Camera, Coins, History, CheckCircle2, Save, ArrowUpRight,
   Lock, ShieldEllipsis, ToggleLeft, ToggleRight, Eye, EyeOff, Loader2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../../lib/utils';
 import { useUser } from '../../context/UserContext';
+import { useLanguageTheme } from '../../context/LanguageThemeContext';
 
 export const ProfilePage: React.FC = () => {
   const { user, updateUser } = useUser();
+  const { t, language } = useLanguageTheme();
   const userRole = user?.role || 'customer';
+  const locale = language === 'en' ? 'en-US' : 'id-ID';
   
   // Local state for profile form
   const [formData, setFormData] = React.useState({
@@ -55,7 +58,7 @@ export const ProfilePage: React.FC = () => {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 2 * 1024 * 1024) {
-        alert('Ukuran file maksimal 2MB');
+        alert(language === 'en' ? 'Maximum file size is 2MB' : 'Ukuran file maksimal 2MB');
         return;
       }
       const reader = new FileReader();
@@ -90,7 +93,7 @@ export const ProfilePage: React.FC = () => {
       });
       const result = await res.json();
       if (!res.ok || !result.success) {
-        alert(result.message || 'Gagal menyimpan perubahan profil.');
+        alert(result.message || (language === 'en' ? 'Failed to save profile changes.' : 'Gagal menyimpan perubahan profil.'));
         setIsSaving(false);
         return;
       }
@@ -98,50 +101,55 @@ export const ProfilePage: React.FC = () => {
       // 2. Jika kolom password diisi
       if (passwordForm.current || passwordForm.new || passwordForm.confirm) {
         if (!passwordForm.current || !passwordForm.new || !passwordForm.confirm) {
-          alert('Harap lengkapi semua kolom kata sandi.');
-          setIsSaving(false);
-          return;
-        }
-        if (passwordForm.new !== passwordForm.confirm) {
-          alert('Konfirmasi sandi baru tidak cocok.');
-          setIsSaving(false);
-          return;
-        }
-        if (passwordForm.new.length < 8) {
-          alert('Kata sandi baru minimal harus 8 karakter.');
+          alert(language === 'en' ? 'Please fill in all password fields.' : 'Mohon lengkapi semua kolom password.');
           setIsSaving(false);
           return;
         }
 
-        const passwordRes = await fetch(`/api/auth/profile/${user.id}/password`, {
-          method: 'PUT',
+        if (passwordForm.new !== passwordForm.confirm) {
+          alert(t('profile.password_match_err'));
+          setIsSaving(false);
+          return;
+        }
+
+        if (passwordForm.new.length < 6) {
+          alert(t('profile.password_length_err'));
+          setIsSaving(false);
+          return;
+        }
+
+        const passRes = await fetch(`/api/auth/change-password`, {
+          method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            current: passwordForm.current,
+            userId: user.id,
+            currentPassword: passwordForm.current,
             newPassword: passwordForm.new
           })
         });
-        const passwordResult = await passwordRes.json();
-        if (!passwordRes.ok || !passwordResult.success) {
-          alert(passwordResult.message || 'Gagal memperbarui kata sandi.');
+
+        const passResult = await passRes.json();
+        if (!passRes.ok || !passResult.success) {
+          alert(passResult.message || (language === 'en' ? 'Failed to change password. Make sure current password is correct.' : 'Gagal mengubah password. Pastikan password lama sesuai.'));
           setIsSaving(false);
           return;
         }
+
+        setPasswordForm({ current: '', new: '', confirm: '' });
       }
 
-      // 3. Update User Context
       updateUser({
-        name: result.data.name,
-        email: result.data.email,
-        avatar: result.data.avatar,
-        status: result.data.status
+        name: formData.name,
+        email: formData.email,
+        avatar: formData.avatar,
+        status: status
       });
+
       setSaved(true);
-      setPasswordForm({ current: '', new: '', confirm: '' });
-      setTimeout(() => setSaved(false), 3000);
-    } catch (error) {
-      console.error(error);
-      alert('Terjadi kesalahan koneksi.');
+      setTimeout(() => setSaved(false), 2500);
+    } catch (err) {
+      console.error(err);
+      alert(language === 'en' ? 'Connection error while saving profile.' : 'Terjadi kendala koneksi saat menyimpan profil.');
     } finally {
       setIsSaving(false);
     }
@@ -149,7 +157,6 @@ export const ProfilePage: React.FC = () => {
 
   const points = user?.points || 0;
   const [recentTransactions, setRecentTransactions] = React.useState<any[]>([]);
-  const [isLoadingHistory, setIsLoadingHistory] = React.useState(true);
 
   React.useEffect(() => {
     if (!user?.id) return;
@@ -162,17 +169,10 @@ export const ProfilePage: React.FC = () => {
         }
       } catch (error) {
         console.error('Failed to fetch history in profile:', error);
-      } finally {
-        setIsLoadingHistory(false);
       }
     };
     fetchHistory();
   }, [user?.id]);
-  
-  const staffStats = {
-    resolved: 45,
-    rewardsGiven: 300
-  };
 
   const [show2FAModal, setShow2FAModal] = React.useState(false);
   const [qrCodeUrl, setQrCodeUrl] = React.useState('');
@@ -184,7 +184,7 @@ export const ProfilePage: React.FC = () => {
     if (!user?.id) return;
 
     if (twoFactorEnabled) {
-      const confirmDisable = window.confirm('Apakah Anda yakin ingin menonaktifkan 2FA?');
+      const confirmDisable = window.confirm(language === 'en' ? 'Are you sure you want to disable 2FA?' : 'Apakah Anda yakin ingin menonaktifkan 2FA?');
       if (!confirmDisable) return;
 
       try {
@@ -197,13 +197,13 @@ export const ProfilePage: React.FC = () => {
         if (response.ok && result.success) {
           setTwoFactorEnabled(false);
           updateUser({ twoFactorEnabled: false } as any);
-          alert('2FA berhasil dinonaktifkan.');
+          alert(language === 'en' ? '2FA disabled successfully.' : '2FA berhasil dinonaktifkan.');
         } else {
-          alert(result.message || 'Gagal menonaktifkan 2FA.');
+          alert(result.message || (language === 'en' ? 'Failed to disable 2FA.' : 'Gagal menonaktifkan 2FA.'));
         }
       } catch (err) {
         console.error(err);
-        alert('Koneksi gagal ke server.');
+        alert(language === 'en' ? 'Connection error.' : 'Koneksi gagal ke server.');
       }
     } else {
       setModalLoading(true);
@@ -219,11 +219,11 @@ export const ProfilePage: React.FC = () => {
           setSetupSecret(result.data.secret);
           setShow2FAModal(true);
         } else {
-          alert(result.message || 'Gagal menyiapkan 2FA.');
+          alert(result.message || (language === 'en' ? 'Failed to setup 2FA.' : 'Gagal menyiapkan 2FA.'));
         }
       } catch (err) {
         console.error(err);
-        alert('Koneksi gagal ke server.');
+        alert(language === 'en' ? 'Connection error.' : 'Koneksi gagal ke server.');
       } finally {
         setModalLoading(false);
       }
@@ -251,13 +251,13 @@ export const ProfilePage: React.FC = () => {
         setOtpCode('');
         setSetupSecret('');
         setQrCodeUrl('');
-        alert('Two-Factor Authentication berhasil diaktifkan!');
+        alert(language === 'en' ? 'Two-Factor Authentication successfully enabled!' : 'Two-Factor Authentication berhasil diaktifkan!');
       } else {
-        alert(result.message || 'Kode OTP salah. Silakan coba lagi.');
+        alert(result.message || (language === 'en' ? 'Invalid OTP code. Please try again.' : 'Kode OTP salah. Silakan coba lagi.'));
       }
     } catch (err) {
       console.error(err);
-      alert('Koneksi gagal ke server.');
+      alert(language === 'en' ? 'Connection error.' : 'Koneksi gagal ke server.');
     } finally {
       setModalLoading(false);
     }
@@ -267,8 +267,8 @@ export const ProfilePage: React.FC = () => {
     <div className="max-w-2xl mx-auto space-y-5 pb-16">
       {/* Header */}
       <div>
-        <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Pengaturan Profil</h1>
-        <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">Kelola informasi publik dan keamanan akun Anda.</p>
+        <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">{t('profile.title')}</h1>
+        <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">{t('profile.subtitle')}</p>
       </div>
 
       <div className="bg-white dark:bg-slate-900 rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-slate-200/80 dark:border-slate-800 shadow-xs">
@@ -305,21 +305,23 @@ export const ProfilePage: React.FC = () => {
                 <button 
                   type="button" 
                   onClick={handlePhotoClick}
-                  className="px-3 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold rounded-lg transition-colors"
+                  className="px-3 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold rounded-lg transition-colors cursor-pointer"
                 >
-                  Ganti Foto
+                  {language === 'en' ? 'Change Photo' : 'Ganti Foto'}
                 </button>
-                <span className="text-[11px] text-slate-400">Maks. 2MB</span>
+                <span className="text-[11px] text-slate-400">{language === 'en' ? 'Max. 2MB' : 'Maks. 2MB'}</span>
               </div>
             </div>
           </section>
 
           {/* 2. Informasi Akun */}
           <section className="space-y-4">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Informasi Pribadi</h2>
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+              {language === 'en' ? 'Personal Information' : 'Informasi Pribadi'}
+            </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               <div>
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Nama Lengkap</label>
+                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">{t('profile.name')}</label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
                   <input 
@@ -327,13 +329,13 @@ export const ProfilePage: React.FC = () => {
                     value={formData.name}
                     onChange={(e) => setFormData({...formData, name: e.target.value})}
                     className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                    placeholder="Nama lengkap..."
+                    placeholder={language === 'en' ? 'Full name...' : 'Nama lengkap...'}
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Alamat Email</label>
+                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">{t('profile.email')}</label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
                   <input 
@@ -350,11 +352,13 @@ export const ProfilePage: React.FC = () => {
 
           {/* 3. Keamanan Akun */}
           <section className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Kata Sandi</h2>
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+              {t('profile.security_title')}
+            </h2>
 
             <div className="space-y-3">
               <div>
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Kata Sandi Saat Ini</label>
+                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">{t('profile.current_password')}</label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
                   <input 
@@ -362,12 +366,12 @@ export const ProfilePage: React.FC = () => {
                     value={passwordForm.current}
                     onChange={(e) => setPasswordForm({...passwordForm, current: e.target.value})}
                     className="w-full pl-9 pr-9 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                    placeholder="Kosongkan jika tidak ingin mengubah"
+                    placeholder={language === 'en' ? 'Leave blank to keep unchanged' : 'Kosongkan jika tidak ingin mengubah'}
                   />
                   <button 
-                    type="button"
+                    type="button" 
                     onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
                   >
                     {showCurrentPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                   </button>
@@ -376,7 +380,7 @@ export const ProfilePage: React.FC = () => {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Kata Sandi Baru</label>
+                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">{t('profile.new_password')}</label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
                     <input 
@@ -384,12 +388,12 @@ export const ProfilePage: React.FC = () => {
                       value={passwordForm.new}
                       onChange={(e) => setPasswordForm({...passwordForm, new: e.target.value})}
                       className="w-full pl-9 pr-9 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                      placeholder="Min. 8 karakter"
+                      placeholder={language === 'en' ? 'Min. 6 characters' : 'Min. 6 karakter'}
                     />
                     <button 
-                      type="button"
+                      type="button" 
                       onClick={() => setShowNewPassword(!showNewPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
                     >
                       {showNewPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                     </button>
@@ -397,7 +401,7 @@ export const ProfilePage: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Konfirmasi Sandi Baru</label>
+                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">{t('profile.confirm_password')}</label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
                     <input 
@@ -405,12 +409,12 @@ export const ProfilePage: React.FC = () => {
                       value={passwordForm.confirm}
                       onChange={(e) => setPasswordForm({...passwordForm, confirm: e.target.value})}
                       className="w-full pl-9 pr-9 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                      placeholder="Ulangi sandi baru"
+                      placeholder={language === 'en' ? 'Repeat new password' : 'Ulangi sandi baru'}
                     />
                     <button 
-                      type="button"
+                      type="button" 
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
                     >
                       {showConfirmPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                     </button>
@@ -427,15 +431,15 @@ export const ProfilePage: React.FC = () => {
                     <ShieldEllipsis size={18} />
                   </div>
                   <div>
-                    <h4 className="text-xs font-semibold text-slate-900 dark:text-white">Two-Factor Authentication (2FA)</h4>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400">Verifikasi kode OTP autentikator.</p>
+                    <h4 className="text-xs font-semibold text-slate-900 dark:text-white">{t('profile.two_factor_title')}</h4>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">{t('profile.two_factor_desc')}</p>
                   </div>
                 </div>
                 <button 
-                  type="button"
+                  type="button" 
                   onClick={handle2FAToggle}
                   className={cn(
-                    "transition-colors",
+                    "transition-colors cursor-pointer",
                     twoFactorEnabled ? "text-emerald-500" : "text-slate-400"
                   )}
                 >
@@ -452,16 +456,16 @@ export const ProfilePage: React.FC = () => {
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <Coins size={18} className="text-amber-300" />
-                    <span className="text-xs font-semibold text-blue-100">KroomCare Loyalty</span>
+                    <span className="text-xs font-semibold text-blue-100">{t('profile.loyalty_points')}</span>
                   </div>
                   <span className="text-[10px] bg-white/20 px-2 py-0.5 rounded-full font-bold uppercase">Member</span>
                 </div>
-                <p className="text-2xl font-bold tracking-tight">🪙 {points.toLocaleString('id-ID')} Poin</p>
+                <p className="text-2xl font-bold tracking-tight">🪙 {points.toLocaleString(locale)} {t('header.pts')}</p>
               </div>
 
               {recentTransactions.length > 0 && (
                 <div className="space-y-2 pt-2">
-                  <h4 className="text-xs font-medium text-slate-500 dark:text-slate-400">Transaksi Poin Terakhir</h4>
+                  <h4 className="text-xs font-medium text-slate-500 dark:text-slate-400">{t('profile.recent_transactions')}</h4>
                   {recentTransactions.map((tx) => (
                     <div key={tx.id} className="p-2.5 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
                       <div className="flex items-center gap-2">
@@ -486,21 +490,25 @@ export const ProfilePage: React.FC = () => {
           {/* 5. Status & Shift (jika Staff) */}
           {userRole === 'staff' && (
             <section className="space-y-3 pt-4 border-t border-slate-100 dark:border-slate-800">
-              <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400">Status Kehadiran</h2>
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400">{t('profile.work_status')}</h2>
               <div className="bg-slate-100 dark:bg-slate-800 p-1 rounded-xl flex items-center">
-                {['online', 'busy', 'offline'].map((s) => (
+                {[
+                  { id: 'online', label: t('profile.status_online') },
+                  { id: 'busy', label: t('profile.status_busy') },
+                  { id: 'offline', label: t('profile.status_offline') }
+                ].map((s) => (
                   <button 
-                    key={s}
+                    key={s.id}
                     type="button"
-                    onClick={() => setStatus(s as any)}
+                    onClick={() => setStatus(s.id as any)}
                     className={cn(
-                      "flex-1 py-1.5 rounded-lg text-xs font-semibold capitalize transition-all",
-                      status === s 
+                      "flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer",
+                      status === s.id 
                         ? "bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs" 
                         : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
                     )}
                   >
-                    {s}
+                    {s.label}
                   </button>
                 ))}
               </div>
@@ -510,37 +518,37 @@ export const ProfilePage: React.FC = () => {
           {/* Action Buttons */}
           <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-3">
             <button 
-              type="button"
+              type="button" 
               onClick={() => {
                 setFormData({ name: user?.name || '', email: user?.email || '', avatar: user?.avatar || '' });
                 setPasswordForm({ current: '', new: '', confirm: '' });
               }}
-              className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
             >
-              Reset
+              {language === 'en' ? 'Reset' : 'Atur Ulang'}
             </button>
             <button 
-              type="submit"
+              type="submit" 
               disabled={isSaving}
               className={cn(
-                "px-5 py-2 rounded-xl text-xs font-semibold transition-all shadow-xs flex items-center gap-1.5 text-white",
+                "px-5 py-2 rounded-xl text-xs font-semibold transition-all shadow-xs flex items-center gap-1.5 text-white cursor-pointer",
                 saved ? "bg-emerald-600" : "bg-blue-600 hover:bg-blue-700"
               )}
             >
               {isSaving ? (
                 <>
                   <Loader2 size={14} className="animate-spin" />
-                  Menyimpan...
+                  {t('profile.saving')}
                 </>
               ) : saved ? (
                 <>
                   <CheckCircle2 size={14} />
-                  Tersimpan!
+                  {t('profile.saved')}
                 </>
               ) : (
                 <>
                   <Save size={14} />
-                  Simpan Perubahan
+                  {t('profile.save_changes')}
                 </>
               )}
             </button>
@@ -561,7 +569,7 @@ export const ProfilePage: React.FC = () => {
               <div className="text-center space-y-2">
                 <h3 className="text-base font-bold text-slate-900 dark:text-white">Setup 2FA Admin</h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Scan QR code menggunakan Google Authenticator.
+                  {language === 'en' ? 'Scan the QR code using Google Authenticator.' : 'Scan QR code menggunakan Google Authenticator.'}
                 </p>
               </div>
 
@@ -572,7 +580,9 @@ export const ProfilePage: React.FC = () => {
               )}
 
               <div>
-                <label className="block text-[11px] font-medium text-slate-500 mb-1">Kode OTP 6 Digit:</label>
+                <label className="block text-[11px] font-medium text-slate-500 mb-1">
+                  {language === 'en' ? '6-Digit OTP Code:' : 'Kode OTP 6 Digit:'}
+                </label>
                 <input 
                   type="text" 
                   maxLength={6}
@@ -585,19 +595,19 @@ export const ProfilePage: React.FC = () => {
 
               <div className="flex gap-2 pt-1">
                 <button 
-                  type="button"
+                  type="button" 
                   onClick={() => setShow2FAModal(false)}
-                  className="flex-1 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl text-xs font-semibold"
+                  className="flex-1 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl text-xs font-semibold cursor-pointer"
                 >
-                  Batal
+                  {t('profile.cancel_btn')}
                 </button>
                 <button 
-                  type="button"
+                  type="button" 
                   disabled={otpCode.length !== 6 || modalLoading}
                   onClick={handleVerify2FA}
-                  className="flex-1 py-2 bg-blue-600 text-white rounded-xl text-xs font-semibold disabled:opacity-50"
+                  className="flex-1 py-2 bg-blue-600 text-white rounded-xl text-xs font-semibold disabled:opacity-50 cursor-pointer"
                 >
-                  {modalLoading ? 'Verifikasi...' : 'Aktifkan'}
+                  {modalLoading ? (language === 'en' ? 'Verifying...' : 'Memverifikasi...') : (language === 'en' ? 'Enable' : 'Aktifkan')}
                 </button>
               </div>
             </motion.div>

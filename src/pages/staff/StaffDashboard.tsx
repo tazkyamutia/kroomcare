@@ -4,6 +4,7 @@ import { motion } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '../../lib/utils';
 import { useUser } from '../../context/UserContext';
+import { useLanguageTheme } from '../../context/LanguageThemeContext';
 
 interface StaffStats {
   newTickets: number;
@@ -17,9 +18,12 @@ interface StaffStats {
 export const StaffDashboard = () => {
   const navigate = useNavigate();
   const { user } = useUser();
+  const { t, language } = useLanguageTheme();
   const [shift, setShift] = React.useState('Pagi');
   const [stats, setStats] = React.useState<StaffStats | null>(null);
   const [loading, setLoading] = React.useState(true);
+
+  const locale = language === 'en' ? 'en-US' : 'id-ID';
 
   React.useEffect(() => {
     const fetchStats = async () => {
@@ -42,15 +46,15 @@ export const StaffDashboard = () => {
   }, [user?.id, shift]);
 
   const statCards = stats ? [
-    { label: 'Tiket Baru', value: String(stats.newTickets), icon: Zap, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-950/40' },
-    { label: 'Tiket Saya', value: String(stats.myTickets), icon: Ticket, color: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-50 dark:bg-indigo-950/40' },
-    { label: 'Selesai Hari Ini', value: String(stats.doneToday), icon: CheckCircle2, color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-950/40' },
-    { label: 'Tingkat SLA', value: stats.slaRate, icon: BarChart3, color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-950/40' },
+    { label: t('staff.new_tickets'), value: String(stats.newTickets), icon: Zap, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-950/40' },
+    { label: t('staff.my_tickets'), value: String(stats.myTickets), icon: Ticket, color: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-50 dark:bg-indigo-950/40' },
+    { label: t('staff.done_today'), value: String(stats.doneToday), icon: CheckCircle2, color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-950/40' },
+    { label: t('staff.sla_rate'), value: stats.slaRate, icon: BarChart3, color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-950/40' },
   ] : [
-    { label: 'Tiket Baru', value: '-', icon: Zap, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-950/40' },
-    { label: 'Tiket Saya', value: '-', icon: Ticket, color: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-50 dark:bg-indigo-950/40' },
-    { label: 'Selesai Hari Ini', value: '-', icon: CheckCircle2, color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-950/40' },
-    { label: 'Tingkat SLA', value: '-', icon: BarChart3, color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-950/40' },
+    { label: t('staff.new_tickets'), value: '-', icon: Zap, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-950/40' },
+    { label: t('staff.my_tickets'), value: '-', icon: Ticket, color: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-50 dark:bg-indigo-950/40' },
+    { label: t('staff.done_today'), value: '-', icon: CheckCircle2, color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-950/40' },
+    { label: t('staff.sla_rate'), value: '-', icon: BarChart3, color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-950/40' },
   ];
 
   // Chart bar heights
@@ -60,7 +64,7 @@ export const StaffDashboard = () => {
       return Array.from({ length: 7 }).map((_, i) => {
         const d = new Date();
         d.setDate(d.getDate() - (6 - i));
-        const dayLabel = d.toLocaleDateString('id-ID', { weekday: 'short' });
+        const dayLabel = d.toLocaleDateString(locale, { weekday: 'short' });
         const totalVal = Math.round(mockHeights[i] / 10);
         return {
           height: mockHeights[i],
@@ -73,33 +77,39 @@ export const StaffDashboard = () => {
     const maxTotal = Math.max(...stats.weeklyChart.map(d => d.total), 1);
     return stats.weeklyChart.map(d => ({
       height: Math.max(10, Math.round((d.total / maxTotal) * 100)),
-      label: new Date(d.day).toLocaleDateString('id-ID', { weekday: 'short' }),
+      label: new Date(d.day).toLocaleDateString(locale, { weekday: 'short' }),
       resolved: d.resolved,
       total: d.total
     }));
-  }, [stats]);
+  }, [stats, locale]);
+
+  const shiftOptions = [
+    { id: 'Pagi', label: t('staff.shift_morning') },
+    { id: 'Siang', label: t('staff.shift_afternoon') },
+    { id: 'Malam', label: t('staff.shift_night') }
+  ];
 
   return (
     <div className="space-y-5">
       {/* Header & Shift Picker */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Ringkasan Staff</h1>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">Pantau performa dukungan dan ringkasan aktivitas operasional.</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">{t('staff.title')}</h1>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">{t('staff.subtitle')}</p>
         </div>
         <div className="flex items-center gap-1 bg-white dark:bg-slate-900 p-1 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-xs self-start sm:self-auto">
-          {['Pagi', 'Siang', 'Malam'].map(s => (
+          {shiftOptions.map(opt => (
             <button
-              key={s}
-              onClick={() => setShift(s)}
+              key={opt.id}
+              onClick={() => setShift(opt.id)}
               className={cn(
                 "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all",
-                shift === s 
+                shift === opt.id 
                   ? "bg-blue-600 text-white shadow-xs" 
                   : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
               )}
             >
-              Shift {s}
+              {opt.label}
             </button>
           ))}
         </div>
@@ -131,19 +141,22 @@ export const StaffDashboard = () => {
           </div>
           <div>
             <h4 className="text-xs sm:text-sm font-semibold">
-              Shift Aktif: {shift === 'Pagi' ? 'Pagi (07.00 - 15.00 WIB)' : shift === 'Siang' ? 'Siang (15.00 - 23.00 WIB)' : 'Malam (23.00 - 07.00 WIB)'}
+              {language === 'en' ? 'Active Shift: ' : 'Shift Aktif: '}
+              {shift === 'Pagi' ? (language === 'en' ? 'Morning (07.00 - 15.00)' : 'Pagi (07.00 - 15.00 WIB)') : 
+               shift === 'Siang' ? (language === 'en' ? 'Afternoon (15.00 - 23.00)' : 'Siang (15.00 - 23.00 WIB)') : 
+               (language === 'en' ? 'Night (23.00 - 07.00)' : 'Malam (23.00 - 07.00 WIB)')}
             </h4>
             <p className="text-[11px] sm:text-xs text-slate-600 dark:text-slate-400 mt-0.5 leading-relaxed">
-              {shift === 'Pagi' && 'Selamat pagi! Pastikan segera menanggapi tiket baru dan menjaga kepuasan pengguna.'}
-              {shift === 'Siang' && 'Selamat siang! Tetap semangat menjaga kualitas respon tiket kendala hosting.'}
-              {shift === 'Malam' && 'Selamat malam! Pantau sistem penanganan keluhan mendesak selama shift malam ini.'}
+              {shift === 'Pagi' && (language === 'en' ? 'Good morning! Respond promptly to incoming tickets and maintain customer satisfaction.' : 'Selamat pagi! Pastikan segera menanggapi tiket baru dan menjaga kepuasan pengguna.')}
+              {shift === 'Siang' && (language === 'en' ? 'Good afternoon! Keep up the great response rate for ongoing technical requests.' : 'Selamat siang! Tetap semangat menjaga kualitas respon tiket kendala hosting.')}
+              {shift === 'Malam' && (language === 'en' ? 'Good evening! Keep an eye on urgent system complaints during this night shift.' : 'Selamat malam! Pantau sistem penanganan keluhan mendesak selama shift malam ini.')}
             </p>
           </div>
         </div>
         <div className="text-[10px] font-bold uppercase tracking-wider bg-white dark:bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-200/80 dark:border-slate-800 self-start sm:self-auto shadow-xs shrink-0">
-          {shift === 'Pagi' && '🌅 Mulai Hari'}
-          {shift === 'Siang' && '☀️ Siang Ceria'}
-          {shift === 'Malam' && '🌌 Jaga Malam'}
+          {shift === 'Pagi' && (language === 'en' ? '🌅 Start Day' : '🌅 Mulai Hari')}
+          {shift === 'Siang' && (language === 'en' ? '☀️ Midday' : '☀️ Siang Ceria')}
+          {shift === 'Malam' && (language === 'en' ? '🌌 Night Guard' : '🌌 Jaga Malam')}
         </div>
       </motion.div>
 
@@ -176,10 +189,10 @@ export const StaffDashboard = () => {
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-sm sm:text-base font-semibold text-slate-900 dark:text-white flex items-center gap-2">
               <BarChart3 size={18} className="text-blue-600 dark:text-blue-400" />
-              Resolusi Tiket Mingguan
+              {language === 'en' ? 'Weekly Ticket Resolution' : 'Resolusi Tiket Mingguan'}
             </h3>
             <span className="text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1 font-medium">
-              7 Hari Terakhir
+              {language === 'en' ? 'Last 7 Days' : '7 Hari Terakhir'}
             </span>
           </div>
           {loading ? (
@@ -214,7 +227,7 @@ export const StaffDashboard = () => {
         <div className="bg-white dark:bg-slate-900 rounded-xl sm:rounded-2xl border border-slate-200/80 dark:border-slate-800 p-4 sm:p-5 shadow-xs flex flex-col">
           <h3 className="text-sm sm:text-base font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
             <MessageSquare size={18} className="text-blue-600 dark:text-blue-400" />
-            Aktivitas Terbaru
+            {t('staff.recent_activity')}
           </h3>
           <div className="space-y-3.5 flex-1">
             {loading ? (
@@ -231,10 +244,17 @@ export const StaffDashboard = () => {
                   <div className="flex-1 min-w-0">
                     <p className="text-slate-600 dark:text-slate-300">
                       <span className="font-semibold text-slate-900 dark:text-white">{act.user}</span>
-                      {act.type === 'reply' ? ' membalas tiket ' :
+                      {language === 'en' ? (
+                        act.type === 'reply' ? ' replied to ticket ' :
+                        act.type === 'transfer' ? ' transferred ticket ' :
+                        act.type === 'resolved' ? ' resolved ticket ' :
+                        ' created new ticket '
+                      ) : (
+                        act.type === 'reply' ? ' membalas tiket ' :
                         act.type === 'transfer' ? ' mentransfer tiket ' :
                         act.type === 'resolved' ? ' menyelesaikan tiket ' :
-                        ' membuat tiket baru '}
+                        ' membuat tiket baru '
+                      )}
                       <span className="font-mono font-semibold text-blue-600 dark:text-blue-400">{act.ticket}</span>
                     </p>
                     <p className="text-[10px] text-slate-400 mt-0.5">{act.time}</p>
@@ -243,15 +263,15 @@ export const StaffDashboard = () => {
               ))
             ) : (
               <div className="text-center py-6 text-slate-400 text-xs">
-                Belum ada aktivitas terbaru pada shift ini.
+                {t('staff.no_activity')}
               </div>
             )}
           </div>
           <button
             onClick={() => navigate('/staff')}
-            className="w-full mt-4 py-2 bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 border border-slate-200/80 dark:border-slate-700"
+            className="w-full mt-4 py-2 bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 border border-slate-200/80 dark:border-slate-700 cursor-pointer"
           >
-            Lihat Semua Antrean
+            {t('staff.open_queue')}
             <ArrowRight size={13} />
           </button>
         </div>
