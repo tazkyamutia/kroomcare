@@ -30,11 +30,11 @@
             isEmbedded = true;
           }
 
-          var cookieTheme = getCookie('kp_theme') || getCookie('kroombox_theme') || getCookie('theme');
+          var cookieTheme = getCookie('kp_theme') || getCookie('kroombox_theme') || getCookie('theme') || getCookie('panel_theme') || getCookie('theme_mode');
           var isDark = false;
 
           var params = new URLSearchParams(window.location.search);
-          var pTheme = params.get('theme') || params.get('mode');
+          var pTheme = params.get('theme') || params.get('mode') || params.get('themeMode') || params.get('colorScheme');
 
           if (pTheme === 'dark') {
             isDark = true;
@@ -48,25 +48,30 @@
                 var pDoc = window.parent.document;
                 var pHtml = pDoc.documentElement;
                 var pBody = pDoc.body;
-                if (pHtml.classList.contains('dark') || (pBody && pBody.classList.contains('dark')) || pHtml.getAttribute('data-theme') === 'dark' || pHtml.getAttribute('data-mode') === 'dark') {
-                  parentDetected = true;
-                } else if (pHtml.classList.contains('light') || (pBody && pBody.classList.contains('light')) || pHtml.getAttribute('data-theme') === 'light' || pHtml.getAttribute('data-mode') === 'light') {
-                  parentDetected = false;
-                }
+                var hasDarkIndicator = pHtml.classList.contains('dark') || 
+                                       pHtml.classList.contains('theme-dark') || 
+                                       pHtml.classList.contains('dark-mode') || 
+                                       pHtml.classList.contains('night') ||
+                                       (pBody && (pBody.classList.contains('dark') || pBody.classList.contains('theme-dark') || pBody.classList.contains('dark-mode') || pBody.classList.contains('night'))) || 
+                                       pHtml.getAttribute('data-theme') === 'dark' || 
+                                       pHtml.getAttribute('data-mode') === 'dark' || 
+                                       pHtml.getAttribute('data-color-mode') === 'dark' || 
+                                       (pBody && (pBody.getAttribute('data-theme') === 'dark' || pBody.getAttribute('data-mode') === 'dark' || pBody.getAttribute('data-color-mode') === 'dark'));
+                parentDetected = hasDarkIndicator;
               }
             } catch(e) {}
 
             if (parentDetected !== null) {
               isDark = parentDetected;
-            } else if (cookieTheme === 'dark') {
+              try { localStorage.setItem('kroombox_parent_theme', isDark ? 'dark' : 'light'); } catch(e) {}
+            } else if (cookieTheme === 'dark' || cookieTheme === '1' || cookieTheme === 'true') {
               isDark = true;
-            } else if (cookieTheme === 'light') {
+            } else if (cookieTheme === 'light' || cookieTheme === '0' || cookieTheme === 'false') {
               isDark = false;
+            } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+              isDark = true;
             } else {
-              var stored = localStorage.getItem('kroombox_parent_theme');
-              if (stored === 'dark') isDark = true;
-              else if (stored === 'light') isDark = false;
-              else isDark = true; // Default embedded mode to dark matching Kroombox panel's dark UI
+              isDark = false; // Default embedded mode to light matching Kroombox panel's light UI
             }
           } else {
             // Standalone mode: honor user's explicit preference or system media query
