@@ -40,7 +40,32 @@ function ScrollToTop() {
 
 export default function App() {
   const { user, logout } = useUser();
-  const [sidebarOpen, setSidebarOpen] = React.useState(false);
+  const [sidebarOpen, setSidebarOpen] = React.useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('kroomcare_sidebar_open');
+      if (saved !== null) return saved === 'true';
+      return window.innerWidth >= 1024;
+    }
+    return true;
+  });
+
+  const handleToggleSidebar = () => {
+    setSidebarOpen(prev => {
+      const next = !prev;
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('kroomcare_sidebar_open', String(next));
+      }
+      return next;
+    });
+  };
+
+  const handleCloseSidebar = () => {
+    setSidebarOpen(false);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('kroomcare_sidebar_open', 'false');
+    }
+  };
+
   const isEmbedded = typeof window !== 'undefined' && window.parent && window.parent !== window;
 
   // Auto-report iframe height to parent Kroombox Panel
@@ -88,18 +113,25 @@ export default function App() {
       )}>
         <Sidebar 
           isOpen={sidebarOpen} 
-          onClose={() => setSidebarOpen(false)} 
+          onClose={handleCloseSidebar} 
           isEmbedded={isEmbedded} 
         />
         
         <main className={cn(
-          "min-w-0 transition-all duration-200",
+          "min-w-0 transition-all duration-300 ease-in-out",
           isEmbedded 
             ? "w-full p-2.5 sm:p-4 md:p-6 pb-12" 
-            : "flex-1 lg:ml-64 p-3 sm:p-5 md:p-6 lg:p-8 pb-20 lg:pb-8"
+            : cn(
+                "flex-1 p-3 sm:p-5 md:p-6 lg:p-8 pb-20 lg:pb-8",
+                sidebarOpen ? "lg:ml-60" : "lg:ml-0"
+              )
         )}>
           <div className="max-w-6xl mx-auto w-full">
-            <Header onToggleSidebar={() => setSidebarOpen(prev => !prev)} isEmbedded={isEmbedded} />
+            <Header 
+              onToggleSidebar={handleToggleSidebar} 
+              isSidebarOpen={sidebarOpen}
+              isEmbedded={isEmbedded} 
+            />
             <AnimatePresence mode="wait">
               <Routes>
                 {/* Customer Routes */}

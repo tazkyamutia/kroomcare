@@ -77,6 +77,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const navItems = getNavItems();
 
+  const handleNavClick = () => {
+    if (typeof window !== 'undefined' && (window.innerWidth < 1024 || isEmbedded)) {
+      closeSidebar();
+    }
+  };
+
   return (
     <>
       {/* Standalone Mobile Toggle (only rendered when not controlled via Header) */}
@@ -92,7 +98,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Sidebar */}
       <aside className={cn(
         "fixed inset-y-0 left-0 z-50 w-60 bg-white dark:bg-[#0b0f19] border-r border-slate-200/60 dark:border-white/[0.04] transform transition-transform duration-300 ease-in-out shadow-xl",
-        !isEmbedded && "lg:translate-x-0 lg:shadow-xs",
         isOpen ? "translate-x-0" : "-translate-x-full"
       )}>
         <div className="flex flex-col h-full">
@@ -109,7 +114,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
             {isOpen && (
               <button 
                 onClick={closeSidebar}
-                className={cn("p-1 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-lg", !isEmbedded && "lg:hidden")}
+                className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-lg transition-colors cursor-pointer"
+                title="Sembunyikan Sidebar"
+                aria-label="Sembunyikan sidebar"
               >
                 <X size={18} />
               </button>
@@ -121,7 +128,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <NavLink
                 key={item.path}
                 to={item.path}
-                onClick={closeSidebar}
+                onClick={handleNavClick}
                 className={({ isActive }) => cn(
                   "flex items-center gap-2.5 px-3 py-2 rounded-xl transition-all duration-200 text-xs sm:text-sm font-medium",
                   isActive 
