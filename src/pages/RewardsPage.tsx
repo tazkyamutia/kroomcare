@@ -112,9 +112,6 @@ export const RewardsPage = () => {
         <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
           {t('rewards.title')}
         </h1>
-        <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-          {t('rewards.subtitle')}
-        </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">

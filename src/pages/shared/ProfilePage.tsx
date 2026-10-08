@@ -268,7 +268,6 @@ export const ProfilePage: React.FC = () => {
       {/* Header */}
       <div>
         <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">{t('profile.title')}</h1>
-        <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">{t('profile.subtitle')}</p>
       </div>
 
       <div className="bg-white dark:bg-slate-900 rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-slate-200/80 dark:border-slate-800 shadow-xs">

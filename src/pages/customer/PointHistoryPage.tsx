@@ -55,9 +55,6 @@ export const PointHistoryPage = () => {
         <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
           {t('points_history.title')}
         </h1>
-        <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-          {t('points_history.subtitle')}
-        </p>
       </div>
 
       {/* Summary Cards */}

@@ -38,8 +38,11 @@ export const NewTicketPage = () => {
       });
       const result = await response.json();
       if (response.ok && result.success) {
-        updateUser({ points: (user.points || 0) + 50 });
-        alert(t('tickets.success_created'));
+        const addedPoints = typeof result.data?.pointsAwarded === 'number' ? result.data.pointsAwarded : 0;
+        if (addedPoints > 0) {
+          updateUser({ points: (user.points || 0) + addedPoints });
+        }
+        alert(result.message || t('tickets.success_created'));
         navigate('/tickets');
       } else {
         alert(result.message || t('tickets.error_created'));
@@ -63,7 +66,6 @@ export const NewTicketPage = () => {
         </button>
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">{t('tickets.create_title')}</h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400">{t('tickets.create_subtitle')}</p>
         </div>
       </div>
 

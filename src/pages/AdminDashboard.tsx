@@ -92,7 +92,6 @@ export const AdminDashboard = () => {
         </div>
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">{t('admin.title')}</h1>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">{t('admin.subtitle')}</p>
         </div>
       </div>
 

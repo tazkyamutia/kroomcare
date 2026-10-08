@@ -17,8 +17,8 @@ export const DashboardHome = () => {
   // Use user's points or default to 75 as in mockup specification
   const points = user?.points !== undefined && user?.points !== null ? user.points : 75;
 
-  // Progress untuk penukaran Free Domain (1000 Poin)
-  const targetPoints = 1000;
+  // Progress untuk penukaran Free Domain (2500 Poin)
+  const targetPoints = 2500;
   const progressPercent = Math.min((points / targetPoints) * 100, 100);
   const pointsNeeded = Math.max(targetPoints - points, 0);
 
@@ -30,11 +30,6 @@ export const DashboardHome = () => {
           <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
             {t('dashboard.welcome')}, {userDisplayName}!
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-            {isCustomer
-              ? t('dashboard.subtitle_customer')
-              : t('dashboard.subtitle_staff')}
-          </p>
         </div>
         <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
           <div className="px-3 py-1.5 bg-emerald-50 dark:bg-emerald-950/40 rounded-full border border-emerald-200/80 dark:border-emerald-800/60 flex items-center gap-2">

@@ -67,16 +67,30 @@ const receiveExternalTicket = async (req, res) => {
     ]);
     const ticketId = ticketResult.insertId;
 
-    // ── 5. Tambah Reward Koin ────────────────────────────────────────────────
-    await db.query(
-      'UPDATE users SET koin_reward = COALESCE(koin_reward, 0) + 50 WHERE id = ?',
-      [userId]
-    );
-    const descPoint = `Reward pembuatan tiket eksternal #${ticketId}`;
-    await db.query(
-      'INSERT INTO point_histories (user_id, jenis_transaksi, jumlah_poin, keterangan) VALUES (?, ?, ?, ?)',
-      [userId, 'masuk', 50, descPoint]
-    );
+    // ── 5. Tambah Reward Koin (Anti-spam 1x per hari, 10 poin) ────────────────
+    try {
+      const [todayReward] = await db.query(
+        `SELECT id FROM point_histories 
+         WHERE user_id = ? 
+           AND jenis_transaksi = 'masuk' 
+           AND keterangan LIKE 'Reward pembuatan tiket%' 
+           AND DATE(created_at) = CURDATE()`,
+        [userId]
+      );
+      if (todayReward.length === 0) {
+        await db.query(
+          'UPDATE users SET koin_reward = COALESCE(koin_reward, 0) + 10 WHERE id = ?',
+          [userId]
+        );
+        const descPoint = `Reward pembuatan tiket eksternal #${ticketId}`;
+        await db.query(
+          'INSERT INTO point_histories (user_id, jenis_transaksi, jumlah_poin, keterangan) VALUES (?, ?, ?, ?)',
+          [userId, 'masuk', 10, descPoint]
+        );
+      }
+    } catch (pErr) {
+      console.error('Failed to process external ticket reward:', pErr.message);
+    }
 
     // ── 6. Antrekan Notifikasi WhatsApp ──────────────────────────────────────
     const targetJid = process.env.WA_TARGET_JID || '120363xxxxx@g.us';

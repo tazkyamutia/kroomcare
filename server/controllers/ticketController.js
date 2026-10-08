@@ -42,15 +42,31 @@ const createTicket = async (req, res) => {
     const [result] = await db.query(query, [user_id, judul, deskripsi, is_priority ? 1 : 0]);
     const ticketId = result.insertId;
 
-    // Tambahkan 50 koin reward ke customer
-    await db.query('UPDATE users SET koin_reward = COALESCE(koin_reward, 0) + 50 WHERE id = ?', [user_id]);
+    // Cek batasan reward harian anti-spam (Maksimal 1 reward tiket per hari, senilai 10 poin)
+    let pointsAwarded = 0;
+    try {
+      const [todayReward] = await db.query(
+        `SELECT id FROM point_histories 
+         WHERE user_id = ? 
+           AND jenis_transaksi = 'masuk' 
+           AND keterangan LIKE 'Reward pembuatan tiket%' 
+           AND DATE(created_at) = CURDATE()`,
+        [user_id]
+      );
 
-    // Catat histori poin
-    const desc = `Reward pembuatan tiket baru #${ticketId}`;
-    await db.query(
-      'INSERT INTO point_histories (user_id, jenis_transaksi, jumlah_poin, keterangan) VALUES (?, ?, ?, ?)',
-      [user_id, 'masuk', 50, desc]
-    );
+      if (todayReward.length === 0) {
+        // Belum menerima reward tiket hari ini: Berikan +10 koin
+        pointsAwarded = 10;
+        await db.query('UPDATE users SET koin_reward = COALESCE(koin_reward, 0) + ? WHERE id = ?', [pointsAwarded, user_id]);
+        const desc = `Reward pembuatan tiket baru #${ticketId}`;
+        await db.query(
+          'INSERT INTO point_histories (user_id, jenis_transaksi, jumlah_poin, keterangan) VALUES (?, ?, ?, ?)',
+          [user_id, 'masuk', pointsAwarded, desc]
+        );
+      }
+    } catch (pointErr) {
+      console.error('Failed to process daily ticket reward:', pointErr.message);
+    }
 
     // Kirim Notifikasi WhatsApp via GoWA
     let userNama = 'Unknown';
@@ -92,13 +108,16 @@ const createTicket = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: 'Tiket berhasil dibuat.',
+      message: pointsAwarded > 0 
+        ? `Tiket berhasil dibuat (+${pointsAwarded} Koin Reward).`
+        : 'Tiket berhasil dibuat.',
       data: {
         id: ticketId,
         user_id,
         judul,
         deskripsi,
-        isPriority: !!is_priority
+        isPriority: !!is_priority,
+        pointsAwarded
       }
     });
   } catch (error) {
