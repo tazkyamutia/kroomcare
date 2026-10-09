@@ -133,8 +133,8 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar, isSidebarOpen =
 
   return (
     <header className="flex items-center justify-between gap-2 sm:gap-4 mb-4 sm:mb-6 relative z-30 bg-transparent border-none shadow-none">
-      {/* Brand Logo & Name & Toggle Button */}
-      <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+      {/* Brand Logo & Name & Toggle Button (Mobile Only) */}
+      <div className="flex lg:hidden items-center gap-2 sm:gap-2.5 shrink-0">
         <button 
           onClick={onToggleSidebar}
           className="p-1.5 sm:p-2 bg-white dark:bg-slate-900/80 border border-slate-200/60 dark:border-white/[0.08] rounded-xl shadow-xs text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer shrink-0"
@@ -144,7 +144,7 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar, isSidebarOpen =
           <Menu size={17} />
         </button>
 
-        <div className={cn("flex items-center gap-2 select-none", (!isEmbedded && isSidebarOpen) ? "lg:hidden" : "flex")}>
+        <div className="flex items-center gap-2 select-none">
           <img 
             src="https://i.ibb.co.com/fGPRy8Jt/Gemini-Generated-Image-yss7sryss7sryss7-removebg-preview.png" 
             alt="Logo KroomCare" 

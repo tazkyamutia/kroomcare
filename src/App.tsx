@@ -114,6 +114,7 @@ export default function App() {
         <Sidebar 
           isOpen={sidebarOpen} 
           onClose={handleCloseSidebar} 
+          onToggle={handleToggleSidebar}
           isEmbedded={isEmbedded} 
         />
         
@@ -123,7 +124,7 @@ export default function App() {
             ? "w-full p-2.5 sm:p-4 md:p-6 pb-12" 
             : cn(
                 "flex-1 p-3 sm:p-5 md:p-6 lg:p-8 pb-20 lg:pb-8",
-                sidebarOpen ? "lg:ml-60" : "lg:ml-0"
+                sidebarOpen ? "lg:ml-60" : "lg:ml-16"
               )
         )}>
           <div className="max-w-6xl mx-auto w-full">
