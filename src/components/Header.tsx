@@ -131,6 +131,49 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar, isSidebarOpen =
 
   const { role, name: userName, points = 0, avatar } = user;
 
+  if (isEmbeddedEffective) {
+    return (
+      <header className="flex items-center justify-between gap-2 mb-2 sm:mb-3 relative z-20 bg-transparent border-none">
+        {/* Subtle integration breadcrumb badge */}
+        <div className="flex items-center gap-1.5 select-none text-[11px] font-medium text-slate-500 dark:text-slate-400">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse inline-block" />
+          <span className="hidden xs:inline">Support Center</span>
+          <span className="text-slate-300 dark:text-slate-700">•</span>
+          <span className="text-slate-600 dark:text-slate-300 font-semibold truncate max-w-[150px] sm:max-w-none">
+            {userName}
+          </span>
+        </div>
+
+        {/* Compact Right Controls */}
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          {(role === 'customer' || (role as string) === 'member') && (
+            <motion.div 
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="flex items-center gap-1.5 px-2.5 py-1 bg-white/90 dark:bg-slate-900/90 rounded-lg border border-slate-200/80 dark:border-slate-800 shadow-2xs hover:border-amber-300 dark:hover:border-amber-500/30 transition-all cursor-pointer backdrop-blur-xs"
+              onClick={() => navigate('/points-history')}
+              title="Klik untuk melihat poin loyalitas"
+            >
+              <Star size={11} className="fill-amber-400 text-amber-500" />
+              <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200 leading-none">
+                {(points || 75).toLocaleString()} <span className="text-[10px] text-slate-400 font-normal">{t('header.pts')}</span>
+              </span>
+            </motion.div>
+          )}
+
+          {/* Quick Theme Switcher */}
+          <button
+            onClick={toggleTheme}
+            title={theme === 'dark' ? 'Ganti ke tema terang' : 'Ganti ke tema gelap'}
+            className="w-7 h-7 rounded-lg border border-slate-200/80 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-amber-400 hover:border-slate-300 dark:hover:border-slate-700 transition-all shadow-2xs cursor-pointer backdrop-blur-xs"
+          >
+            {theme === 'dark' ? <Sun size={13} className="text-amber-400" /> : <Moon size={13} />}
+          </button>
+        </div>
+      </header>
+    );
+  }
+
   return (
     <header className="flex items-center justify-between gap-2 sm:gap-4 mb-4 sm:mb-6 relative z-30 bg-transparent border-none shadow-none">
       {/* Brand Logo & Name & Toggle Button (Mobile Only) */}

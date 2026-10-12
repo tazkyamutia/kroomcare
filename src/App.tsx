@@ -111,23 +111,25 @@ export default function App() {
         "flex min-h-screen transition-colors duration-300",
         isEmbedded ? "min-h-0 bg-transparent w-full overflow-x-hidden" : "bg-slate-50/60 dark:bg-[#0b0f19]"
       )}>
-        <Sidebar 
-          isOpen={sidebarOpen} 
-          onClose={handleCloseSidebar} 
-          onToggle={handleToggleSidebar}
-          isEmbedded={isEmbedded} 
-        />
+        {!isEmbedded && (
+          <Sidebar 
+            isOpen={sidebarOpen} 
+            onClose={handleCloseSidebar} 
+            onToggle={handleToggleSidebar}
+            isEmbedded={isEmbedded} 
+          />
+        )}
         
         <main className={cn(
           "min-w-0 transition-all duration-300 ease-in-out",
           isEmbedded 
-            ? "w-full p-2.5 sm:p-4 md:p-6 pb-12" 
+            ? "w-full p-2 sm:p-3 md:p-4 pb-8" 
             : cn(
                 "flex-1 p-3 sm:p-5 md:p-6 lg:p-8 pb-20 lg:pb-8",
                 sidebarOpen ? "lg:ml-60" : "lg:ml-16"
               )
         )}>
-          <div className="max-w-6xl mx-auto w-full">
+          <div className={cn("mx-auto w-full", isEmbedded ? "max-w-full" : "max-w-6xl")}>
             <Header 
               onToggleSidebar={handleToggleSidebar} 
               isSidebarOpen={sidebarOpen}
