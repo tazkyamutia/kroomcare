@@ -777,7 +777,7 @@ function getSharedCookie(name: string): string | null {
 }
 
 function getSharedCookieTheme(): Theme | null {
-  for (const name of ['kp_theme', 'kroombox_theme', 'theme', 'panel_theme', 'theme_mode']) {
+  for (const name of ['kp_theme', 'kroombox_theme']) {
     const val = getSharedCookie(name)?.toLowerCase().trim();
     if (val === 'dark' || val === 'light') return val as Theme;
   }
@@ -1027,38 +1027,43 @@ function detectParentTheme(): Theme | null {
 }
 
 function resolveSystemTheme(): Theme {
-  // 1. Check URL Parameter ?theme=dark / ?theme=light / ?mode=dark / ?mode=light
+  const isEmbedded = typeof window !== 'undefined' && window.parent && window.parent !== window;
+
+  // 1. Embedded mode inside Kroombox Panel Support Center:
+  if (isEmbedded) {
+    try {
+      const sessionToggle = sessionStorage.getItem('kroomcare_user_toggled_theme');
+      if (sessionToggle === 'dark' || sessionToggle === 'light') return sessionToggle as Theme;
+    } catch (_) {}
+
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const urlTheme = params.get('theme') || params.get('mode') || params.get('themeMode') || params.get('colorScheme');
+      if (urlTheme === 'dark' || urlTheme === 'light') return urlTheme as Theme;
+    } catch (_) {}
+
+    const cookieTheme = getSharedCookieTheme();
+    if (cookieTheme) return cookieTheme;
+
+    const parentTheme = detectParentTheme();
+    if (parentTheme) return parentTheme;
+
+    // Kroombox Panel UI is in Light Mode -> default to Light
+    return 'light';
+  }
+
+  // 2. Standalone CRM: check URL, cookie, and OS media query
   try {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       const urlTheme = params.get('theme') || params.get('mode') || params.get('themeMode') || params.get('colorScheme');
-      if (urlTheme === 'dark' || urlTheme === 'light') {
-        lastKnownParentTheme = urlTheme;
-        try { localStorage.setItem('kroombox_parent_theme', urlTheme); } catch (_) {}
-        return urlTheme;
-      }
+      if (urlTheme === 'dark' || urlTheme === 'light') return urlTheme as Theme;
     }
   } catch (_) {}
 
-  // 2. Check shared cookie from Kroombox Panel (accessible even across subdomains)
   const cookieTheme = getSharedCookieTheme();
-  if (cookieTheme) {
-    lastKnownParentTheme = cookieTheme;
-    return cookieTheme;
-  }
+  if (cookieTheme) return cookieTheme;
 
-  // 3. Check parent iframe theme (Kroombox Panel Support Center)
-  const isEmbedded = typeof window !== 'undefined' && window.parent && window.parent !== window;
-  if (isEmbedded) {
-    const parentTheme = detectParentTheme();
-    if (parentTheme) {
-      return parentTheme;
-    }
-    // Support Center inside Kroombox Panel defaults to Light Mode matching panel
-    return 'light';
-  }
-
-  // 4. Standalone direct window: check system media query
   if (typeof window !== 'undefined' && window.matchMedia) {
     if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
       return 'dark';
@@ -1102,13 +1107,15 @@ export const LanguageThemeProvider: React.FC<{ children: React.ReactNode }> = ({
         const urlTheme = params.get('theme') || params.get('mode');
         if (urlTheme === 'light' || urlTheme === 'dark') return urlTheme;
       } catch (_) {}
-      try {
-        if (!localStorage.getItem('kc_theme_v4')) {
-          localStorage.removeItem('kroomcare_theme_mode');
-          localStorage.removeItem('kroombox_parent_theme');
-          localStorage.setItem('kc_theme_v4', '1');
-        }
-      } catch (_) {}
+
+      if (isEmbedded) {
+        try {
+          const sessionToggle = sessionStorage.getItem('kroomcare_user_toggled_theme');
+          if (sessionToggle === 'light' || sessionToggle === 'dark') return sessionToggle as ThemeMode;
+        } catch (_) {}
+        return 'system';
+      }
+
       const savedMode = localStorage.getItem('kroomcare_theme_mode');
       if (savedMode === 'light' || savedMode === 'dark' || savedMode === 'system') {
         return savedMode as ThemeMode;
@@ -1125,6 +1132,15 @@ export const LanguageThemeProvider: React.FC<{ children: React.ReactNode }> = ({
         const urlTheme = params.get('theme') || params.get('mode');
         if (urlTheme === 'light' || urlTheme === 'dark') return urlTheme;
       } catch (_) {}
+
+      if (isEmbedded) {
+        try {
+          const sessionToggle = sessionStorage.getItem('kroomcare_user_toggled_theme');
+          if (sessionToggle === 'light' || sessionToggle === 'dark') return sessionToggle as Theme;
+        } catch (_) {}
+        return 'light';
+      }
+
       const savedMode = localStorage.getItem('kroomcare_theme_mode');
       if (savedMode === 'dark' || savedMode === 'light') return savedMode;
     }
@@ -1192,10 +1208,10 @@ export const LanguageThemeProvider: React.FC<{ children: React.ReactNode }> = ({
   const setTheme = (mode: ThemeMode) => {
     setThemeModeState(mode);
     try {
-      localStorage.setItem('kroomcare_theme_mode', mode);
-      if (mode === 'dark' || mode === 'light') {
-        localStorage.setItem('kroombox_parent_theme', mode);
-        lastKnownParentTheme = mode;
+      if (isEmbedded) {
+        sessionStorage.setItem('kroomcare_user_toggled_theme', mode);
+      } else {
+        localStorage.setItem('kroomcare_theme_mode', mode);
       }
     } catch (_) {}
 

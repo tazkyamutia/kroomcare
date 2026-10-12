@@ -30,71 +30,56 @@
             isEmbedded = true;
           }
 
-          // Invalidate legacy cached localStorage locks from earlier sessions
-          try {
-            if (!localStorage.getItem('kc_theme_v4')) {
-              localStorage.removeItem('kroomcare_theme_mode');
-              localStorage.removeItem('kroombox_parent_theme');
-              localStorage.setItem('kc_theme_v4', '1');
-            }
-          } catch(e) {}
-
-          var savedUserMode = null;
-          try {
-            // Only user manual preference locks the theme
-            var explicitUser = localStorage.getItem('kroomcare_theme_mode');
-            if (explicitUser === 'dark' || explicitUser === 'light') {
-              savedUserMode = explicitUser;
-            }
-          } catch(e) {}
-
-          var cookieTheme = getCookie('kp_theme') || getCookie('kroombox_theme') || getCookie('theme') || getCookie('panel_theme') || getCookie('theme_mode');
-          var isDark = false;
-
           var params = new URLSearchParams(window.location.search);
           var pTheme = params.get('theme') || params.get('mode') || params.get('themeMode') || params.get('colorScheme');
+          var isDark = false;
 
-          if (savedUserMode === 'dark') {
-            isDark = true;
-          } else if (savedUserMode === 'light') {
-            isDark = false;
-          } else if (pTheme === 'dark') {
-            isDark = true;
-          } else if (pTheme === 'light') {
-            isDark = false;
-          } else if (cookieTheme === 'dark' || cookieTheme === '1' || cookieTheme === 'true') {
-            isDark = true;
-          } else if (cookieTheme === 'light' || cookieTheme === '0' || cookieTheme === 'false') {
-            isDark = false;
-          } else if (isEmbedded) {
-            var parentDetected = null;
+          if (isEmbedded) {
+            // Support Center inside Kroombox Panel:
+            // Kroombox Panel UI is in Light mode. Clean any legacy dark locks from localStorage.
             try {
-              if (window.parent && window.parent.document) {
-                var pDoc = window.parent.document;
-                var pHtml = pDoc.documentElement;
-                var pBody = pDoc.body;
-                var hasDarkIndicator = pHtml.classList.contains('dark') || 
-                                       pHtml.classList.contains('theme-dark') || 
-                                       pHtml.classList.contains('dark-mode') || 
-                                       pHtml.classList.contains('night') ||
-                                       (pBody && (pBody.classList.contains('dark') || pBody.classList.contains('theme-dark') || pBody.classList.contains('dark-mode') || pBody.classList.contains('night'))) || 
-                                       pHtml.getAttribute('data-theme') === 'dark' || 
-                                       pHtml.getAttribute('data-mode') === 'dark' || 
-                                       pHtml.getAttribute('data-color-mode') === 'dark' || 
-                                       (pBody && (pBody.getAttribute('data-theme') === 'dark' || pBody.getAttribute('data-mode') === 'dark' || pBody.getAttribute('data-color-mode') === 'dark'));
-                parentDetected = hasDarkIndicator;
+              if (localStorage.getItem('kroomcare_theme_mode') === 'dark') {
+                localStorage.removeItem('kroomcare_theme_mode');
               }
+              localStorage.removeItem('kroombox_parent_theme');
             } catch(e) {}
 
-            if (parentDetected !== null) {
-              isDark = parentDetected;
+            var sessionToggle = null;
+            try {
+              sessionToggle = sessionStorage.getItem('kroomcare_user_toggled_theme');
+            } catch(e) {}
+
+            if (pTheme === 'dark') {
+              isDark = true;
+            } else if (pTheme === 'light') {
+              isDark = false;
+            } else if (sessionToggle === 'dark') {
+              isDark = true;
+            } else if (sessionToggle === 'light') {
+              isDark = false;
             } else {
-              // Support Center embedded in Kroombox Panel defaults to Light Mode matching panel
+              // Default to Light mode matching Kroombox Panel
               isDark = false;
             }
           } else {
-            // Standalone mode: honor system media query
-            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            // Standalone mode: check user preference or system preference
+            var savedUserMode = null;
+            try {
+              var explicitUser = localStorage.getItem('kroomcare_theme_mode');
+              if (explicitUser === 'dark' || explicitUser === 'light') {
+                savedUserMode = explicitUser;
+              }
+            } catch(e) {}
+
+            if (pTheme === 'dark') {
+              isDark = true;
+            } else if (pTheme === 'light') {
+              isDark = false;
+            } else if (savedUserMode === 'dark') {
+              isDark = true;
+            } else if (savedUserMode === 'light') {
+              isDark = false;
+            } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
               isDark = true;
             } else {
               isDark = false;
@@ -103,8 +88,12 @@
 
           if (isDark) {
             document.documentElement.classList.add('dark');
+            document.documentElement.setAttribute('data-theme', 'dark');
+            document.documentElement.style.colorScheme = 'dark';
           } else {
             document.documentElement.classList.remove('dark');
+            document.documentElement.setAttribute('data-theme', 'light');
+            document.documentElement.style.colorScheme = 'light';
           }
 
           // Early language detection: Support Center follows panel, Standalone CRM uses independent setting
