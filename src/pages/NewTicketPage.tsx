@@ -55,25 +55,30 @@ export const NewTicketPage = () => {
     }
   };
 
+  const isEmbedded = typeof window !== 'undefined' && window.parent && window.parent !== window;
+
   return (
-    <div className="max-w-2xl mx-auto space-y-4">
-      <div className="flex items-center gap-3">
+    <div className={cn("mx-auto space-y-3 sm:space-y-4", isEmbedded ? "max-w-3xl w-full pt-0" : "max-w-2xl")}>
+      <div className="flex items-center gap-2.5 sm:gap-3">
         <button 
           onClick={() => navigate('/tickets')}
-          className="p-1.5 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors shadow-xs"
+          className="p-1.5 sm:p-2 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors shadow-2xs shrink-0 cursor-pointer"
+          title="Kembali ke Daftar Tiket"
         >
           <ArrowLeft size={16} />
         </button>
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">{t('tickets.create_title')}</h1>
+          <h1 className="text-lg sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
+            {t('tickets.create_title')}
+          </h1>
         </div>
       </div>
 
       <motion.form 
-        initial={{ opacity: 0, y: 10 }}
+        initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         onSubmit={handleSubmit}
-        className="bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4"
+        className="bg-white dark:bg-slate-900 p-5 sm:p-7 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs space-y-4.5"
       >
         <div className="space-y-1.5">
           <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">{t('tickets.subject')}</label>

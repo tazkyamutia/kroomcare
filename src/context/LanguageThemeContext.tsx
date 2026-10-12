@@ -57,6 +57,7 @@ const translations = {
     'settings.lang_id': 'Bahasa Indonesia',
     'settings.lang_en': 'English',
 
+
     // Dashboard Home
     'dashboard.welcome': 'Selamat Datang di Support Center Kroombox',
     'dashboard.subtitle_customer': 'Pantau status layanan dan reward Anda di satu tempat.',
@@ -428,6 +429,7 @@ const translations = {
     'settings.save_success': 'Settings saved successfully!',
     'settings.lang_id': 'Indonesian',
     'settings.lang_en': 'English',
+
 
     // Dashboard Home
     'dashboard.welcome': 'Welcome to Kroombox Support Center',

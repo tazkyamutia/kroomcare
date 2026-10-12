@@ -135,58 +135,50 @@ export default function App() {
               isSidebarOpen={sidebarOpen}
               isEmbedded={isEmbedded} 
             />
-            <AnimatePresence mode="wait">
-              <Routes>
-                {/* Customer Routes */}
-                {(user.role === 'customer' || (user.role as string) === 'member') && (
-                  <>
-                    <Route path="/" element={<DashboardHome />} />
-                    <Route path="/forum" element={<ForumPage />} />
-                    <Route path="/forum/:id" element={<ForumThreadPage userRole="customer" />} />
-                    <Route path="/tickets" element={<TicketingPage />} />
-                    <Route path="/tickets/new" element={<NewTicketPage />} />
-                    <Route path="/tickets/:id" element={<ForumThreadPage userRole="customer" />} />
-                    <Route path="/rewards" element={<RewardsPage />} />
-                    <Route path="/points-history" element={<PointHistoryPage />} />
-                    <Route path="/profile" element={<ProfilePage />} />
-                    <Route path="/settings" element={<SettingsPage />} />
-                  </>
-                )}
+            <Routes>
+              {/* Universal Common Routes for Support Center Embed & Direct Navigation */}
+              <Route path="/tickets" element={<TicketingPage />} />
+              <Route path="/tickets/new" element={<NewTicketPage />} />
+              <Route path="/tickets/:id" element={<ForumThreadPage userRole={(user.role as any) || 'customer'} />} />
+              <Route path="/forum" element={<ForumPage />} />
+              <Route path="/forum/:id" element={<ForumThreadPage userRole={(user.role as any) || 'customer'} />} />
+              <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/settings" element={<SettingsPage />} />
 
-                {/* Staff Routes */}
-                {user.role === 'staff' && (
-                  <>
-                    <Route path="/" element={<StaffDashboard />} />
-                    <Route path="/forum" element={<ForumPage />} />
-                    <Route path="/forum/:id" element={<ForumThreadPage userRole="staff" />} />
-                    <Route path="/staff" element={<TicketQueuePage />} />
-                    <Route path="/staff/tickets/:id" element={<ForumThreadPage userRole="staff" />} />
-                    <Route path="/profile" element={<ProfilePage />} />
-                    <Route path="/settings" element={<SettingsPage />} />
-                  </>
-                )}
+              {/* Customer Routes */}
+              {(user.role === 'customer' || (user.role as string) === 'member') && (
+                <>
+                  <Route path="/" element={<DashboardHome />} />
+                  <Route path="/rewards" element={<RewardsPage />} />
+                  <Route path="/points-history" element={<PointHistoryPage />} />
+                </>
+              )}
 
-                {/* Admin Routes */}
-                {user.role === 'admin' && (
-                  <>
-                    <Route path="/" element={<AdminDashboard />} />
-                    <Route path="/forum" element={<ForumPage />} />
-                    <Route path="/forum/:id" element={<ForumThreadPage userRole="admin" />} />
-                    <Route path="/admin/users" element={<UserManagementPage />} />
-                    <Route path="/admin/tickets" element={<TicketSettingsPage />} />
-                    <Route path="/admin/api" element={<ApiIntegrationPage />} />
-                    <Route path="/profile" element={<ProfilePage />} />
-                    <Route path="/settings" element={<SettingsPage />} />
-                  </>
-                )}
+              {/* Staff Routes */}
+              {user.role === 'staff' && (
+                <>
+                  <Route path="/" element={<StaffDashboard />} />
+                  <Route path="/staff" element={<TicketQueuePage />} />
+                  <Route path="/staff/tickets/:id" element={<ForumThreadPage userRole="staff" />} />
+                </>
+              )}
 
-                {/* SSO Refresh Routes */}
-                <Route path="/sso" element={<SSOPage />} />
-                <Route path="/auth/sso" element={<SSOPage />} />
+              {/* Admin Routes */}
+              {user.role === 'admin' && (
+                <>
+                  <Route path="/" element={<AdminDashboard />} />
+                  <Route path="/admin/users" element={<UserManagementPage />} />
+                  <Route path="/admin/tickets" element={<TicketSettingsPage />} />
+                  <Route path="/admin/api" element={<ApiIntegrationPage />} />
+                </>
+              )}
 
-                <Route path="*" element={<Navigate to="/" replace />} />
-              </Routes>
-            </AnimatePresence>
+              {/* SSO Refresh Routes */}
+              <Route path="/sso" element={<SSOPage />} />
+              <Route path="/auth/sso" element={<SSOPage />} />
+
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
           </div>
         </main>
 
