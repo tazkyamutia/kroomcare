@@ -30,13 +30,22 @@
             isEmbedded = true;
           }
 
+          var savedUserMode = null;
+          try {
+            savedUserMode = localStorage.getItem('kroomcare_theme_mode') || localStorage.getItem('kroombox_parent_theme');
+          } catch(e) {}
+
           var cookieTheme = getCookie('kp_theme') || getCookie('kroombox_theme') || getCookie('theme') || getCookie('panel_theme') || getCookie('theme_mode');
           var isDark = false;
 
           var params = new URLSearchParams(window.location.search);
           var pTheme = params.get('theme') || params.get('mode') || params.get('themeMode') || params.get('colorScheme');
 
-          if (pTheme === 'dark') {
+          if (savedUserMode === 'dark') {
+            isDark = true;
+          } else if (savedUserMode === 'light') {
+            isDark = false;
+          } else if (pTheme === 'dark') {
             isDark = true;
           } else if (pTheme === 'light') {
             isDark = false;
@@ -68,19 +77,13 @@
               isDark = true;
             } else if (cookieTheme === 'light' || cookieTheme === '0' || cookieTheme === 'false') {
               isDark = false;
-            } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-              isDark = true;
             } else {
-              isDark = false; // Default embedded mode to light matching Kroombox panel's light UI
+              // Default embedded mode to light matching Kroombox panel's clean white/light UI
+              isDark = false;
             }
           } else {
             // Standalone mode: honor user's explicit preference or system media query
-            var userMode = localStorage.getItem('kroomcare_theme_mode');
-            if (userMode === 'dark') {
-              isDark = true;
-            } else if (userMode === 'light') {
-              isDark = false;
-            } else if (cookieTheme === 'dark') {
+            if (cookieTheme === 'dark') {
               isDark = true;
             } else if (cookieTheme === 'light') {
               isDark = false;

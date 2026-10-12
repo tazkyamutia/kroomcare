@@ -1058,10 +1058,7 @@ function resolveSystemTheme(): Theme {
       return lastKnownParentTheme;
     }
     // When embedded in Kroombox Panel and parent theme not explicitly detected:
-    // Check OS / system media query preference, default to 'light' (matching Kroombox Panel's clean light UI)
-    if (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      return 'dark';
-    }
+    // Default to 'light' to match Kroombox Panel's clean white/light UI (do not let host OS dark mode invert it)
     return 'light';
   }
 
@@ -1109,14 +1106,10 @@ export const LanguageThemeProvider: React.FC<{ children: React.ReactNode }> = ({
         const urlTheme = params.get('theme') || params.get('mode');
         if (urlTheme === 'light' || urlTheme === 'dark') return urlTheme;
       } catch (_) {}
-    }
-    if (isEmbedded) {
-      // In embedded mode, ALWAYS follow panel (system / responsive)
-      return 'system';
-    }
-    const savedMode = typeof window !== 'undefined' ? localStorage.getItem('kroomcare_theme_mode') : null;
-    if (savedMode === 'light' || savedMode === 'dark' || savedMode === 'system') {
-      return savedMode as ThemeMode;
+      const savedMode = localStorage.getItem('kroomcare_theme_mode');
+      if (savedMode === 'light' || savedMode === 'dark' || savedMode === 'system') {
+        return savedMode as ThemeMode;
+      }
     }
     return 'system';
   });
@@ -1129,10 +1122,10 @@ export const LanguageThemeProvider: React.FC<{ children: React.ReactNode }> = ({
         const urlTheme = params.get('theme') || params.get('mode');
         if (urlTheme === 'light' || urlTheme === 'dark') return urlTheme;
       } catch (_) {}
-      if (!isEmbedded) {
-        const savedMode = localStorage.getItem('kroomcare_theme_mode');
-        if (savedMode === 'dark' || savedMode === 'light') return savedMode;
-      }
+      const savedMode = localStorage.getItem('kroomcare_theme_mode');
+      if (savedMode === 'dark' || savedMode === 'light') return savedMode;
+      const savedParent = localStorage.getItem('kroombox_parent_theme');
+      if (savedParent === 'dark' || savedParent === 'light') return savedParent as Theme;
     }
     return resolveSystemTheme();
   });
@@ -1148,6 +1141,21 @@ export const LanguageThemeProvider: React.FC<{ children: React.ReactNode }> = ({
       root.setAttribute('data-theme', 'light');
       root.style.colorScheme = 'light';
     }
+  }, []);
+
+  const syncUrlTheme = useCallback((newTheme: Theme) => {
+    try {
+      if (typeof window !== 'undefined' && window.location.search) {
+        const url = new URL(window.location.href);
+        if (url.searchParams.has('theme') || url.searchParams.has('mode') || url.searchParams.has('themeMode') || url.searchParams.has('colorScheme')) {
+          url.searchParams.set('theme', newTheme);
+          if (url.searchParams.has('mode')) url.searchParams.set('mode', newTheme);
+          if (url.searchParams.has('themeMode')) url.searchParams.set('themeMode', newTheme);
+          if (url.searchParams.has('colorScheme')) url.searchParams.set('colorScheme', newTheme);
+          window.history.replaceState({}, '', url.pathname + url.search + url.hash);
+        }
+      }
+    } catch (_) {}
   }, []);
 
   const setLanguage = useCallback((lang: Language) => {
@@ -1182,19 +1190,27 @@ export const LanguageThemeProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const setTheme = (mode: ThemeMode) => {
     setThemeModeState(mode);
-    if (!isEmbedded) {
+    try {
       localStorage.setItem('kroomcare_theme_mode', mode);
-    }
+      if (mode === 'dark' || mode === 'light') {
+        localStorage.setItem('kroombox_parent_theme', mode);
+        lastKnownParentTheme = mode;
+      }
+    } catch (_) {}
+
     if (mode === 'dark') {
       setResolvedTheme('dark');
       applyThemeToDOM('dark');
+      syncUrlTheme('dark');
     } else if (mode === 'light') {
       setResolvedTheme('light');
       applyThemeToDOM('light');
+      syncUrlTheme('light');
     } else {
       const sys = resolveSystemTheme();
       setResolvedTheme(sys);
       applyThemeToDOM(sys);
+      syncUrlTheme(sys);
     }
   };
 
@@ -1222,8 +1238,17 @@ export const LanguageThemeProvider: React.FC<{ children: React.ReactNode }> = ({
       } catch (_) {}
     }
     if (typeof data === 'object') {
-      if (data.type === 'KROOMBOX_THEME_CHANGE' || data.type === 'THEME_CHANGE' || data.type === 'SET_THEME' || data.type === 'KP_THEME_CHANGE' || data.type === 'THEME' || data.type === 'CHANGE_THEME') {
-        const val = (data.theme || data.mode || data.colorScheme || data.colorMode || '').toLowerCase().trim();
+      const typeStr = (data.type || data.action || data.event || '').toLowerCase();
+      if (
+        typeStr.includes('theme') ||
+        typeStr.includes('mode') ||
+        data.type === 'KROOMBOX_THEME_CHANGE' ||
+        data.type === 'THEME_CHANGE' ||
+        data.type === 'SET_THEME' ||
+        data.type === 'KP_THEME_CHANGE' ||
+        data.type === 'CHANGE_THEME'
+      ) {
+        const val = (data.theme || data.mode || data.colorScheme || data.colorMode || data.value || '').toLowerCase().trim();
         if (val === 'dark' || val === 'light') return val as Theme;
       }
       if (data.isDark === true || data.darkMode === true || data.dark === true) return 'dark';
@@ -1245,12 +1270,13 @@ export const LanguageThemeProvider: React.FC<{ children: React.ReactNode }> = ({
     return null;
   };
 
-  // Re-sync with system or parent when in 'system' mode or when embedded
+  // Re-sync with system or parent when in 'system' mode
   useEffect(() => {
-    // If standalone and user explicitly locked to 'light' or 'dark', honor it
-    if (!isEmbedded && themeMode !== 'system') {
+    // If user explicitly chose 'light' or 'dark', honor it always
+    if (themeMode !== 'system') {
       applyThemeToDOM(themeMode);
       setResolvedTheme(themeMode);
+      syncUrlTheme(themeMode);
       return;
     }
 
@@ -1263,6 +1289,7 @@ export const LanguageThemeProvider: React.FC<{ children: React.ReactNode }> = ({
         return prev;
       });
       applyThemeToDOM(newTheme);
+      syncUrlTheme(newTheme);
     };
 
     // Initial check
@@ -1343,6 +1370,7 @@ export const LanguageThemeProvider: React.FC<{ children: React.ReactNode }> = ({
       const latest = resolveSystemTheme();
       setResolvedTheme(latest);
       applyThemeToDOM(latest);
+      syncUrlTheme(latest);
       if (typeof window !== 'undefined' && window.parent && window.parent !== window) {
         try {
           window.parent.postMessage({ type: 'GET_THEME' }, '*');
@@ -1367,7 +1395,7 @@ export const LanguageThemeProvider: React.FC<{ children: React.ReactNode }> = ({
       window.removeEventListener('focus', handleVisibility);
       document.removeEventListener('visibilitychange', handleVisibility);
     };
-  }, [themeMode, applyThemeToDOM]);
+  }, [themeMode, applyThemeToDOM, syncUrlTheme]);
 
   // Real-time synchronization with Kroombox Panel language when embedded in Support Center
   useEffect(() => {
