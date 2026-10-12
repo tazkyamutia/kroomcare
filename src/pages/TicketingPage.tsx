@@ -1,5 +1,5 @@
 import React from 'react';
-import { Ticket, Clock, CheckCircle2, AlertCircle, Plus, Search, MessageSquare, ArrowRight, Lightbulb, Loader2 } from 'lucide-react';
+import { Ticket, Clock, CheckCircle2, AlertCircle, Plus, Search, MessageSquare, ArrowRight, Lightbulb, Loader2, Gift } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Link, useNavigate } from 'react-router-dom';
 import { cn } from '../lib/utils';

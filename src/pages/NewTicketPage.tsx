@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Send, AlertCircle, Loader2 } from 'lucide-react';
 import { motion } from 'motion/react';
+import { cn } from '../lib/utils';
 import { useUser } from '../context/UserContext';
 import { useLanguageTheme } from '../context/LanguageThemeContext';
 
