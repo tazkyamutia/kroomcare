@@ -76,6 +76,18 @@ export const SSOPage: React.FC = () => {
             }
           } catch (_) {}
         }
+        const incomingTheme = data.theme || data.data?.theme;
+        if (incomingTheme === 'dark' || incomingTheme === 'light') {
+          try {
+            localStorage.setItem('kroombox_parent_theme', incomingTheme);
+            localStorage.setItem('kroomcare_theme_mode', incomingTheme);
+            if (incomingTheme === 'dark') {
+              document.documentElement.classList.add('dark');
+            } else {
+              document.documentElement.classList.remove('dark');
+            }
+          } catch (_) {}
+        }
         if (setUser) setUser(data.data);
 
         setStatus('success');

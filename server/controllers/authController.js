@@ -669,6 +669,7 @@ const ssoExchange = async (req, res) => {
     }
 
     const roleMapped = user.role === 'member' ? 'customer' : user.role;
+    const detectedTheme = payload.theme || payload.themePreference || payload.mode || payload.colorScheme || null;
 
     // Buat token sesi SSO
     const sessionToken = 'sso_token_' + Buffer.from(`${user.id}:${Date.now()}:${payload.nonce || '0'}`).toString('base64url');
@@ -678,6 +679,7 @@ const ssoExchange = async (req, res) => {
       message: 'Autentikasi SSO berhasil.',
       token: sessionToken,
       lang: payload.lang || payload.language || null,
+      theme: detectedTheme,
       data: {
         id: user.id.toString(),
         name: user.nama,
@@ -685,7 +687,8 @@ const ssoExchange = async (req, res) => {
         role: roleMapped,
         points: user.koin_reward || 0,
         avatar: user.foto || '',
-        lang: payload.lang || payload.language || null
+        lang: payload.lang || payload.language || null,
+        theme: detectedTheme
       }
     });
   } catch (error) {

@@ -1054,9 +1054,11 @@ function resolveSystemTheme(): Theme {
     if (parentTheme) {
       return parentTheme;
     }
+    // Support Center inside Kroombox Panel defaults to Light Mode matching panel
+    return 'light';
   }
 
-  // 4. Standalone direct window or fallback: check system media query
+  // 4. Standalone direct window: check system media query
   if (typeof window !== 'undefined' && window.matchMedia) {
     if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
       return 'dark';
@@ -1101,10 +1103,10 @@ export const LanguageThemeProvider: React.FC<{ children: React.ReactNode }> = ({
         if (urlTheme === 'light' || urlTheme === 'dark') return urlTheme;
       } catch (_) {}
       try {
-        if (!localStorage.getItem('kc_theme_v3')) {
+        if (!localStorage.getItem('kc_theme_v4')) {
           localStorage.removeItem('kroomcare_theme_mode');
           localStorage.removeItem('kroombox_parent_theme');
-          localStorage.setItem('kc_theme_v3', '1');
+          localStorage.setItem('kc_theme_v4', '1');
         }
       } catch (_) {}
       const savedMode = localStorage.getItem('kroomcare_theme_mode');
