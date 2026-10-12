@@ -27,6 +27,18 @@
           try {
             isEmbedded = window.parent && window.parent !== window;
           } catch(e) {
+            isEmbedded = true;
+          }
+
+          // Invalidate legacy cached localStorage locks from earlier sessions
+          try {
+            if (!localStorage.getItem('kc_theme_v3')) {
+              localStorage.removeItem('kroomcare_theme_mode');
+              localStorage.removeItem('kroombox_parent_theme');
+              localStorage.setItem('kc_theme_v3', '1');
+            }
+          } catch(e) {}
+
           var savedUserMode = null;
           try {
             // Only user manual preference locks the theme
@@ -147,7 +159,7 @@
         } catch (e) {}
       })();
     </script>
-    <script type="module" crossorigin src="/assets/index-9OTXflrg.js"></script>
+    <script type="module" crossorigin src="/assets/index-BhqeR5FQ.js"></script>
     <link rel="stylesheet" crossorigin href="/assets/index-B37do4py.css">
   </head>
   <body>

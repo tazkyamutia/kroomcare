@@ -1100,6 +1100,13 @@ export const LanguageThemeProvider: React.FC<{ children: React.ReactNode }> = ({
         const urlTheme = params.get('theme') || params.get('mode');
         if (urlTheme === 'light' || urlTheme === 'dark') return urlTheme;
       } catch (_) {}
+      try {
+        if (!localStorage.getItem('kc_theme_v3')) {
+          localStorage.removeItem('kroomcare_theme_mode');
+          localStorage.removeItem('kroombox_parent_theme');
+          localStorage.setItem('kc_theme_v3', '1');
+        }
+      } catch (_) {}
       const savedMode = localStorage.getItem('kroomcare_theme_mode');
       if (savedMode === 'light' || savedMode === 'dark' || savedMode === 'system') {
         return savedMode as ThemeMode;

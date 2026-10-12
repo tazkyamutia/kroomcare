@@ -51,15 +51,36 @@ app.use('/api/external', externalRoutes);
 const swaggerDocument = YAML.load(path.join(__dirname, 'swagger_spec.yaml'));
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
+// Anti-Cache Middleware for HTML files so iframe updates are always instant
+app.use((req, res, next) => {
+  if (req.path === '/' || req.path.endsWith('.html') || req.path.indexOf('.') === -1) {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+  }
+  next();
+});
+
 // Serve Frontend Static Files (Production Build)
 const distPath = path.join(__dirname, '../dist');
-app.use(express.static(distPath));
+app.use(express.static(distPath, {
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.html')) {
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+    }
+  }
+}));
 
 // SPA Fallback: semua rute non-API diarahkan ke dist/index.html
 app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api') || req.path.startsWith('/api-docs')) {
     return next();
   }
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
   res.sendFile(path.join(distPath, 'index.html'));
 });
 
