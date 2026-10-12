@@ -1054,12 +1054,6 @@ function resolveSystemTheme(): Theme {
     if (parentTheme) {
       return parentTheme;
     }
-    if (lastKnownParentTheme) {
-      return lastKnownParentTheme;
-    }
-    // When embedded in Kroombox Panel and parent theme not explicitly detected:
-    // Default to 'light' to match Kroombox Panel's clean white/light UI (do not let host OS dark mode invert it)
-    return 'light';
   }
 
   // 4. Standalone direct window or fallback: check system media query
@@ -1124,8 +1118,6 @@ export const LanguageThemeProvider: React.FC<{ children: React.ReactNode }> = ({
       } catch (_) {}
       const savedMode = localStorage.getItem('kroomcare_theme_mode');
       if (savedMode === 'dark' || savedMode === 'light') return savedMode;
-      const savedParent = localStorage.getItem('kroombox_parent_theme');
-      if (savedParent === 'dark' || savedParent === 'light') return savedParent as Theme;
     }
     return resolveSystemTheme();
   });
