@@ -18,6 +18,7 @@ export const SSOPage: React.FC = () => {
     const ticket = searchParams.get('ticket');
     const rawRedirect = searchParams.get('redirect') || '/tickets';
     const lang = searchParams.get('lang') || searchParams.get('locale');
+    const themeParam = searchParams.get('theme') || searchParams.get('mode');
 
     let redirectPath = rawRedirect.startsWith('/') ? rawRedirect : `/${rawRedirect}`;
     if (lang) {
@@ -25,6 +26,14 @@ export const SSOPage: React.FC = () => {
         localStorage.setItem('kroombox_parent_lang', lang);
         if (!redirectPath.includes('lang=')) {
           redirectPath += (redirectPath.includes('?') ? '&' : '?') + `lang=${lang}`;
+        }
+      } catch (_) {}
+    }
+    if (themeParam) {
+      try {
+        localStorage.setItem('kroombox_parent_theme', themeParam);
+        if (!redirectPath.includes('theme=')) {
+          redirectPath += (redirectPath.includes('?') ? '&' : '?') + `theme=${themeParam}`;
         }
       } catch (_) {}
     }
@@ -76,11 +85,13 @@ export const SSOPage: React.FC = () => {
             }
           } catch (_) {}
         }
-        const incomingTheme = data.theme || data.data?.theme;
+        const incomingTheme = data.theme || data.data?.theme || themeParam;
         if (incomingTheme === 'dark' || incomingTheme === 'light') {
           try {
             localStorage.setItem('kroombox_parent_theme', incomingTheme);
-            localStorage.setItem('kroomcare_theme_mode', incomingTheme);
+            if (!redirectPath.includes('theme=')) {
+              redirectPath += (redirectPath.includes('?') ? '&' : '?') + `theme=${incomingTheme}`;
+            }
             if (incomingTheme === 'dark') {
               document.documentElement.classList.add('dark');
             } else {

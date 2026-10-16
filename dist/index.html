@@ -36,31 +36,40 @@
 
           if (isEmbedded) {
             // Support Center inside Kroombox Panel:
-            // Kroombox Panel UI is in Light mode. Clean any legacy dark locks from localStorage.
+            // ALWAYS prioritize Kroombox Panel's theme!
+            var detected = null;
             try {
-              if (localStorage.getItem('kroomcare_theme_mode') === 'dark') {
-                localStorage.removeItem('kroomcare_theme_mode');
+              if (window.parent && window.parent.document) {
+                var pHtml = window.parent.document.documentElement;
+                var pBody = window.parent.document.body;
+                if (pHtml.classList.contains('dark') || (pBody && pBody.classList.contains('dark')) || pHtml.getAttribute('data-theme') === 'dark') {
+                  detected = 'dark';
+                } else {
+                  detected = 'light';
+                }
               }
-              localStorage.removeItem('kroombox_parent_theme');
             } catch(e) {}
 
-            var sessionToggle = null;
-            try {
-              sessionToggle = sessionStorage.getItem('kroomcare_user_toggled_theme');
-            } catch(e) {}
-
-            if (pTheme === 'dark') {
-              isDark = true;
-            } else if (pTheme === 'light') {
-              isDark = false;
-            } else if (sessionToggle === 'dark') {
-              isDark = true;
-            } else if (sessionToggle === 'light') {
-              isDark = false;
-            } else {
-              // Default to Light mode matching Kroombox Panel
-              isDark = false;
+            if (!detected) {
+              var cTheme = getCookie('kp_theme') || getCookie('kroombox_theme');
+              if (cTheme === 'dark' || cTheme === 'light') detected = cTheme;
             }
+
+            if (!detected && (pTheme === 'dark' || pTheme === 'light')) {
+              detected = pTheme;
+            }
+
+            if (!detected) {
+              try {
+                var storedParent = localStorage.getItem('kroombox_parent_theme');
+                if (storedParent === 'dark' || storedParent === 'light') detected = storedParent;
+              } catch(e) {}
+            }
+
+            isDark = (detected === 'dark');
+            try {
+              if (detected) localStorage.setItem('kroombox_parent_theme', detected);
+            } catch(e) {}
           } else {
             // Standalone mode: check user preference or system preference
             var savedUserMode = null;
@@ -147,8 +156,8 @@
         } catch (e) {}
       })();
     </script>
-    <script type="module" crossorigin src="/assets/index-gARf4wjG.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-BM7VdIve.css">
+    <script type="module" crossorigin src="/assets/index-DGP3Qcxi.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-BUbFZ8jB.css">
   </head>
   <body>
     <div id="root"></div>

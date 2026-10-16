@@ -160,15 +160,6 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar, isSidebarOpen =
               </span>
             </motion.div>
           )}
-
-          {/* Quick Theme Switcher */}
-          <button
-            onClick={toggleTheme}
-            title={theme === 'dark' ? 'Ganti ke tema terang' : 'Ganti ke tema gelap'}
-            className="w-7 h-7 rounded-lg border border-slate-200/80 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-amber-400 hover:border-slate-300 dark:hover:border-slate-700 transition-all shadow-2xs cursor-pointer backdrop-blur-xs"
-          >
-            {theme === 'dark' ? <Sun size={13} className="text-amber-400" /> : <Moon size={13} />}
-          </button>
         </div>
       </header>
     );

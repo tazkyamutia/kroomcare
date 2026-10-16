@@ -1032,35 +1032,43 @@ function resolveSystemTheme(): Theme {
   const isEmbedded = typeof window !== 'undefined' && window.parent && window.parent !== window;
 
   // 1. Embedded mode inside Kroombox Panel Support Center:
+  // ALWAYS prioritize Kroombox Panel's theme!
   if (isEmbedded) {
-    try {
-      const sessionToggle = sessionStorage.getItem('kroomcare_user_toggled_theme');
-      if (sessionToggle === 'dark' || sessionToggle === 'light') return sessionToggle as Theme;
-    } catch (_) {}
-
     try {
       const params = new URLSearchParams(window.location.search);
       const urlTheme = params.get('theme') || params.get('mode') || params.get('themeMode') || params.get('colorScheme');
       if (urlTheme === 'dark' || urlTheme === 'light') return urlTheme as Theme;
     } catch (_) {}
 
-    const cookieTheme = getSharedCookieTheme();
-    if (cookieTheme) return cookieTheme;
-
+    // Check parent document if accessible
     const parentTheme = detectParentTheme();
     if (parentTheme) return parentTheme;
 
-    // Kroombox Panel UI is in Light Mode -> default to Light
+    // Check shared cookie across .kroombox.com domain
+    const cookieTheme = getSharedCookieTheme();
+    if (cookieTheme) return cookieTheme;
+
+    // Check stored parent theme from past sync
+    try {
+      const stored = localStorage.getItem('kroombox_parent_theme');
+      if (stored === 'dark' || stored === 'light') return stored as Theme;
+    } catch (_) {}
+
     return 'light';
   }
 
-  // 2. Standalone CRM: check URL, cookie, and OS media query
+  // 2. Standalone CRM: check URL, user setting, cookie, and OS media query
   try {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       const urlTheme = params.get('theme') || params.get('mode') || params.get('themeMode') || params.get('colorScheme');
       if (urlTheme === 'dark' || urlTheme === 'light') return urlTheme as Theme;
     }
+  } catch (_) {}
+
+  try {
+    const saved = localStorage.getItem('kroomcare_theme_mode');
+    if (saved === 'dark' || saved === 'light') return saved as Theme;
   } catch (_) {}
 
   const cookieTheme = getSharedCookieTheme();
@@ -1104,19 +1112,16 @@ export const LanguageThemeProvider: React.FC<{ children: React.ReactNode }> = ({
   // User preference: 'system' | 'light' | 'dark'
   const [themeMode, setThemeModeState] = useState<ThemeMode>(() => {
     if (typeof window !== 'undefined') {
+      if (isEmbedded) {
+        // In embedded mode, theme is always strictly synced to Kroombox Panel
+        return 'system';
+      }
+
       try {
         const params = new URLSearchParams(window.location.search);
         const urlTheme = params.get('theme') || params.get('mode');
         if (urlTheme === 'light' || urlTheme === 'dark') return urlTheme;
       } catch (_) {}
-
-      if (isEmbedded) {
-        try {
-          const sessionToggle = sessionStorage.getItem('kroomcare_user_toggled_theme');
-          if (sessionToggle === 'light' || sessionToggle === 'dark') return sessionToggle as ThemeMode;
-        } catch (_) {}
-        return 'system';
-      }
 
       const savedMode = localStorage.getItem('kroomcare_theme_mode');
       if (savedMode === 'light' || savedMode === 'dark' || savedMode === 'system') {
@@ -1129,19 +1134,15 @@ export const LanguageThemeProvider: React.FC<{ children: React.ReactNode }> = ({
   // Current active resolved theme: 'light' | 'dark'
   const [resolvedTheme, setResolvedTheme] = useState<Theme>(() => {
     if (typeof window !== 'undefined') {
+      if (isEmbedded) {
+        return resolveSystemTheme();
+      }
+
       try {
         const params = new URLSearchParams(window.location.search);
         const urlTheme = params.get('theme') || params.get('mode');
         if (urlTheme === 'light' || urlTheme === 'dark') return urlTheme;
       } catch (_) {}
-
-      if (isEmbedded) {
-        try {
-          const sessionToggle = sessionStorage.getItem('kroomcare_user_toggled_theme');
-          if (sessionToggle === 'light' || sessionToggle === 'dark') return sessionToggle as Theme;
-        } catch (_) {}
-        return 'light';
-      }
 
       const savedMode = localStorage.getItem('kroomcare_theme_mode');
       if (savedMode === 'dark' || savedMode === 'light') return savedMode;
@@ -1210,9 +1211,7 @@ export const LanguageThemeProvider: React.FC<{ children: React.ReactNode }> = ({
   const setTheme = (mode: ThemeMode) => {
     setThemeModeState(mode);
     try {
-      if (isEmbedded) {
-        sessionStorage.setItem('kroomcare_user_toggled_theme', mode);
-      } else {
+      if (!isEmbedded) {
         localStorage.setItem('kroomcare_theme_mode', mode);
       }
     } catch (_) {}
@@ -1289,10 +1288,10 @@ export const LanguageThemeProvider: React.FC<{ children: React.ReactNode }> = ({
     return null;
   };
 
-  // Re-sync with system or parent when in 'system' mode
+  // Re-sync with system or parent panel
   useEffect(() => {
-    // If user explicitly chose 'light' or 'dark', honor it always
-    if (themeMode !== 'system') {
+    // If standalone CRM and user explicitly chose 'light' or 'dark', honor it always
+    if (!isEmbedded && themeMode !== 'system') {
       applyThemeToDOM(themeMode);
       setResolvedTheme(themeMode);
       syncUrlTheme(themeMode);
@@ -1378,11 +1377,11 @@ export const LanguageThemeProvider: React.FC<{ children: React.ReactNode }> = ({
       } catch (_) {}
     }
 
-    // 5. Polling interval (200ms) for ultra-responsiveness
+    // 5. Polling interval (150ms) for ultra-responsiveness
     const interval = setInterval(() => {
       const latest = resolveSystemTheme();
       syncTheme(latest);
-    }, 200);
+    }, 150);
 
     // 6. Focus & Visibility listener
     const handleVisibility = () => {
@@ -1414,7 +1413,7 @@ export const LanguageThemeProvider: React.FC<{ children: React.ReactNode }> = ({
       window.removeEventListener('focus', handleVisibility);
       document.removeEventListener('visibilitychange', handleVisibility);
     };
-  }, [themeMode, applyThemeToDOM, syncUrlTheme]);
+  }, [themeMode, isEmbedded, applyThemeToDOM, syncUrlTheme]);
 
   // Real-time synchronization with Kroombox Panel language when embedded in Support Center
   useEffect(() => {
