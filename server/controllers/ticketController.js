@@ -173,18 +173,26 @@ const getTickets = async (req, res) => {
     const [rows] = await db.query(query, params);
     
     // Map untuk kompatibilitas frontend
-    const mappedRows = rows.map(row => ({
-      id: row.id.toString(),
-      subject: row.judul,
-      description: row.deskripsi,
-      status: row.status === 'menunggu' ? 'Open' : (row.status === 'diproses' ? 'In Progress' : 'Resolved'),
-      isPriority: !!row.is_priority,
-      createdAt: row.created_at,
-      customerId: row.user_id ? row.user_id.toString() : '',
-      customerName: row.nama_pengirim || 'Unknown Customer',
-      assignedTo: row.staff_id ? row.staff_id.toString() : undefined,
-      category: 'Support'
-    }));
+    const mappedRows = rows.map(row => {
+      let mappedStatus = 'Open';
+      const s = (row.status || '').toLowerCase();
+      if (s === 'menunggu' || s === 'open') mappedStatus = 'Open';
+      else if (s === 'diproses' || s === 'proses' || s === 'in progress' || s === 'progress') mappedStatus = 'In Progress';
+      else mappedStatus = 'Resolved';
+
+      return {
+        id: row.id.toString(),
+        subject: row.judul,
+        description: row.deskripsi,
+        status: mappedStatus,
+        isPriority: !!row.is_priority,
+        createdAt: row.created_at,
+        customerId: row.user_id ? row.user_id.toString() : '',
+        customerName: row.nama_pengirim || 'Unknown Customer',
+        assignedTo: row.staff_id ? row.staff_id.toString() : undefined,
+        category: 'Support'
+      };
+    });
 
     res.status(200).json({
       success: true,

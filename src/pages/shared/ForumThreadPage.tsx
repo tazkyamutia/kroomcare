@@ -286,7 +286,7 @@ export const ForumThreadPage: React.FC<ForumThreadProps> = ({ userRole }) => {
           </div>
         </div>
 
-        {userRole === 'staff' && (
+        {(userRole === 'staff' || userRole === 'admin') && (
           <div className="flex flex-wrap items-center justify-between gap-4 pt-6 border-t border-slate-100 dark:border-slate-800">
             <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl border border-slate-200 dark:border-slate-700">
               {[

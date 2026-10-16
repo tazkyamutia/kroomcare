@@ -12,7 +12,8 @@ interface StaffStats {
   doneToday: number;
   slaRate: string;
   weeklyChart: { day: string; total: number; resolved: number }[];
-  recentActivity: { id: number; user: string; type: string; ticket: string; time: string }[];
+  recentActivity: { id: number | string; user: string; type: string; ticket: string; time: string }[];
+  activeTickets?: { id: string; subject: string; description: string; status: string; isPriority: boolean; customerName: string; createdAt: string }[];
 }
 
 export const StaffDashboard = () => {
@@ -25,25 +26,26 @@ export const StaffDashboard = () => {
 
   const locale = language === 'en' ? 'en-US' : 'id-ID';
 
-  React.useEffect(() => {
-    const fetchStats = async () => {
-      setLoading(true);
-      try {
-        const staffId = user?.id || '';
-        const response = await fetch(`/api/admin/stats/staff?staffId=${staffId}&shift=${shift}`);
-        const result = await response.json();
-        if (response.ok && result.success) {
-          setStats(result.data);
-        }
-      } catch (err) {
-        console.error('Gagal mengambil data staff dashboard:', err);
-      } finally {
-        setLoading(false);
+  const fetchStats = React.useCallback(async () => {
+    try {
+      const staffId = user?.id || '';
+      const response = await fetch(`/api/admin/stats/staff?staffId=${staffId}&shift=${shift}`);
+      const result = await response.json();
+      if (response.ok && result.success) {
+        setStats(result.data);
       }
-    };
-
-    fetchStats();
+    } catch (err) {
+      console.error('Gagal mengambil data staff dashboard:', err);
+    } finally {
+      setLoading(false);
+    }
   }, [user?.id, shift]);
+
+  React.useEffect(() => {
+    fetchStats();
+    const interval = setInterval(fetchStats, 10000);
+    return () => clearInterval(interval);
+  }, [fetchStats]);
 
   const statCards = stats ? [
     { label: t('staff.new_tickets'), value: String(stats.newTickets), icon: Zap, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-950/40' },
@@ -274,6 +276,111 @@ export const StaffDashboard = () => {
             <ArrowRight size={13} />
           </button>
         </div>
+      </div>
+
+      {/* Antrean Tiket Aktif (Perlu Ditangani) */}
+      <div className="bg-white dark:bg-slate-900 rounded-xl sm:rounded-2xl border border-slate-200/80 dark:border-slate-800 p-4 sm:p-5 shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-950/50 flex items-center justify-center text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-900/50">
+              <Ticket size={16} />
+            </div>
+            <div>
+              <h3 className="text-sm sm:text-base font-semibold text-slate-900 dark:text-white">
+                {language === 'en' ? 'Active Incoming Tickets (Action Required)' : 'Antrean Tiket Masuk (Perlu Ditangani)'}
+              </h3>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                {language === 'en' ? 'Tickets waiting for support staff response' : 'Tiket keluhan pelanggan yang siap ditanggapi'}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => navigate('/staff')}
+            className="text-xs text-blue-600 dark:text-blue-400 font-semibold hover:underline flex items-center gap-1 self-start sm:self-auto cursor-pointer"
+          >
+            {language === 'en' ? 'View Full Queue' : 'Buka Seluruh Antrean'}
+            <ArrowRight size={13} />
+          </button>
+        </div>
+
+        {loading && !stats ? (
+          <div className="py-8 flex justify-center">
+            <Loader2 size={22} className="animate-spin text-blue-600" />
+          </div>
+        ) : stats?.activeTickets && stats.activeTickets.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-xs sm:text-sm">
+              <thead>
+                <tr className="border-b border-slate-100 dark:border-slate-800 text-[11px] uppercase tracking-wider text-slate-400 font-semibold">
+                  <th className="pb-3 px-3">{language === 'en' ? 'Ticket' : 'Tiket'}</th>
+                  <th className="pb-3 px-3">{language === 'en' ? 'Customer' : 'Pelanggan'}</th>
+                  <th className="pb-3 px-3">{language === 'en' ? 'Urgency' : 'Urgensi'}</th>
+                  <th className="pb-3 px-3">Status</th>
+                  <th className="pb-3 px-3 text-right">{language === 'en' ? 'Action' : 'Aksi'}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                {stats.activeTickets.map((tkt) => (
+                  <tr key={tkt.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors group">
+                    <td className="py-3 px-3">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <span className="text-[10px] font-mono font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50 px-1.5 py-0.5 rounded border border-blue-100 dark:border-blue-900">
+                          #{tkt.id}
+                        </span>
+                        {tkt.isPriority && (
+                          <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 bg-red-500 text-white rounded">
+                            {language === 'en' ? 'Urgent' : 'Mendesak'}
+                          </span>
+                        )}
+                      </div>
+                      <p className="font-semibold text-slate-900 dark:text-white group-hover:text-blue-600 transition-colors line-clamp-1">
+                        {tkt.subject}
+                      </p>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-1 mt-0.5">
+                        {tkt.description}
+                      </p>
+                    </td>
+                    <td className="py-3 px-3">
+                      <span className="font-medium text-slate-800 dark:text-slate-200">{tkt.customerName}</span>
+                    </td>
+                    <td className="py-3 px-3">
+                      <span className={cn(
+                        "text-[10px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider",
+                        tkt.isPriority ? "bg-red-50 text-red-700 border border-red-200 dark:bg-red-950/40 dark:text-red-300 dark:border-red-800" : "bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
+                      )}>
+                        {tkt.isPriority ? (language === 'en' ? 'High' : 'Tinggi') : (language === 'en' ? 'Low' : 'Rendah')}
+                      </span>
+                    </td>
+                    <td className="py-3 px-3">
+                      <div className="flex items-center gap-1.5">
+                        <div className={cn(
+                          "w-2 h-2 rounded-full",
+                          tkt.status === 'In Progress' ? "bg-amber-500" : "bg-blue-500"
+                        )} />
+                        <span className="text-xs font-medium text-slate-600 dark:text-slate-300">
+                          {tkt.status === 'In Progress' ? t('tickets.status_processing') : t('tickets.status_waiting')}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="py-3 px-3 text-right">
+                      <button
+                        onClick={() => navigate(`/staff/tickets/${tkt.id}`)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+                      >
+                        {language === 'en' ? 'Open & Reply' : 'Buka & Balas'}
+                        <ArrowRight size={13} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="py-8 text-center text-slate-400 text-xs">
+            {language === 'en' ? 'All tickets have been handled! Great job.' : 'Semua tiket telah ditangani dengan baik! Tidak ada antrean pending.'}
+          </div>
+        )}
       </div>
     </div>
   );

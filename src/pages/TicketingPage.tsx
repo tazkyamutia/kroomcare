@@ -17,6 +17,16 @@ export const TicketingPage = () => {
 
   React.useEffect(() => {
     if (!user?.id) return;
+
+    // Staff dan Admin diarahkan otomatis ke halaman antrean/manajemen mereka
+    if (user.role === 'staff') {
+      navigate('/staff', { replace: true });
+      return;
+    }
+    if (user.role === 'admin') {
+      navigate('/admin/tickets', { replace: true });
+      return;
+    }
     
     const fetchTickets = async () => {
       try {

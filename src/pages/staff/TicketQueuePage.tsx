@@ -15,47 +15,63 @@ export const TicketQueuePage = () => {
 
   const locale = language === 'en' ? 'en-US' : 'id-ID';
 
-  React.useEffect(() => {
-    const fetchAllTickets = async () => {
-      setIsLoading(true);
-      try {
-        const response = await fetch('/api/tickets');
-        const result = await response.json();
-        if (response.ok && result.success) {
-          setTickets(result.data);
-        }
-      } catch (error) {
-        console.error('Failed to fetch all tickets:', error);
-      } finally {
-        setIsLoading(false);
+  const fetchAllTickets = React.useCallback(async () => {
+    try {
+      const response = await fetch('/api/tickets');
+      const result = await response.json();
+      if (response.ok && result.success) {
+        setTickets(result.data);
       }
-    };
-
-    fetchAllTickets();
+    } catch (error) {
+      console.error('Failed to fetch all tickets:', error);
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
-  const filteredTickets = tickets.filter(tkt => {
-    if (tkt.status === 'Resolved' || tkt.status === 'selesai') return false;
+  React.useEffect(() => {
+    fetchAllTickets();
+    const interval = setInterval(fetchAllTickets, 10000);
+    return () => clearInterval(interval);
+  }, [fetchAllTickets]);
 
-    const matchesFilter = filter === 'All' || 
-                        (filter === 'Priority' ? tkt.isPriority : 
-                         filter === 'High' ? tkt.isPriority : 
-                         filter === 'Low' ? !tkt.isPriority : !tkt.isPriority);
-                         
+  const filteredTickets = tickets.filter(tkt => {
     const matchesSearch = (tkt.id || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
                           (tkt.subject || tkt.judul || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
                           (tkt.customerName || '').toLowerCase().includes(searchQuery.toLowerCase());
 
-    return matchesFilter && matchesSearch;
+    if (!matchesSearch) return false;
+
+    if (filter === 'All') {
+      return tkt.status !== 'Resolved' && tkt.status !== 'selesai';
+    }
+    if (filter === 'Open') {
+      return tkt.status === 'Open' || tkt.status === 'menunggu';
+    }
+    if (filter === 'InProgress') {
+      return tkt.status === 'In Progress' || tkt.status === 'diproses' || tkt.status === 'proses';
+    }
+    if (filter === 'Priority' || filter === 'High') {
+      return tkt.isPriority;
+    }
+    if (filter === 'Resolved') {
+      return tkt.status === 'Resolved' || tkt.status === 'selesai';
+    }
+    if (filter === 'Every') {
+      return true;
+    }
+    return true;
   });
 
   const priorityCount = tickets.filter(tkt => tkt.isPriority && tkt.status !== 'Resolved' && tkt.status !== 'selesai').length;
 
   const tabs = [
-    { id: 'All', label: t('queue.filter_all') },
-    { id: 'Priority', label: t('queue.filter_priority') },
-    { id: 'High', label: t('queue.filter_high') },
-    { id: 'Low', label: t('queue.filter_low') }
+    { id: 'All', label: language === 'en' ? 'All Active' : 'Semua Aktif' },
+    { id: 'Open', label: language === 'en' ? 'Waiting' : 'Menunggu' },
+    { id: 'InProgress', label: language === 'en' ? 'In Progress' : 'Diproses' },
+    { id: 'Priority', label: language === 'en' ? 'Urgent' : 'Prioritas Tinggi' },
+    { id: 'Resolved', label: language === 'en' ? 'Resolved' : 'Selesai' },
+    { id: 'Every', label: language === 'en' ? 'All Tickets' : 'Semua Tiket' }
   ];
 
   return (

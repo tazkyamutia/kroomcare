@@ -370,17 +370,16 @@ const getStaffDashboardStats = async (req, res) => {
       return '';
     };
 
-    // 1. Tiket Baru (status = 'menunggu' dan belum ada staff)
-    let newTicketsQuery = `SELECT COUNT(*) AS total FROM tickets WHERE status = 'menunggu' AND (staff_id IS NULL OR staff_id = 0)`;
-    newTicketsQuery += getShiftCondition();
-    const [newTickets] = await db.query(newTicketsQuery);
+    // 1. Tiket Baru (status = 'menunggu' atau belum ditangani)
+    const [newTickets] = await db.query(
+      `SELECT COUNT(*) AS total FROM tickets WHERE status IN ('menunggu', 'open')`
+    );
 
-    // 2. Tiket Saya (semua tiket milik staff ini)
+    // 2. Tiket Saya (tiket yang sedang ditangani staff ini atau status diproses)
     let myTicketsQuery = staffId
-      ? `SELECT COUNT(*) AS total FROM tickets WHERE staff_id = ?`
-      : `SELECT COUNT(*) AS total FROM tickets WHERE staff_id IS NOT NULL`;
+      ? `SELECT COUNT(*) AS total FROM tickets WHERE staff_id = ? AND status != 'selesai'`
+      : `SELECT COUNT(*) AS total FROM tickets WHERE staff_id IS NOT NULL AND status != 'selesai'`;
     const myTicketsParams = staffId ? [staffId] : [];
-    myTicketsQuery += getShiftCondition();
     const [myTickets] = await db.query(myTicketsQuery, myTicketsParams);
 
     // 3. Selesai Hari Ini
@@ -388,61 +387,54 @@ const getStaffDashboardStats = async (req, res) => {
       ? `SELECT COUNT(*) AS total FROM tickets WHERE status = 'selesai' AND staff_id = ? AND updated_at >= ?`
       : `SELECT COUNT(*) AS total FROM tickets WHERE status = 'selesai' AND updated_at >= ?`;
     const doneParams = staffId ? [staffId, startOfToday] : [startOfToday];
-    doneQuery += getShiftCondition('updated_at');
     const [doneToday] = await db.query(doneQuery, doneParams);
 
-    // 4. SLA Rate (persentase tiket selesai dari total yang ditangani staff ini)
+    // 4. SLA Rate (persentase tiket selesai dari total yang ditangani)
     let totalHandledQuery = staffId
       ? `SELECT COUNT(*) AS total FROM tickets WHERE staff_id = ?`
       : `SELECT COUNT(*) AS total FROM tickets WHERE staff_id IS NOT NULL`;
     const totalHandledParams = staffId ? [staffId] : [];
-    totalHandledQuery += getShiftCondition();
     const [totalHandled] = await db.query(totalHandledQuery, totalHandledParams);
 
     let resolvedQuery = staffId
       ? `SELECT COUNT(*) AS total FROM tickets WHERE status = 'selesai' AND staff_id = ?`
       : `SELECT COUNT(*) AS total FROM tickets WHERE status = 'selesai' AND staff_id IS NOT NULL`;
     const resolvedParams = staffId ? [staffId] : [];
-    resolvedQuery += getShiftCondition();
     const [resolved] = await db.query(resolvedQuery, resolvedParams);
 
-    const totalCount = totalHandled[0].total || 0;
-    const resolvedCount = resolved[0].total || 0;
+    const totalCount = totalHandled[0]?.total || 0;
+    const resolvedCount = resolved[0]?.total || 0;
     const slaRate = totalCount > 0 ? Math.round((resolvedCount / totalCount) * 100) : 100;
 
     // 5. Data Chart Mingguan (7 hari terakhir)
-    let weeklyQuery = `
+    const [weeklyData] = await db.query(`
       SELECT 
         DATE(created_at) AS day,
         COUNT(*) AS total,
         SUM(CASE WHEN status = 'selesai' THEN 1 ELSE 0 END) AS resolved
       FROM tickets
       WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
-    `;
-    weeklyQuery += getShiftCondition();
-    weeklyQuery += `
       GROUP BY DATE(created_at)
       ORDER BY day ASC
-    `;
-    const [weeklyData] = await db.query(weeklyQuery);
+    `);
 
-    // 6. Aktivitas Terbaru dari ticket_replies
-    let activityQuery = `
-      SELECT tr.id, tr.created_at, u.nama AS user_name, u.role, t.id AS ticket_id, t.status
+    // 6. Aktivitas Terbaru (Kombinasi tiket baru dibuat dan balasan diskusi)
+    const [recentTicketRows] = await db.query(`
+      SELECT t.id AS ticket_id, t.created_at, u.nama AS user_name, 'new' AS act_type, t.status
+      FROM tickets t
+      LEFT JOIN users u ON t.user_id = u.id
+      ORDER BY t.created_at DESC
+      LIMIT 5
+    `);
+
+    const [recentReplyRows] = await db.query(`
+      SELECT tr.id, tr.created_at, u.nama AS user_name, 'reply' AS act_type, t.id AS ticket_id, t.status
       FROM ticket_replies tr
       JOIN users u ON tr.user_id = u.id
       JOIN tickets t ON tr.ticket_id = t.id
-    `;
-    const activityShiftCondition = getShiftCondition('tr.created_at');
-    if (activityShiftCondition) {
-      // Remove leading ' AND '
-      activityQuery += ` WHERE ` + activityShiftCondition.substring(5);
-    }
-    activityQuery += `
       ORDER BY tr.created_at DESC
       LIMIT 5
-    `;
-    const [recentActivity] = await db.query(activityQuery);
+    `);
 
     const formatTimeAgo = (date) => {
       const diffMs = new Date() - new Date(date);
@@ -454,23 +446,49 @@ const getStaffDashboardStats = async (req, res) => {
       return `${Math.floor(diffHrs / 24)} hari yang lalu`;
     };
 
-    const formattedActivity = recentActivity.map(row => ({
-      id: row.id,
-      user: row.user_name,
-      type: row.status === 'selesai' ? 'resolved' : row.role === 'member' ? 'reply' : 'reply',
-      ticket: `T-${row.ticket_id}`,
-      time: formatTimeAgo(row.created_at)
+    const combinedActivity = [...recentTicketRows, ...recentReplyRows]
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+      .slice(0, 6)
+      .map((row, i) => ({
+        id: row.id || `act-${i}-${row.ticket_id}`,
+        user: row.user_name || 'Pelanggan',
+        type: row.status === 'selesai' ? 'resolved' : row.act_type,
+        ticket: `T-${row.ticket_id}`,
+        time: formatTimeAgo(row.created_at)
+      }));
+
+    // 7. Daftar Tiket Aktif Terkini untuk Staff Dashboard
+    const [activeTickets] = await db.query(`
+      SELECT 
+        t.id, t.judul, t.deskripsi, t.status, t.is_priority, t.created_at,
+        u.nama AS customer_name
+      FROM tickets t
+      LEFT JOIN users u ON t.user_id = u.id
+      WHERE t.status != 'selesai'
+      ORDER BY t.created_at DESC
+      LIMIT 8
+    `);
+
+    const mappedActiveTickets = activeTickets.map(row => ({
+      id: row.id.toString(),
+      subject: row.judul,
+      description: row.deskripsi,
+      status: row.status === 'menunggu' ? 'Open' : 'In Progress',
+      isPriority: !!row.is_priority,
+      customerName: row.customer_name || 'Unknown Customer',
+      createdAt: row.created_at
     }));
 
     res.status(200).json({
       success: true,
       data: {
-        newTickets: newTickets[0].total,
-        myTickets: myTickets[0].total,
-        doneToday: doneToday[0].total,
+        newTickets: newTickets[0]?.total || 0,
+        myTickets: myTickets[0]?.total || 0,
+        doneToday: doneToday[0]?.total || 0,
         slaRate: `${slaRate}%`,
         weeklyChart: weeklyData,
-        recentActivity: formattedActivity
+        recentActivity: combinedActivity,
+        activeTickets: mappedActiveTickets
       }
     });
   } catch (error) {
