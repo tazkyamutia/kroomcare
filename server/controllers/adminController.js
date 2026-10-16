@@ -582,6 +582,125 @@ const generateApiKey = async (req, res) => {
   }
 };
 
+// Get WhatsApp Webhook Config (Kroomhook)
+const getWhatsAppConfig = async (req, res) => {
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const envPath = path.join(__dirname, '../../.env');
+    let envContent = '';
+    if (fs.existsSync(envPath)) {
+      envContent = fs.readFileSync(envPath, 'utf8');
+    }
+    const matchKey = envContent.match(/^(?:WEBHOOK_API_KEY|WA_API_KEY|KROOMHOOK_API_KEY)=(.*)$/m);
+    const matchJid = envContent.match(/^WA_TARGET_JID=(.*)$/m);
+    const matchUrl = envContent.match(/^(?:WEBHOOK_URL|KROOMHOOK_URL)=(.*)$/m);
+
+    const apiKey = matchKey ? matchKey[1].trim() : (process.env.WEBHOOK_API_KEY || process.env.WA_API_KEY || '');
+    const targetJid = matchJid ? matchJid[1].trim() : (process.env.WA_TARGET_JID || '6285847255010@s.whatsapp.net');
+    const webhookUrl = matchUrl ? matchUrl[1].trim() : (process.env.WEBHOOK_URL || 'https://kroomhook.kroombox.com/notify');
+
+    res.status(200).json({
+      success: true,
+      data: {
+        apiKey: apiKey ? (apiKey.substring(0, 6) + '••••••••' + apiKey.slice(-4)) : '',
+        rawApiKey: apiKey,
+        targetJid,
+        webhookUrl
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching WhatsApp config:', error);
+    res.status(500).json({ success: false, message: 'Gagal mengambil konfigurasi WhatsApp.' });
+  }
+};
+
+// Update WhatsApp Webhook Config
+const updateWhatsAppConfig = async (req, res) => {
+  try {
+    const { apiKey, targetJid, webhookUrl } = req.body;
+    const fs = require('fs');
+    const path = require('path');
+
+    const envFiles = [
+      path.join(__dirname, '../../.env'),
+      path.join(__dirname, '../.env')
+    ];
+
+    const updateEnv = (filePath) => {
+      if (!fs.existsSync(filePath)) return;
+      let content = fs.readFileSync(filePath, 'utf8');
+
+      if (apiKey !== undefined) {
+        if (content.match(/^WEBHOOK_API_KEY=/m)) {
+          content = content.replace(/^WEBHOOK_API_KEY=.*$/m, `WEBHOOK_API_KEY=${apiKey}`);
+        } else {
+          content += `\nWEBHOOK_API_KEY=${apiKey}\n`;
+        }
+      }
+
+      if (targetJid !== undefined) {
+        if (content.match(/^WA_TARGET_JID=/m)) {
+          content = content.replace(/^WA_TARGET_JID=.*$/m, `WA_TARGET_JID=${targetJid}`);
+        } else {
+          content += `\nWA_TARGET_JID=${targetJid}\n`;
+        }
+      }
+
+      if (webhookUrl !== undefined) {
+        if (content.match(/^WEBHOOK_URL=/m)) {
+          content = content.replace(/^WEBHOOK_URL=.*$/m, `WEBHOOK_URL=${webhookUrl}`);
+        } else {
+          content += `\nWEBHOOK_URL=${webhookUrl}\n`;
+        }
+      }
+
+      fs.writeFileSync(filePath, content);
+    };
+
+    envFiles.forEach(updateEnv);
+
+    if (apiKey !== undefined) process.env.WEBHOOK_API_KEY = apiKey;
+    if (targetJid !== undefined) process.env.WA_TARGET_JID = targetJid;
+    if (webhookUrl !== undefined) process.env.WEBHOOK_URL = webhookUrl;
+
+    res.status(200).json({
+      success: true,
+      message: 'Konfigurasi WhatsApp Webhook berhasil disimpan!'
+    });
+  } catch (error) {
+    console.error('Error updating WhatsApp config:', error);
+    res.status(500).json({ success: false, message: 'Gagal menyimpan konfigurasi WhatsApp.' });
+  }
+};
+
+// Test Send WhatsApp via Kroomhook
+const testWhatsAppNotification = async (req, res) => {
+  try {
+    const { sendNotification } = require('../utils/notificationQueue');
+    const targetJid = req.body.targetJid || process.env.WA_TARGET_JID || '6285847255010@s.whatsapp.net';
+    const message = req.body.message || `🔔 *Uji Coba WhatsApp Webhook (Kroomhook)*\nKroomCare berhasil terhubung ke Kroomhook Gateway!\nWaktu: ${new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' })}`;
+
+    const result = await sendNotification(targetJid, message);
+    if (result.success) {
+      res.status(200).json({
+        success: true,
+        message: 'Pesan uji coba berhasil dikirim ke WhatsApp! (Status 200: notify applied)',
+        data: result
+      });
+    } else {
+      res.status(result.status && result.status !== 0 ? result.status : 500).json({
+        success: false,
+        message: result.error || result.response || 'Gagal mengirim pesan uji coba.',
+        data: result
+      });
+    }
+  } catch (error) {
+    console.error('Error in testWhatsAppNotification:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 module.exports = {
   getAdminStats,
   getAllUsers,
@@ -591,6 +710,9 @@ module.exports = {
   getStaffDashboardStats,
   resetUserPoints,
   getApiKey,
-  generateApiKey
+  generateApiKey,
+  getWhatsAppConfig,
+  updateWhatsAppConfig,
+  testWhatsAppNotification
 };
 

@@ -9,7 +9,10 @@ const {
   getStaffDashboardStats,
   resetUserPoints,
   getApiKey,
-  generateApiKey
+  generateApiKey,
+  getWhatsAppConfig,
+  updateWhatsAppConfig,
+  testWhatsAppNotification
 } = require('../controllers/adminController');
 
 // Route untuk mendapatkan seluruh data statistik admin dashboard
@@ -25,9 +28,14 @@ router.delete('/users/:id', deleteUser);
 router.get('/users/:id/points', getUserPointHistoryAdmin);
 router.put('/users/:id/reset-points', resetUserPoints);
 
-// Route pengaturan integrasi API Key
+// Route pengaturan integrasi API Key KroomCare
 router.get('/api-key', getApiKey);
 router.post('/api-key/generate', generateApiKey);
+
+// Route konfigurasi WhatsApp Gateway (Kroomhook)
+router.get('/whatsapp-config', getWhatsAppConfig);
+router.post('/whatsapp-config', updateWhatsAppConfig);
+router.post('/whatsapp-test', testWhatsAppNotification);
 
 module.exports = router;
 
