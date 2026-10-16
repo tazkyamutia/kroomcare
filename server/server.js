@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 const { startNotificationWorker } = require('./utils/notificationQueue');
+const { startPanelSyncWorker } = require('./utils/panelSyncWorker');
 const swaggerUi = require('swagger-ui-express');
 const YAML = require('yamljs');
 const path = require('path');
@@ -105,4 +106,5 @@ app.use((err, req, res, next) => {
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server is running on http://0.0.0.0:${PORT}`);
   startNotificationWorker();
+  startPanelSyncWorker(60000);
 });
