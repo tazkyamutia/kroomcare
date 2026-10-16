@@ -1,9 +1,11 @@
 import React from 'react';
-import { Settings, Search, Loader2, CheckCircle2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Settings, Search, Loader2, CheckCircle2, MessageSquare } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useLanguageTheme } from '../../context/LanguageThemeContext';
 
 export const TicketSettingsPage = () => {
+  const navigate = useNavigate();
   const { t, language } = useLanguageTheme();
   const [tickets, setTickets] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
@@ -157,6 +159,7 @@ export const TicketSettingsPage = () => {
                   <th className="px-4 py-3 sm:px-5">{t('admin_tickets.col_subject')}</th>
                   <th className="px-4 py-3 sm:px-5">{t('admin_tickets.col_priority')}</th>
                   <th className="px-4 py-3 sm:px-5">{t('admin_tickets.col_status')}</th>
+                  <th className="px-4 py-3 sm:px-5 text-right">{language === 'en' ? 'Action' : 'Aksi'}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -164,11 +167,22 @@ export const TicketSettingsPage = () => {
                   filteredTickets.map((ticket) => (
                     <tr key={ticket.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors text-xs sm:text-sm">
                       <td className="px-4 py-3 sm:px-5 font-mono text-xs font-semibold text-blue-600 dark:text-blue-400">
-                        #{ticket.id}
+                        <button 
+                          onClick={() => navigate(`/tickets/${ticket.id}`)}
+                          className="hover:underline font-bold"
+                          title="Buka detail tiket"
+                        >
+                          #{ticket.id}
+                        </button>
                       </td>
                       <td className="px-4 py-3 sm:px-5 font-medium text-slate-900 dark:text-white">{ticket.customerName}</td>
                       <td className="px-4 py-3 sm:px-5 text-slate-600 dark:text-slate-400 max-w-xs truncate" title={ticket.subject}>
-                        {ticket.subject}
+                        <button
+                          onClick={() => navigate(`/tickets/${ticket.id}`)}
+                          className="text-left hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors truncate block max-w-xs"
+                        >
+                          {ticket.subject}
+                        </button>
                       </td>
                       <td className="px-4 py-3 sm:px-5">
                         <select 
@@ -203,11 +217,20 @@ export const TicketSettingsPage = () => {
                           <option value="Resolved">{language === 'en' ? 'Resolved' : 'Selesai'}</option>
                         </select>
                       </td>
+                      <td className="px-4 py-3 sm:px-5 text-right">
+                        <button
+                          onClick={() => navigate(`/tickets/${ticket.id}`)}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-xs font-semibold transition-colors"
+                        >
+                          <MessageSquare size={13} />
+                          <span>{language === 'en' ? 'Reply' : 'Balas'}</span>
+                        </button>
+                      </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={5} className="text-center py-8 text-slate-400 text-xs sm:text-sm">
+                    <td colSpan={6} className="text-center py-8 text-slate-400 text-xs sm:text-sm">
                       {language === 'en' ? 'No tickets found.' : 'Tiket tidak ditemukan.'}
                     </td>
                   </tr>

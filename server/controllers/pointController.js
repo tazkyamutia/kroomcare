@@ -117,8 +117,65 @@ const getPointBalance = async (req, res) => {
   }
 };
 
+// Reward Customer with Points (Staf/Admin memberi poin ke customer untuk tiket)
+const rewardCustomer = async (req, res) => {
+  try {
+    const { ticket_id, ticketId, user_id, userId, points } = req.body;
+    const targetUserId = user_id || userId;
+    const targetTicketId = ticket_id || ticketId;
+    const pointsAmount = parseInt(points, 10) || 50;
+
+    if (!targetUserId) {
+      return res.status(400).json({
+        success: false,
+        message: 'user_id wajib disertakan.'
+      });
+    }
+
+    // 1. Cek user
+    const [userRows] = await db.query('SELECT id, nama, koin_reward FROM users WHERE id = ?', [targetUserId]);
+    if (userRows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'User pelanggan tidak ditemukan.'
+      });
+    }
+
+    // 2. Tambah koin_reward di tabel users
+    await db.query('UPDATE users SET koin_reward = COALESCE(koin_reward, 0) + ? WHERE id = ?', [pointsAmount, targetUserId]);
+
+    // 3. Catat di point_histories
+    const desc = targetTicketId 
+      ? `Reward penyelesaian tiket #${targetTicketId}`
+      : `Reward poin pelayanan pelanggan`;
+
+    await db.query(
+      'INSERT INTO point_histories (user_id, jenis_transaksi, jumlah_poin, keterangan) VALUES (?, ?, ?, ?)',
+      [targetUserId, 'masuk', pointsAmount, desc]
+    );
+
+    res.status(200).json({
+      success: true,
+      message: `Berhasil memberikan ${pointsAmount} koin reward kepada pelanggan.`,
+      data: {
+        userId: targetUserId,
+        pointsAwarded: pointsAmount,
+        newBalance: (userRows[0].koin_reward || 0) + pointsAmount
+      }
+    });
+  } catch (error) {
+    console.error('Error in rewardCustomer:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Gagal memberikan reward poin.',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   getPointHistory,
   redeemPoints,
-  getPointBalance
+  getPointBalance,
+  rewardCustomer
 };
