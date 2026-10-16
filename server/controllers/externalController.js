@@ -49,7 +49,23 @@ const receiveExternalTicket = async (req, res) => {
       userId = rows[0].id;
     }
 
-    // ── 4. Simpan Tiket ──────────────────────────────────────────────────────
+    // ── 4. Simpan Tiket (Cek Idempotensi) ───────────────────────────────────
+    if (external_ticket_id) {
+      const [existing] = await db.query('SELECT id FROM tickets WHERE external_ticket_id = ?', [external_ticket_id]);
+      if (existing.length > 0) {
+        return res.status(200).json({
+          success: true,
+          message: 'Tiket eksternal sudah ada (tersinkronisasi).',
+          data: {
+            ticketId: existing[0].id,
+            userId,
+            isNewUser: false,
+            alreadyExists: true
+          }
+        });
+      }
+    }
+
     const isPriority = (prioritas && prioritas.toLowerCase() === 'high') ? 1 : 0;
     const finalKategori = kategori || 'General';
 

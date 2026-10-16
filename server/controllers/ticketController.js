@@ -29,7 +29,7 @@ const sendWebhook = (webhookUrl, payload) => {
 // Create Ticket
 const createTicket = async (req, res) => {
   try {
-    const { user_id, judul, deskripsi, is_priority } = req.body;
+    const { user_id, judul, deskripsi, is_priority, kategori } = req.body;
     
     if (!user_id || !judul || !deskripsi) {
       return res.status(400).json({ 
@@ -38,8 +38,18 @@ const createTicket = async (req, res) => {
       });
     }
 
-    const query = 'INSERT INTO tickets (user_id, judul, deskripsi, is_priority) VALUES (?, ?, ?, ?)';
-    const [result] = await db.query(query, [user_id, judul, deskripsi, is_priority ? 1 : 0]);
+    // Pastikan akun user_id benar-benar ada di database
+    const [userRows] = await db.query('SELECT id, nama, email FROM users WHERE id = ?', [user_id]);
+    if (!userRows || userRows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: `Pengguna (ID: ${user_id}) tidak ditemukan di database. Silakan muat ulang halaman atau login ulang.`
+      });
+    }
+
+    const finalKategori = kategori || 'General';
+    const query = 'INSERT INTO tickets (user_id, judul, deskripsi, is_priority, kategori) VALUES (?, ?, ?, ?, ?)';
+    const [result] = await db.query(query, [user_id, judul, deskripsi, is_priority ? 1 : 0, finalKategori]);
     const ticketId = result.insertId;
 
     // Cek batasan reward harian anti-spam (Maksimal 1 reward tiket per hari, senilai 10 poin)

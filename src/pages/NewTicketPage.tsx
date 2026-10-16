@@ -34,6 +34,7 @@ export const NewTicketPage = () => {
           user_id: user.id,
           judul: formData.subject,
           deskripsi: formData.description,
+          kategori: formData.category,
           is_priority: formData.priority === 'High' ? 1 : 0
         })
       });
