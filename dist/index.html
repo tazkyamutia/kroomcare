@@ -51,7 +51,7 @@
             } catch(e) {}
 
             if (!detected) {
-              var cTheme = getCookie('kp_theme') || getCookie('kroombox_theme');
+              var cTheme = getCookie('kp_theme') || getCookie('kroombox_theme') || getCookie('theme');
               if (cTheme === 'dark' || cTheme === 'light') detected = cTheme;
             }
 
@@ -66,9 +66,21 @@
               } catch(e) {}
             }
 
+            // Default to 'light' for embedded mode if not explicitly dark
+            if (!detected) {
+              detected = 'light';
+            }
+
             isDark = (detected === 'dark');
             try {
               if (detected) localStorage.setItem('kroombox_parent_theme', detected);
+            } catch(e) {}
+
+            try {
+              window.parent.postMessage({ type: 'GET_THEME' }, '*');
+              window.parent.postMessage({ type: 'REQUEST_THEME' }, '*');
+              window.parent.postMessage('getTheme', '*');
+              window.parent.postMessage({ type: 'GET_LANGUAGE' }, '*');
             } catch(e) {}
           } else {
             // Standalone mode: check user preference or system preference
@@ -88,9 +100,8 @@
               isDark = true;
             } else if (savedUserMode === 'light') {
               isDark = false;
-            } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-              isDark = true;
             } else {
+              // Standalone / Local mode defaults to Light Mode (matching Kroombox Panel)
               isDark = false;
             }
           }
@@ -125,19 +136,40 @@
             }
           }
 
-          // Early message listener before bundle loads
-          window.addEventListener('message', function(ev) {
+          // Early message listener before bundle loads (active only when embedded in parent panel)
+          if (isEmbedded) {
+            window.addEventListener('message', function(ev) {
             try {
               if (!ev || !ev.data) return;
               var d = ev.data;
               var incoming = null;
-              if (typeof d === 'string' && (d === 'dark' || d === 'light')) incoming = d;
-              else if (d.theme === 'dark' || d.theme === 'light') incoming = d.theme;
-              else if (d.type === 'KROOMBOX_THEME_CHANGE' && (d.theme === 'dark' || d.theme === 'light')) incoming = d.theme;
+              if (typeof d === 'string') {
+                if (d === 'dark' || d === 'light') incoming = d;
+                else if (d === 'theme:dark') incoming = 'dark';
+                else if (d === 'theme:light') incoming = 'light';
+                else if (d === 'mode:dark') incoming = 'dark';
+                else if (d === 'mode:light') incoming = 'light';
+              } else if (typeof d === 'object') {
+                if (d.theme === 'dark' || d.theme === 'light') incoming = d.theme;
+                else if (d.mode === 'dark' || d.mode === 'light') incoming = d.mode;
+                else if (d.isDark === true) incoming = 'dark';
+                else if (d.isDark === false) incoming = 'light';
+                else if (d.type && (d.type.indexOf('THEME') !== -1 || d.type.indexOf('MODE') !== -1)) {
+                  if (d.theme === 'dark' || d.theme === 'light') incoming = d.theme;
+                  else if (d.mode === 'dark' || d.mode === 'light') incoming = d.mode;
+                }
+              }
               if (incoming) {
                 localStorage.setItem('kroombox_parent_theme', incoming);
-                if (incoming === 'dark') document.documentElement.classList.add('dark');
-                else document.documentElement.classList.remove('dark');
+                if (incoming === 'dark') {
+                  document.documentElement.classList.add('dark');
+                  document.documentElement.setAttribute('data-theme', 'dark');
+                  document.documentElement.style.colorScheme = 'dark';
+                } else {
+                  document.documentElement.classList.remove('dark');
+                  document.documentElement.setAttribute('data-theme', 'light');
+                  document.documentElement.style.colorScheme = 'light';
+                }
               }
 
               // Language broadcast from parent
@@ -153,11 +185,12 @@
               }
             } catch(e) {}
           });
-        } catch (e) {}
-      })();
-    </script>
-    <script type="module" crossorigin src="/assets/index-DQYvrkFK.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-BknO6mg2.css">
+        }
+      } catch (e) {}
+    })();
+  </script>
+    <script type="module" crossorigin src="/assets/index-CsDa_eVR.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-Cwu5-Q9c.css">
   </head>
   <body>
     <div id="root"></div>

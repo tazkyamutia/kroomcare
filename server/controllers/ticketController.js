@@ -48,8 +48,9 @@ const createTicket = async (req, res) => {
     }
 
     const finalKategori = kategori || 'General';
-    const query = 'INSERT INTO tickets (user_id, judul, deskripsi, is_priority, kategori) VALUES (?, ?, ?, ?, ?)';
-    const [result] = await db.query(query, [user_id, judul, deskripsi, is_priority ? 1 : 0, finalKategori]);
+    const wibNow = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' });
+    const query = 'INSERT INTO tickets (user_id, judul, deskripsi, is_priority, kategori, created_at) VALUES (?, ?, ?, ?, ?, ?)';
+    const [result] = await db.query(query, [user_id, judul, deskripsi, is_priority ? 1 : 0, finalKategori, wibNow]);
     const ticketId = result.insertId;
 
     // Cek batasan reward harian anti-spam (Maksimal 1 reward tiket per hari, senilai 10 poin)
@@ -70,8 +71,8 @@ const createTicket = async (req, res) => {
         await db.query('UPDATE users SET koin_reward = COALESCE(koin_reward, 0) + ? WHERE id = ?', [pointsAwarded, user_id]);
         const desc = `Reward pembuatan tiket baru #${ticketId}`;
         await db.query(
-          'INSERT INTO point_histories (user_id, jenis_transaksi, jumlah_poin, keterangan) VALUES (?, ?, ?, ?)',
-          [user_id, 'masuk', pointsAwarded, desc]
+          'INSERT INTO point_histories (user_id, jenis_transaksi, jumlah_poin, keterangan, created_at) VALUES (?, ?, ?, ?, ?)',
+          [user_id, 'masuk', pointsAwarded, desc, wibNow]
         );
       }
     } catch (pointErr) {
@@ -168,7 +169,7 @@ const getTickets = async (req, res) => {
       params.push(user_id);
     }
     
-    query += ' ORDER BY t.created_at DESC';
+    query += ' ORDER BY t.id DESC';
 
     const [rows] = await db.query(query, params);
     
@@ -241,10 +242,11 @@ const getTicketDetail = async (req, res) => {
 
     const row = rows[0];
 
-    // Cek apakah reward sudah pernah diberikan untuk tiket ini
-    const rewardQuery = "SELECT id FROM point_histories WHERE user_id = ? AND keterangan LIKE ?";
-    const [rewardRows] = await db.query(rewardQuery, [row.user_id, `%tiket #${row.id}%`]);
+    // Cek apakah reward penyelesaian tiket sudah pernah diberikan untuk tiket ini
+    const rewardQuery = "SELECT id, jumlah_poin FROM point_histories WHERE user_id = ? AND keterangan LIKE ? ORDER BY id DESC LIMIT 1";
+    const [rewardRows] = await db.query(rewardQuery, [row.user_id, `%penyelesaian tiket #${row.id}%`]);
     const rewardGiven = rewardRows.length > 0;
+    const rewardAmount = rewardGiven ? rewardRows[0].jumlah_poin : 50;
 
     const mappedTicket = {
       id: row.id.toString(),
@@ -258,7 +260,8 @@ const getTicketDetail = async (req, res) => {
       assignedTo: row.staff_id ? row.staff_id.toString() : undefined,
       category: 'Support',
       isPrivate: true,
-      rewardGiven: rewardGiven
+      rewardGiven: rewardGiven,
+      rewardAmount: rewardAmount
     };
 
     res.status(200).json({
@@ -442,16 +445,17 @@ const addTicketReply = async (req, res) => {
       });
     }
 
-    const query = 'INSERT INTO ticket_replies (ticket_id, user_id, konten) VALUES (?, ?, ?)';
-    const [result] = await db.query(query, [id, user_id, konten]);
+    const wibNow = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' });
+    const query = 'INSERT INTO ticket_replies (ticket_id, user_id, konten, created_at) VALUES (?, ?, ?, ?)';
+    const [result] = await db.query(query, [id, user_id, konten, wibNow]);
 
     // Ambil info pengirim balasan untuk dikembalikan ke frontend
     const [userRows] = await db.query('SELECT nama, role FROM users WHERE id = ?', [user_id]);
     const user = userRows[0] || { nama: 'Unknown', role: 'member' };
 
-    // Jika pengirim adalah staff, secara otomatis assign tiket ke staff ini dan ubah status menjadi 'diproses'
-    if (user.role === 'staff') {
-      await db.query("UPDATE tickets SET staff_id = ?, status = 'diproses' WHERE id = ?", [user_id, id]);
+    // Jika pengirim adalah staff atau admin, secara otomatis assign tiket dan ubah status menjadi 'diproses'
+    if (user.role === 'staff' || user.role === 'admin') {
+      await db.query("UPDATE tickets SET staff_id = COALESCE(staff_id, ?), status = 'diproses' WHERE id = ?", [user_id, id]);
 
       // --- Sync reply to KolabPanel if this is an external ticket ---
       try {
@@ -479,7 +483,7 @@ const addTicketReply = async (req, res) => {
         userName: user.nama,
         userRole: user.role === 'member' ? 'customer' : user.role,
         text: konten,
-        createdAt: new Date().toISOString()
+        createdAt: wibNow
       }
     });
   } catch (error) {
@@ -551,7 +555,8 @@ const escalateTicket = async (req, res) => {
     // 3. Catat eskalasi ke ticket_replies
     const systemUserId = staff_id || 2; // Default to staff_id or Sarah Staff (2)
     const content = "Tiket telah dieskalasi ke tim teknis (Transfer to Maintenance).";
-    await db.query('INSERT INTO ticket_replies (ticket_id, user_id, konten) VALUES (?, ?, ?)', [id, systemUserId, content]);
+    const wibNow = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' });
+    await db.query('INSERT INTO ticket_replies (ticket_id, user_id, konten, created_at) VALUES (?, ?, ?, ?)', [id, systemUserId, content, wibNow]);
 
     res.status(200).json({
       success: true,

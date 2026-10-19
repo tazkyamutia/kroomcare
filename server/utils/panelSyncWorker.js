@@ -105,11 +105,19 @@ async function syncPanelTickets() {
 
       const kategori = pt.category || 'General';
 
-      // 5. Simpan ke tabel tickets KroomCare
+      // 5. Simpan ke tabel tickets KroomCare (Pastikan waktu terparse dalam WIB)
+      let ticketDateStr = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' });
+      if (pt.created_at) {
+        const d = new Date(pt.created_at);
+        if (!isNaN(d.getTime())) {
+          ticketDateStr = d.toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' });
+        }
+      }
+
       const [ticketInsertRes] = await db.query(`
         INSERT INTO tickets (external_ticket_id, user_id, judul, deskripsi, kategori, status, is_priority, created_at)
         VALUES (?, ?, ?, ?, ?, ?, 0, ?)
-      `, [pt.id, kcUserId, pt.subject, desc, kategori, statusMapped, pt.created_at || new Date()]);
+      `, [pt.id, kcUserId, pt.subject, desc, kategori, statusMapped, ticketDateStr]);
 
       const ticketId = ticketInsertRes.insertId;
       console.log(`[PanelSync] Tiket baru dari panel terdeteksi (${pt.id}) -> Diimpor sebagai KroomCare ID #${ticketId}`);

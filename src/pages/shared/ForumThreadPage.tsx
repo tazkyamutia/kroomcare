@@ -6,6 +6,7 @@ import { cn } from '../../lib/utils';
 import { UserRole } from '../../types';
 import { useUser } from '../../context/UserContext';
 import { useLanguageTheme } from '../../context/LanguageThemeContext';
+import { formatWIBDateTime, formatWIBTime, formatWIBDateGroup, getWIBDateKey } from '../../utils/dateUtils';
 
 interface ForumThreadProps {
   userRole: UserRole;
@@ -41,6 +42,9 @@ export const ForumThreadPage: React.FC<ForumThreadProps> = ({ userRole }) => {
       const detailResult = await resDetail.json();
       if (resDetail.ok && detailResult.success) {
         setTicket(detailResult.data);
+        if (detailResult.data.rewardAmount) {
+          setRewardPoints(detailResult.data.rewardAmount);
+        }
       }
 
       const resReplies = await fetch(`/api/${typePath}/${id}/replies`);
@@ -55,8 +59,27 @@ export const ForumThreadPage: React.FC<ForumThreadProps> = ({ userRole }) => {
     }
   };
 
+  const fetchRepliesOnly = async () => {
+    if (!id) return;
+    try {
+      const typePath = isTicketPath ? 'tickets' : 'forums';
+      const resReplies = await fetch(`/api/${typePath}/${id}/replies`);
+      const repliesResult = await resReplies.json();
+      if (resReplies.ok && repliesResult.success) {
+        setMessages(repliesResult.data);
+      }
+    } catch (_) {}
+  };
+
   React.useEffect(() => {
     fetchDetails();
+
+    // Auto-poll balasan baru setiap 3 detik secara background agar pesan real-time
+    const interval = setInterval(() => {
+      fetchRepliesOnly();
+    }, 3000);
+
+    return () => clearInterval(interval);
   }, [id]);
 
   if (isLoading) {
@@ -154,10 +177,10 @@ export const ForumThreadPage: React.FC<ForumThreadProps> = ({ userRole }) => {
 
       const result = await res.json();
       if (res.ok && result.success) {
-        setTicket((prev: any) => prev ? { ...prev, rewardGiven: true } : null);
-        alert(language === 'en' 
+        setTicket((prev: any) => prev ? { ...prev, rewardGiven: true, rewardAmount: rewardPoints } : null);
+        alert(result.message || (language === 'en' 
           ? `+${rewardPoints} Points have been rewarded to ${ticket.customerName}!` 
-          : `+${rewardPoints} Poin telah diberikan kepada ${ticket.customerName}!`);
+          : `+${rewardPoints} Poin berhasil dikonfirmasi untuk ${ticket.customerName}!`));
       } else {
         alert(result.message || (language === 'en' ? 'Failed to reward points.' : 'Gagal memberikan reward.'));
       }
@@ -207,6 +230,15 @@ export const ForumThreadPage: React.FC<ForumThreadProps> = ({ userRole }) => {
   };
 
   const isPrivate = ticket.isPrivate;
+  const isViewerStaff = 
+    userRole === 'staff' || 
+    userRole === 'admin' || 
+    user?.role === 'staff' || 
+    user?.role === 'admin' ||
+    location.pathname.startsWith('/staff') ||
+    location.pathname.startsWith('/admin');
+
+  const isInitialRight = isPrivate ? !isViewerStaff : false;
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-20">
@@ -309,43 +341,60 @@ export const ForumThreadPage: React.FC<ForumThreadProps> = ({ userRole }) => {
               ))}
             </div>
 
-            {!ticket.rewardGiven ? (
-               <div className="flex items-center gap-3">
-                <div className="flex items-center gap-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl px-3 py-2 shadow-sm">
-                  <span className="text-[10px] font-black uppercase text-slate-400">{t('thread.points_label')}</span>
-                  <input 
-                    type="number"
-                    value={rewardPoints}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      if (val === '') {
-                        setRewardPoints('');
-                      } else {
-                        const parsed = parseInt(val, 10);
-                        if (!isNaN(parsed)) {
-                          setRewardPoints(Math.max(0, parsed));
-                        }
+            {/* Pemberian / Pengeditan Poin Reward */}
+            <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-end">
+              <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl px-3 py-2 shadow-xs">
+                <span className="text-[10px] font-black uppercase text-slate-400">{t('thread.points_label')}</span>
+                <input 
+                  type="number"
+                  value={rewardPoints}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === '') {
+                      setRewardPoints('');
+                    } else {
+                      const parsed = parseInt(val, 10);
+                      if (!isNaN(parsed)) {
+                        setRewardPoints(Math.max(0, parsed));
                       }
-                    }}
-                    className="w-12 bg-transparent border-none text-slate-700 dark:text-slate-200 text-xs font-bold focus:outline-none focus:ring-0 text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                    min="0"
-                  />
-                </div>
-                <button 
-                  onClick={handleGiveReward}
-                  disabled={isGivingReward || rewardPoints === '' || rewardPoints <= 0}
-                  className="flex items-center gap-2 px-6 py-3 bg-amber-500 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-amber-600 transition-all shadow-lg shadow-amber-500/20 cursor-pointer"
-                >
-                  <Coins size={16} fill="currentColor" />
-                  {isGivingReward ? t('thread.giving_points') : t('thread.give_points')}
-                </button>
+                    }
+                  }}
+                  placeholder="50"
+                  className="w-14 bg-transparent border-none text-slate-800 dark:text-slate-100 text-xs font-bold focus:outline-none focus:ring-0 text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  min="0"
+                />
               </div>
-            ) : (
-              <div className="flex items-center gap-2 px-6 py-3 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 rounded-2xl text-[10px] font-black uppercase tracking-widest">
-                <CheckCircle2 size={16} />
-                {t('thread.reward_sent')}
-              </div>
-            )}
+
+              <button 
+                onClick={handleGiveReward}
+                disabled={isGivingReward || rewardPoints === '' || Number(rewardPoints) < 0}
+                className={cn(
+                  "flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all shadow-xs cursor-pointer active:scale-[0.98]",
+                  ticket.rewardGiven
+                    ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20"
+                    : "bg-amber-500 hover:bg-amber-600 text-white shadow-amber-500/20"
+                )}
+                title={ticket.rewardGiven 
+                  ? (language === 'en' ? 'Update reward points for this customer' : 'Perbarui jumlah poin reward pelanggan') 
+                  : (language === 'en' ? 'Give reward points to customer' : 'Kirim poin reward ke pelanggan')}
+              >
+                {ticket.rewardGiven ? (
+                  <>
+                    <CheckCircle2 size={16} />
+                    <span>
+                      {isGivingReward 
+                        ? (language === 'en' ? 'Updating...' : 'Menyimpan...') 
+                        : (language === 'en' ? `Reward Terkirim (${rewardPoints} Poin) • Ubah` : `Reward Terkirim (${rewardPoints} Poin) • Ubah`)}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <Coins size={16} fill="currentColor" />
+                    <span>{isGivingReward ? t('thread.giving_points') : t('thread.give_points')}</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -368,7 +417,7 @@ export const ForumThreadPage: React.FC<ForumThreadProps> = ({ userRole }) => {
                     <h4 className="text-base font-bold text-slate-900 dark:text-white">{ticket.customerName}</h4>
                     <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Author • Customer</p>
                   </div>
-                  <span className="text-xs text-slate-400 font-medium">{new Date(ticket.createdAt || ticket.created_at).toLocaleString(locale)}</span>
+                  <span className="text-xs text-slate-400 font-medium">{formatWIBDateTime(ticket.createdAt || ticket.created_at, locale)}</span>
                 </div>
                 <p className="text-slate-600 dark:text-slate-300 leading-relaxed text-base">{ticket.description || ticket.deskripsi}</p>
               </div>
@@ -387,7 +436,7 @@ export const ForumThreadPage: React.FC<ForumThreadProps> = ({ userRole }) => {
             </div>
             <p className="text-[10px] text-slate-400 mt-2 font-medium">
               {language === 'en' ? 'Ticket created on ' : 'Tiket dibuat pada '}
-              {new Date(ticket.createdAt || ticket.created_at).toLocaleString(locale)}
+              {formatWIBDateTime(ticket.createdAt || ticket.created_at, locale)}
             </p>
           </div>
         )}
@@ -397,143 +446,214 @@ export const ForumThreadPage: React.FC<ForumThreadProps> = ({ userRole }) => {
           <AnimatePresence>
             {/* Show description as first message in private chat mode */}
             {isPrivate && (
-              <motion.div 
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex flex-col items-start"
-              >
-                <div className="max-w-[80%] bg-white dark:bg-slate-900 p-4 rounded-2xl rounded-tl-none border border-slate-200 dark:border-slate-800 shadow-sm">
-                  <p className="text-sm font-bold text-blue-600 dark:text-blue-400 mb-1">{ticket.customerName}</p>
-                  <p className="text-slate-700 dark:text-slate-200 leading-relaxed">{ticket.description || ticket.deskripsi}</p>
-                  <span className="text-[9px] text-slate-400 block mt-2 text-right">
-                    {new Date(ticket.createdAt || ticket.created_at).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}
+              <>
+                <div className="flex justify-center my-3">
+                  <span className="px-3.5 py-1 bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-[10px] font-bold rounded-full border border-slate-200/80 dark:border-slate-700 shadow-xs uppercase tracking-wider">
+                    {formatWIBDateGroup(ticket.createdAt || ticket.created_at, locale)}
                   </span>
                 </div>
-              </motion.div>
+
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className={cn(
+                    "flex flex-col",
+                    isInitialRight ? "items-end" : "items-start"
+                  )}
+                >
+                  <div className={cn(
+                    "max-w-[80%] p-4 rounded-2xl shadow-sm transition-all",
+                    isInitialRight 
+                      ? "bg-blue-600 text-white rounded-tr-none shadow-md" 
+                      : "bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-200 rounded-tl-none border border-slate-200 dark:border-slate-800"
+                  )}>
+                    <p className={cn(
+                      "text-[10px] font-bold mb-1",
+                      isInitialRight ? "text-blue-100" : "text-blue-600 dark:text-blue-400"
+                    )}>
+                      {ticket.customerName}
+                    </p>
+                    <p className={cn(
+                      "text-sm leading-relaxed",
+                      isInitialRight ? "text-white" : "text-slate-700 dark:text-slate-200"
+                    )}>
+                      {ticket.description || ticket.deskripsi}
+                    </p>
+                    <span className={cn(
+                      "text-[9px] block mt-2 text-right",
+                      isInitialRight ? "text-blue-100/80" : "text-slate-400"
+                    )}>
+                      {formatWIBTime(ticket.createdAt || ticket.created_at, locale)}
+                    </span>
+                  </div>
+                </motion.div>
+              </>
             )}
 
-            {messages.map((msg) => (
-              <motion.div 
-                initial={{ opacity: 0, x: isPrivate ? (msg.userRole === 'staff' ? 20 : -20) : -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                key={msg.id} 
-                className={cn(
-                  "flex flex-col",
-                  isPrivate 
-                    ? (msg.userRole === 'staff' ? "items-end" : "items-start") 
-                    : "items-stretch"
-                )}
-              >
-                <div className={cn(
-                  "relative group transition-all",
-                  isPrivate 
-                    ? cn(
-                        "max-w-[80%] p-4 rounded-2xl shadow-sm",
-                        msg.userRole === 'staff' 
-                          ? "bg-slate-900 text-white dark:bg-blue-600 rounded-tr-none" 
-                          : "bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-200 rounded-tl-none border border-slate-200 dark:border-slate-800"
-                      )
-                    : cn(
-                        "p-6 md:p-8 rounded-[2rem] border shadow-sm",
-                        msg.userRole === 'staff' 
-                          ? "bg-slate-900 border-slate-800 ml-8 md:ml-12 dark:bg-slate-950 dark:border-blue-900/50" 
-                          : "bg-white border-slate-200 dark:bg-slate-900 dark:border-slate-800"
-                      )
-                )}>
-                  {!isPrivate && (
-                    <div className="flex gap-4 md:gap-6">
-                      <div className={cn(
-                        "w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border",
-                        msg.userRole === 'staff' 
-                          ? "bg-blue-600 border-blue-500 text-white" 
-                          : "bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-700 text-slate-600 dark:text-slate-300"
-                      )}>
-                        {msg.userRole === 'staff' ? <ShieldCheck size={24} /> : <User size={24} />}
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center gap-3">
-                            <h4 className={cn(
-                              "text-base font-bold",
-                              msg.userRole === 'staff' ? "text-white" : "text-slate-900 dark:text-white"
-                            )}>
-                              {msg.userName}
-                            </h4>
-                            {msg.userRole === 'staff' && (
-                              <span className="text-[10px] px-2 py-0.5 bg-blue-600 text-white rounded-md font-black uppercase tracking-tighter shadow-md">Official Staff</span>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-slate-400 font-medium">{new Date(msg.createdAt).toLocaleString(locale)}</span>
-                            {user?.role === 'admin' && !isTicketPath && (
-                              <button
-                                onClick={async () => {
-                                  if (window.confirm(language === 'en' ? 'Are you sure you want to delete this reply?' : 'Apakah Anda yakin ingin menghapus balasan ini?')) {
-                                    try {
-                                      const res = await fetch(`/api/forums/replies/${msg.id}`, {
-                                        method: 'DELETE'
-                                      });
-                                      const result = await res.json();
-                                      if (res.ok && result.success) {
-                                        setMessages(prev => prev.filter(m => m.id !== msg.id));
-                                      } else {
-                                        alert(result.message || (language === 'en' ? 'Failed to delete reply.' : 'Gagal menghapus balasan.'));
-                                      }
-                                    } catch (err) {
-                                      console.error(err);
-                                      alert(language === 'en' ? 'Connection error.' : 'Koneksi gagal.');
-                                    }
-                                  }
-                                }}
-                                className="p-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-lg transition-colors cursor-pointer"
-                                title={language === 'en' ? 'Delete Reply' : 'Hapus Balasan'}
-                              >
-                                <Trash2 size={12} />
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                        <p className={cn(
-                          "leading-relaxed text-base",
-                          msg.userRole === 'staff' ? "text-slate-200" : "text-slate-600 dark:text-slate-300"
-                        )}>
-                          {msg.text}
-                        </p>
-                        
-                        {/* Reply Action for Forum */}
-                        <div className="mt-4 pt-4 border-t border-slate-100/10 flex justify-end">
-                           <button 
-                            onClick={() => setReplyingTo({ id: msg.id, name: msg.userName })}
-                            className="text-[10px] font-black uppercase tracking-widest text-blue-500 hover:text-blue-400 transition-colors flex items-center gap-1.5 cursor-pointer"
-                          >
-                            <Send size={12} className="-rotate-45" />
-                            {language === 'en' ? 'Reply' : 'Balas'}
-                          </button>
-                        </div>
-                      </div>
+            {messages.map((msg, index) => {
+              const isStaffOrAdmin = msg.userRole === 'staff' || msg.userRole === 'admin';
+              const isMyMessage = Boolean(
+                (user?.id && String(msg.userId) === String(user.id)) ||
+                (user?.name && msg.userName && user.name.toLowerCase() === msg.userName.toLowerCase())
+              );
+              
+              let isRight = false;
+              if (isPrivate) {
+                if (isViewerStaff) {
+                  // Staff / Admin melihat tiket: balasan staff di kanan, balasan user di kiri
+                  isRight = isStaffOrAdmin || isMyMessage;
+                } else {
+                  // User / Customer melihat tiket: chat user di kanan, balasan staff di kiri
+                  isRight = !isStaffOrAdmin || isMyMessage;
+                }
+              }
+
+              // Hitung pembatas tanggal (date divider)
+              const prevDateKey = index === 0
+                ? (isPrivate ? getWIBDateKey(ticket.createdAt || ticket.created_at) : '')
+                : getWIBDateKey(messages[index - 1].createdAt);
+              const currentDateKey = getWIBDateKey(msg.createdAt);
+              const showDateDivider = isPrivate && currentDateKey && currentDateKey !== prevDateKey;
+
+              return (
+                <React.Fragment key={msg.id}>
+                  {showDateDivider && (
+                    <div className="flex justify-center my-4">
+                      <span className="px-3.5 py-1 bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 text-[10px] font-bold rounded-full border border-blue-200 dark:border-blue-900 shadow-xs uppercase tracking-wider">
+                        {formatWIBDateGroup(msg.createdAt, locale)}
+                      </span>
                     </div>
                   )}
 
-                  {isPrivate && (
-                    <>
-                      <p className={cn(
-                        "text-[10px] font-bold mb-1",
-                        msg.userRole === 'staff' ? "text-blue-200" : "text-blue-600 dark:text-blue-400"
-                      )}>
-                        {msg.userName}
-                      </p>
-                      <p className="text-sm leading-relaxed">{msg.text}</p>
-                      <span className={cn(
-                        "text-[9px] block mt-2 text-right",
-                        msg.userRole === 'staff' ? "text-blue-200/70" : "text-slate-400"
-                      )}>
-                        {new Date(msg.createdAt).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}
-                      </span>
-                    </>
-                  )}
-                </div>
-              </motion.div>
-            ))}
+                  <motion.div 
+                    initial={{ opacity: 0, x: isPrivate ? (isRight ? 20 : -20) : -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className={cn(
+                      "flex flex-col",
+                      isPrivate 
+                        ? (isRight ? "items-end" : "items-start") 
+                        : "items-stretch"
+                    )}
+                  >
+                  <div className={cn(
+                    "relative group transition-all",
+                    isPrivate 
+                      ? cn(
+                          "max-w-[80%] p-4 rounded-2xl shadow-sm",
+                          isRight 
+                            ? "bg-blue-600 text-white rounded-tr-none shadow-md" 
+                            : "bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-200 rounded-tl-none border border-slate-200 dark:border-slate-800"
+                        )
+                      : cn(
+                          "p-6 md:p-8 rounded-[2rem] border shadow-sm",
+                          isStaffOrAdmin 
+                            ? "bg-slate-900 border-slate-800 ml-8 md:ml-12 dark:bg-slate-950 dark:border-blue-900/50" 
+                            : "bg-white border-slate-200 dark:bg-slate-900 dark:border-slate-800"
+                        )
+                  )}>
+                    {!isPrivate && (
+                      <div className="flex gap-4 md:gap-6">
+                        <div className={cn(
+                          "w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border",
+                          isStaffOrAdmin 
+                            ? "bg-blue-600 border-blue-500 text-white" 
+                            : "bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-700 text-slate-600 dark:text-slate-300"
+                        )}>
+                          {isStaffOrAdmin ? <ShieldCheck size={24} /> : <User size={24} />}
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-3">
+                              <h4 className={cn(
+                                "text-base font-bold",
+                                isStaffOrAdmin ? "text-white" : "text-slate-900 dark:text-white"
+                              )}>
+                                {msg.userName}
+                              </h4>
+                              {isStaffOrAdmin && (
+                                <span className="text-[10px] px-2 py-0.5 bg-blue-600 text-white rounded-md font-black uppercase tracking-tighter shadow-md">
+                                  {msg.userRole === 'admin' ? 'Administrator' : 'Official Staff'}
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-slate-400 font-medium">{formatWIBDateTime(msg.createdAt, locale)}</span>
+                              {user?.role === 'admin' && !isTicketPath && (
+                                <button
+                                  onClick={async () => {
+                                    if (window.confirm(language === 'en' ? 'Are you sure you want to delete this reply?' : 'Apakah Anda yakin ingin menghapus balasan ini?')) {
+                                      try {
+                                        const res = await fetch(`/api/forums/replies/${msg.id}`, {
+                                          method: 'DELETE'
+                                        });
+                                        const result = await res.json();
+                                        if (res.ok && result.success) {
+                                          setMessages(prev => prev.filter(m => m.id !== msg.id));
+                                        } else {
+                                          alert(result.message || (language === 'en' ? 'Failed to delete reply.' : 'Gagal menghapus balasan.'));
+                                        }
+                                      } catch (err) {
+                                        console.error(err);
+                                        alert(language === 'en' ? 'Connection error.' : 'Koneksi gagal.');
+                                      }
+                                    }
+                                  }}
+                                  className="p-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-lg transition-colors cursor-pointer"
+                                  title={language === 'en' ? 'Delete Reply' : 'Hapus Balasan'}
+                                >
+                                  <Trash2 size={12} />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                          <p className={cn(
+                            "leading-relaxed text-base",
+                            isStaffOrAdmin ? "text-slate-200" : "text-slate-600 dark:text-slate-300"
+                          )}>
+                            {msg.text}
+                          </p>
+                          
+                          {/* Reply Action for Forum */}
+                          <div className="mt-4 pt-4 border-t border-slate-100/10 flex justify-end">
+                             <button 
+                              onClick={() => setReplyingTo({ id: msg.id, name: msg.userName })}
+                              className="text-[10px] font-black uppercase tracking-widest text-blue-500 hover:text-blue-400 transition-colors flex items-center gap-1.5 cursor-pointer"
+                            >
+                              <Send size={12} className="-rotate-45" />
+                              {language === 'en' ? 'Reply' : 'Balas'}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {isPrivate && (
+                      <>
+                        <p className={cn(
+                          "text-[10px] font-bold mb-1",
+                          isRight ? "text-blue-100" : "text-blue-600 dark:text-blue-400"
+                        )}>
+                          {msg.userName}
+                        </p>
+                        <p className={cn(
+                          "text-sm leading-relaxed",
+                          isRight ? "text-white" : "text-slate-700 dark:text-slate-200"
+                        )}>
+                          {msg.text}
+                        </p>
+                        <span className={cn(
+                          "text-[9px] block mt-2 text-right",
+                          isRight ? "text-blue-100/80" : "text-slate-400"
+                        )}>
+                          {formatWIBTime(msg.createdAt, locale)}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                </motion.div>
+              </React.Fragment>
+            );
+            })}
           </AnimatePresence>
         </div>
       </div>

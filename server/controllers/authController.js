@@ -1,5 +1,6 @@
 const db = require('../config/db');
 const QRCode = require('qrcode');
+const { verifyPassword, hashPassword } = require('../utils/password');
 
 // Login User
 const login = async (req, res) => {
@@ -25,8 +26,9 @@ const login = async (req, res) => {
 
     const user = rows[0];
 
-    // Cek password secara sederhana (plaintext sesuai isi database)
-    if (user.password !== password) {
+    // Verifikasi password (mendukung scrypt hash maupun legacy plaintext)
+    const { match } = await verifyPassword(password, user.password);
+    if (!match) {
       return res.status(401).json({
         success: false,
         message: 'Password salah.'
@@ -183,16 +185,18 @@ const changePassword = async (req, res) => {
 
     const user = rows[0];
 
-    // Cek password saat ini
-    if (user.password !== current) {
+    // Cek password saat ini (mendukung scrypt hash maupun legacy plaintext)
+    const { match } = await verifyPassword(current, user.password);
+    if (!match) {
       return res.status(400).json({
         success: false,
         message: 'Password saat ini salah.'
       });
     }
 
-    // Update password
-    await db.query('UPDATE users SET password = ? WHERE id = ?', [newPassword, id]);
+    // Update password dengan scrypt hash
+    const hashedNew = await hashPassword(newPassword);
+    await db.query('UPDATE users SET password = ? WHERE id = ?', [hashedNew, id]);
 
     res.status(200).json({
       success: true,
@@ -519,8 +523,9 @@ const resetPassword = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Kode OTP telah kadaluarsa.' });
     }
 
-    // Update password dan bersihkan field OTP
-    await db.query('UPDATE users SET password = ?, reset_otp = NULL, reset_otp_expires = NULL WHERE email = ?', [newPassword, email]);
+    // Update password dengan scrypt hash dan bersihkan field OTP
+    const hashedNew = await hashPassword(newPassword);
+    await db.query('UPDATE users SET password = ?, reset_otp = NULL, reset_otp_expires = NULL WHERE email = ?', [hashedNew, email]);
 
     res.status(200).json({
       success: true,
@@ -554,9 +559,10 @@ const register = async (req, res) => {
       });
     }
 
-    // Insert user baru dengan default role 'member' dan koin_reward 0
+    // Insert user baru dengan scrypt hash dan default role 'member' dan koin_reward 0
+    const hashedPwd = await hashPassword(password);
     const insertQuery = 'INSERT INTO users (nama, email, password, role, koin_reward) VALUES (?, ?, ?, ?, ?)';
-    await db.query(insertQuery, [name, email, password, 'member', 0]);
+    await db.query(insertQuery, [name, email, hashedPwd, 'member', 0]);
 
     res.status(201).json({
       success: true,

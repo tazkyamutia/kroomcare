@@ -90,15 +90,17 @@ export const TicketSettingsPage = () => {
     }
   };
 
-  const filteredTickets = tickets.filter(t => {
-    const matchesSearch = (t.id || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          (t.customerName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          (t.subject || '').toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesFilter = statusFilter === 'All' || t.status === statusFilter;
+  const filteredTickets = tickets
+    .filter(t => {
+      const matchesSearch = (t.id || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
+                            (t.customerName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                            (t.subject || '').toLowerCase().includes(searchQuery.toLowerCase());
+      
+      const matchesFilter = statusFilter === 'All' || t.status === statusFilter;
 
-    return matchesSearch && matchesFilter;
-  });
+      return matchesSearch && matchesFilter;
+    })
+    .sort((a, b) => Number(b.id) - Number(a.id));
 
   return (
     <div className="space-y-5">

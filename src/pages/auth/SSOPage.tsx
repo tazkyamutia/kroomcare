@@ -85,20 +85,39 @@ export const SSOPage: React.FC = () => {
             }
           } catch (_) {}
         }
-        const incomingTheme = data.theme || data.data?.theme || themeParam;
-        if (incomingTheme === 'dark' || incomingTheme === 'light') {
+        let incomingTheme = data.theme || data.data?.theme || themeParam;
+        if (!incomingTheme) {
           try {
-            localStorage.setItem('kroombox_parent_theme', incomingTheme);
-            if (!redirectPath.includes('theme=')) {
-              redirectPath += (redirectPath.includes('?') ? '&' : '?') + `theme=${incomingTheme}`;
-            }
-            if (incomingTheme === 'dark') {
-              document.documentElement.classList.add('dark');
-            } else {
-              document.documentElement.classList.remove('dark');
+            const prefix = "kp_theme=";
+            const ca = document.cookie.split(';');
+            for (let i = 0; i < ca.length; i++) {
+              let c = ca[i].trim();
+              if (c.indexOf(prefix) === 0) {
+                const val = c.substring(prefix.length, c.length).toLowerCase();
+                if (val === 'dark' || val === 'light') incomingTheme = val;
+              }
             }
           } catch (_) {}
         }
+        if (!incomingTheme) {
+          incomingTheme = 'light';
+        }
+
+        try {
+          localStorage.setItem('kroombox_parent_theme', incomingTheme);
+          if (!redirectPath.includes('theme=')) {
+            redirectPath += (redirectPath.includes('?') ? '&' : '?') + `theme=${incomingTheme}`;
+          }
+          if (incomingTheme === 'dark') {
+            document.documentElement.classList.add('dark');
+            document.documentElement.setAttribute('data-theme', 'dark');
+            document.documentElement.style.colorScheme = 'dark';
+          } else {
+            document.documentElement.classList.remove('dark');
+            document.documentElement.setAttribute('data-theme', 'light');
+            document.documentElement.style.colorScheme = 'light';
+          }
+        } catch (_) {}
         if (setUser) setUser(data.data);
 
         setStatus('success');

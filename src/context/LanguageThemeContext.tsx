@@ -779,7 +779,7 @@ function getSharedCookie(name: string): string | null {
 }
 
 function getSharedCookieTheme(): Theme | null {
-  for (const name of ['kp_theme', 'kroombox_theme']) {
+  for (const name of ['kp_theme', 'kroombox_theme', 'theme']) {
     const val = getSharedCookie(name)?.toLowerCase().trim();
     if (val === 'dark' || val === 'light') return val as Theme;
   }
@@ -1040,13 +1040,16 @@ function resolveSystemTheme(): Theme {
       if (urlTheme === 'dark' || urlTheme === 'light') return urlTheme as Theme;
     } catch (_) {}
 
-    // Check parent document if accessible
-    const parentTheme = detectParentTheme();
-    if (parentTheme) return parentTheme;
-
-    // Check shared cookie across .kroombox.com domain
+    // Check shared cookie across .kroombox.com domain (updated by panel bridge in real-time)
     const cookieTheme = getSharedCookieTheme();
     if (cookieTheme) return cookieTheme;
+
+    // Check live broadcast cache from parent postMessage
+    if (lastKnownParentTheme) return lastKnownParentTheme;
+
+    // Check parent document if accessible (same-origin)
+    const parentTheme = detectParentTheme();
+    if (parentTheme) return parentTheme;
 
     // Check stored parent theme from past sync
     try {
@@ -1074,12 +1077,7 @@ function resolveSystemTheme(): Theme {
   const cookieTheme = getSharedCookieTheme();
   if (cookieTheme) return cookieTheme;
 
-  if (typeof window !== 'undefined' && window.matchMedia) {
-    if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      return 'dark';
-    }
-  }
-
+  // Local Standalone default matches Kroombox Panel: Light mode!
   return 'light';
 }
 
@@ -1124,11 +1122,12 @@ export const LanguageThemeProvider: React.FC<{ children: React.ReactNode }> = ({
       } catch (_) {}
 
       const savedMode = localStorage.getItem('kroomcare_theme_mode');
-      if (savedMode === 'light' || savedMode === 'dark' || savedMode === 'system') {
+      if (savedMode === 'light' || savedMode === 'dark') {
         return savedMode as ThemeMode;
       }
+      return 'light';
     }
-    return 'system';
+    return 'light';
   });
 
   // Current active resolved theme: 'light' | 'dark'
@@ -1369,21 +1368,26 @@ export const LanguageThemeProvider: React.FC<{ children: React.ReactNode }> = ({
 
     // 4. Request initial theme from parent if embedded in iframe
     if (isEmbedded) {
-      try {
-        window.parent.postMessage({ type: 'GET_THEME' }, '*');
-        window.parent.postMessage({ type: 'REQUEST_THEME' }, '*');
-        window.parent.postMessage({ type: 'KP_GET_THEME' }, '*');
-        window.parent.postMessage('getTheme', '*');
-      } catch (_) {}
+      const sendHandshake = () => {
+        try {
+          window.parent.postMessage({ type: 'GET_THEME' }, '*');
+          window.parent.postMessage({ type: 'REQUEST_THEME' }, '*');
+          window.parent.postMessage({ type: 'KP_GET_THEME' }, '*');
+          window.parent.postMessage('getTheme', '*');
+        } catch (_) {}
+      };
+      sendHandshake();
+      const t1 = setTimeout(sendHandshake, 80);
+      const t2 = setTimeout(sendHandshake, 250);
+      const t3 = setTimeout(sendHandshake, 600);
+      setTimeout(() => {
+        clearTimeout(t1);
+        clearTimeout(t2);
+        clearTimeout(t3);
+      }, 3000);
     }
 
-    // 5. Polling interval (150ms) for ultra-responsiveness
-    const interval = setInterval(() => {
-      const latest = resolveSystemTheme();
-      syncTheme(latest);
-    }, 150);
-
-    // 6. Focus & Visibility listener
+    // 5. Focus & Visibility listener
     const handleVisibility = () => {
       const latest = resolveSystemTheme();
       setResolvedTheme(latest);
@@ -1409,7 +1413,6 @@ export const LanguageThemeProvider: React.FC<{ children: React.ReactNode }> = ({
       if (onParentStorage) {
         try { window.parent.removeEventListener('storage', onParentStorage); } catch (_) {}
       }
-      clearInterval(interval);
       window.removeEventListener('focus', handleVisibility);
       document.removeEventListener('visibilitychange', handleVisibility);
     };
@@ -1509,14 +1512,6 @@ export const LanguageThemeProvider: React.FC<{ children: React.ReactNode }> = ({
       window.parent.postMessage('getLanguage', '*');
     } catch (_) {}
 
-    // 5. Responsive fallback polling (250ms) for snappy synchronization
-    const interval = setInterval(() => {
-      const latest = detectParentLanguage();
-      if (latest && latest !== lastSyncedLang) {
-        syncLanguage(latest);
-      }
-    }, 250);
-
     return () => {
       window.removeEventListener('message', handleMessage);
       if (parentObserver) {
@@ -1525,7 +1520,6 @@ export const LanguageThemeProvider: React.FC<{ children: React.ReactNode }> = ({
       if (onParentStorage) {
         try { window.parent.removeEventListener('storage', onParentStorage); } catch (_) {}
       }
-      clearInterval(interval);
     };
   }, [isEmbedded]);
 

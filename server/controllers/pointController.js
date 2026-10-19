@@ -117,13 +117,20 @@ const getPointBalance = async (req, res) => {
   }
 };
 
-// Reward Customer with Points (Staf/Admin memberi poin ke customer untuk tiket)
+// Reward Customer with Points (Staf/Admin memberi atau mengedit poin ke customer untuk tiket)
 const rewardCustomer = async (req, res) => {
   try {
     const { ticket_id, ticketId, user_id, userId, points } = req.body;
     const targetUserId = user_id || userId;
     const targetTicketId = ticket_id || ticketId;
-    const pointsAmount = parseInt(points, 10) || 50;
+    const pointsAmount = parseInt(points, 10);
+
+    if (isNaN(pointsAmount) || pointsAmount < 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Jumlah poin harus berupa angka valid (minimal 0).'
+      });
+    }
 
     if (!targetUserId) {
       return res.status(400).json({
@@ -141,26 +148,57 @@ const rewardCustomer = async (req, res) => {
       });
     }
 
-    // 2. Tambah koin_reward di tabel users
-    await db.query('UPDATE users SET koin_reward = COALESCE(koin_reward, 0) + ? WHERE id = ?', [pointsAmount, targetUserId]);
+    const currentBalance = userRows[0].koin_reward || 0;
 
-    // 3. Catat di point_histories
+    // 2. Cek apakah sudah pernah diberi reward untuk tiket ini
+    let existingReward = null;
+    if (targetTicketId) {
+      const [histRows] = await db.query(
+        "SELECT id, jumlah_poin FROM point_histories WHERE user_id = ? AND keterangan LIKE ? ORDER BY id DESC LIMIT 1",
+        [targetUserId, `%penyelesaian tiket #${targetTicketId}%`]
+      );
+      if (histRows.length > 0) {
+        existingReward = histRows[0];
+      }
+    }
+
+    let newBalance = currentBalance;
     const desc = targetTicketId 
       ? `Reward penyelesaian tiket #${targetTicketId}`
       : `Reward poin pelayanan pelanggan`;
 
-    await db.query(
-      'INSERT INTO point_histories (user_id, jenis_transaksi, jumlah_poin, keterangan) VALUES (?, ?, ?, ?)',
-      [targetUserId, 'masuk', pointsAmount, desc]
-    );
+    if (existingReward) {
+      // Edit / Update poin yang sudah pernah diberikan: hitung selisih
+      const diff = pointsAmount - existingReward.jumlah_poin;
+      newBalance = Math.max(0, currentBalance + diff);
+      await db.query('UPDATE users SET koin_reward = ? WHERE id = ?', [newBalance, targetUserId]);
+      
+      // Update record history lama
+      await db.query(
+        'UPDATE point_histories SET jumlah_poin = ?, keterangan = ? WHERE id = ?',
+        [pointsAmount, desc, existingReward.id]
+      );
+    } else {
+      // Pemberian reward pertama kali
+      newBalance = currentBalance + pointsAmount;
+      await db.query('UPDATE users SET koin_reward = ? WHERE id = ?', [newBalance, targetUserId]);
+
+      await db.query(
+        'INSERT INTO point_histories (user_id, jenis_transaksi, jumlah_poin, keterangan) VALUES (?, ?, ?, ?)',
+        [targetUserId, 'masuk', pointsAmount, desc]
+      );
+    }
 
     res.status(200).json({
       success: true,
-      message: `Berhasil memberikan ${pointsAmount} koin reward kepada pelanggan.`,
+      message: existingReward
+        ? `Berhasil memperbarui reward menjadi ${pointsAmount} koin.`
+        : `Berhasil memberikan ${pointsAmount} koin reward kepada pelanggan.`,
       data: {
         userId: targetUserId,
         pointsAwarded: pointsAmount,
-        newBalance: (userRows[0].koin_reward || 0) + pointsAmount
+        isUpdated: !!existingReward,
+        newBalance: newBalance
       }
     });
   } catch (error) {

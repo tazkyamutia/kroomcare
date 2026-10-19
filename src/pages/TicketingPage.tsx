@@ -5,6 +5,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { cn } from '../lib/utils';
 import { useUser } from '../context/UserContext';
 import { useLanguageTheme } from '../context/LanguageThemeContext';
+import { formatWIBDate } from '../utils/dateUtils';
 
 export const TicketingPage = () => {
   const navigate = useNavigate();
@@ -61,7 +62,7 @@ export const TicketingPage = () => {
     }
 
     return matchesSearch && matchesStatus;
-  });
+  }).sort((a, b) => Number(b.id) - Number(a.id));
 
   const isEmbedded = typeof window !== 'undefined' && window.parent && window.parent !== window;
 
@@ -184,7 +185,7 @@ export const TicketingPage = () => {
                       {ticket.isPriority ? t('tickets.priority') : (ticket.category || ticket.kategori || 'General')}
                     </span>
                     <span className="text-xs text-slate-400 font-medium whitespace-nowrap">
-                      #{ticket.id} • {new Date(ticket.createdAt || ticket.created_at).toLocaleDateString(language === 'en' ? 'en-US' : 'id-ID')}
+                      #{ticket.id} • {formatWIBDate(ticket.createdAt || ticket.created_at, language === 'en' ? 'en-US' : 'id-ID')}
                     </span>
                   </div>
                   

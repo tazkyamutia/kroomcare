@@ -198,52 +198,60 @@ export const LandingPage: React.FC = () => {
 
   const TRUST_ITEMS = [
     {
-      name: 'Google Gemini',
+      name: 'Google Gemini AI',
       badge: 'AI CRM Engine',
-      desc: 'Routing Tiket Cerdas',
-      icon: <Bot size={15} className="text-white" />,
-      iconBg: 'bg-gradient-to-tr from-blue-600 to-indigo-600',
-      borderHover: 'hover:border-blue-400 dark:hover:border-blue-500'
+      desc: 'Routing tiket cerdas & analisis sentimen keluhan pelanggan otomatis dalam hitungan sub-detik.',
+      status: 'Active 2.5 Flash',
+      icon: <Bot size={18} className="text-white" />,
+      iconBg: 'bg-gradient-to-tr from-blue-600 via-indigo-600 to-cyan-500',
+      iconShadow: 'shadow-blue-500/30',
+      dotColor: 'bg-blue-500',
+      glowGradient: 'from-blue-600/30 via-indigo-600/20 to-cyan-500/10',
+      borderHover: 'hover:border-blue-500/60 dark:hover:border-blue-400/60',
+      accentBar: 'from-blue-600 via-indigo-600 to-cyan-500',
+      badgeColor: 'bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border-blue-200/60 dark:border-blue-900/40'
     },
     {
       name: 'WhatsApp Cloud',
-      badge: 'Official API',
-      desc: 'Notifikasi CRM Instan',
-      icon: <Phone size={14} className="text-white" />,
-      iconBg: 'bg-gradient-to-tr from-emerald-500 to-teal-600',
-      borderHover: 'hover:border-emerald-400 dark:hover:border-emerald-500'
-    },
-    {
-      name: 'MySQL Enterprise',
-      badge: 'v8.0 ACID',
-      desc: 'Keamanan Data Pelanggan',
-      icon: <Database size={14} className="text-white" />,
-      iconBg: 'bg-gradient-to-tr from-sky-600 to-blue-700',
-      borderHover: 'hover:border-sky-400 dark:hover:border-sky-500'
+      badge: 'Official Meta API',
+      desc: 'Notifikasi instan & tiket update dua arah langsung terhubung ke nomor WhatsApp pelanggan.',
+      status: 'Live 2-Way Sync',
+      icon: <Phone size={17} className="text-white" />,
+      iconBg: 'bg-gradient-to-tr from-emerald-500 via-teal-600 to-green-600',
+      iconShadow: 'shadow-emerald-500/30',
+      dotColor: 'bg-emerald-500',
+      glowGradient: 'from-emerald-500/30 via-teal-600/20 to-green-600/10',
+      borderHover: 'hover:border-emerald-500/60 dark:hover:border-emerald-400/60',
+      accentBar: 'from-emerald-500 via-teal-600 to-green-600',
+      badgeColor: 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border-emerald-200/60 dark:border-emerald-900/40'
     },
     {
       name: 'Resend Mailing',
-      badge: 'SMTP SLA 99%',
-      desc: 'Email Tiket & Update CRM',
-      icon: <Mail size={14} className="text-white" />,
-      iconBg: 'bg-gradient-to-tr from-purple-600 to-indigo-700',
-      borderHover: 'hover:border-purple-400 dark:hover:border-purple-500'
+      badge: 'Smart Delivery',
+      desc: 'Pengiriman email respon tiket & laporan berkala dengan jaminan deliverability SLA 99.9%.',
+      status: 'SLA 99.9% Inbox',
+      icon: <Mail size={17} className="text-white" />,
+      iconBg: 'bg-gradient-to-tr from-purple-600 via-violet-600 to-indigo-600',
+      iconShadow: 'shadow-purple-500/30',
+      dotColor: 'bg-purple-500',
+      glowGradient: 'from-purple-600/30 via-violet-600/20 to-indigo-600/10',
+      borderHover: 'hover:border-purple-500/60 dark:hover:border-purple-400/60',
+      accentBar: 'from-purple-600 via-violet-600 to-indigo-600',
+      badgeColor: 'bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 border-purple-200/60 dark:border-purple-900/40'
     },
     {
-      name: 'React 19',
-      badge: 'Ultra Fast',
-      desc: 'Portal Interaktif Pelanggan',
-      icon: <Zap size={14} className="text-white" />,
-      iconBg: 'bg-gradient-to-tr from-cyan-500 to-blue-600',
-      borderHover: 'hover:border-cyan-400 dark:hover:border-cyan-500'
-    },
-    {
-      name: 'Tailwind CSS',
-      badge: 'Design Engine',
-      desc: 'Tampilan CRM Responsif',
-      icon: <Sparkles size={14} className="text-white" />,
-      iconBg: 'bg-gradient-to-tr from-teal-500 to-cyan-600',
-      borderHover: 'hover:border-teal-400 dark:hover:border-teal-500'
+      name: 'MySQL Enterprise',
+      badge: 'v8.0 ACID Secured',
+      desc: 'Penyimpanan terenkripsi data tiket, histori interaksi, & audit trail dengan redundansi tinggi.',
+      status: 'Zero-Loss Storage',
+      icon: <Database size={17} className="text-white" />,
+      iconBg: 'bg-gradient-to-tr from-sky-600 via-blue-700 to-indigo-700',
+      iconShadow: 'shadow-sky-500/30',
+      dotColor: 'bg-sky-500',
+      glowGradient: 'from-sky-600/30 via-blue-700/20 to-indigo-700/10',
+      borderHover: 'hover:border-sky-500/60 dark:hover:border-sky-400/60',
+      accentBar: 'from-sky-600 via-blue-700 to-indigo-700',
+      badgeColor: 'bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400 border-sky-200/60 dark:border-sky-900/40'
     }
   ];
 
@@ -782,35 +790,68 @@ export const LandingPage: React.FC = () => {
         </section>
 
         {/* 4. CLIENT LOGO TRUST BAR (EYE CATCHING INFRASTRUCTURE CARDS) */}
-        <section className="py-10 sm:py-14 border-y border-slate-200/70 dark:border-white/5 bg-gradient-to-b from-slate-50/60 via-white to-slate-50/60 dark:from-[#090e1c] dark:via-[#0b0f19] dark:to-[#090e1c]">
+        <section className="relative py-12 sm:py-16 border-y border-slate-200/70 dark:border-white/5 bg-gradient-to-b from-slate-50/70 via-white to-slate-50/70 dark:from-[#090e1c] dark:via-[#0b0f19] dark:to-[#090e1c] overflow-hidden">
+          {/* Ambient decorative soft glow lights */}
+          <div aria-hidden="true" className="absolute top-1/2 left-1/4 -translate-y-1/2 w-80 h-80 bg-blue-500/5 dark:bg-blue-600/10 blur-3xl rounded-full pointer-events-none -z-10" />
+          <div aria-hidden="true" className="absolute top-1/2 right-1/4 -translate-y-1/2 w-80 h-80 bg-purple-500/5 dark:bg-purple-600/10 blur-3xl rounded-full pointer-events-none -z-10" />
+
           <div className="max-w-6xl mx-auto px-4 sm:px-6 text-center">
             
-            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-blue-50 dark:bg-blue-950/60 border border-blue-200/80 dark:border-blue-800/40 text-blue-600 dark:text-blue-400 text-[10px] sm:text-[10.5px] font-bold tracking-wider uppercase shadow-xs mb-6">
-              <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-              <span>Infrastruktur Teknologi Pendukung Platform CRM KroomCare</span>
+            {/* Header Badge Pill */}
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-blue-500/10 via-indigo-500/10 to-purple-500/10 dark:from-blue-500/20 dark:via-indigo-500/20 dark:to-purple-500/20 border border-blue-500/20 dark:border-blue-400/30 shadow-xs mb-3">
+              <Sparkles size={13} className="text-blue-600 dark:text-blue-400 animate-pulse" />
+              <span className="text-[10.5px] sm:text-xs font-bold tracking-wider uppercase bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 dark:from-blue-400 dark:via-indigo-300 dark:to-purple-300 bg-clip-text text-transparent">
+                Infrastruktur Teknologi Pendukung Platform CRM
+              </span>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-3.5">
+            <h2 className="text-lg sm:text-xl md:text-2xl font-bold tracking-tight text-slate-900 dark:text-white mb-2">
+              Fondasi Handal untuk Kecepatan &amp; Keamanan Layanan Pelanggan
+            </h2>
+            <p className="text-xs sm:text-[13px] text-slate-500 dark:text-slate-400 max-w-xl mx-auto mb-8 sm:mb-10 leading-relaxed">
+              Ditenagai integrasi AI cerdas, gateway komunikasi resmi WhatsApp, dan arsitektur database enterprise ber-SLA tinggi.
+            </p>
+
+            {/* 4 Focused, Eye-Catching Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
               {TRUST_ITEMS.map((item) => (
                 <div 
                   key={item.name}
-                  className={`group relative flex flex-col items-start p-3 sm:p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-white/10 shadow-xs hover:shadow-md hover:-translate-y-1 transition-all duration-200 cursor-default text-left ${item.borderHover}`}
+                  className={`group relative flex flex-col justify-between p-4 sm:p-5 rounded-2xl bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-slate-200/90 dark:border-white/10 shadow-xs hover:shadow-xl transition-all duration-300 hover:-translate-y-1.5 cursor-default text-left overflow-hidden ${item.borderHover}`}
                 >
-                  <div className="flex items-center justify-between w-full mb-2.5">
-                    <div className={`w-7 h-7 rounded-xl flex items-center justify-center ${item.iconBg} shadow-xs group-hover:scale-110 transition-transform duration-200`}>
+                  {/* Dynamic Ambient Glow Behind Card on Hover */}
+                  <div className={`absolute -inset-0.5 rounded-2xl bg-gradient-to-br ${item.glowGradient} opacity-0 group-hover:opacity-100 blur-xl transition-opacity duration-300 -z-10 pointer-events-none`} />
+
+                  {/* Top Row: Icon with 3D gradient + Status Pill */}
+                  <div className="flex items-center justify-between w-full mb-3.5">
+                    <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center ${item.iconBg} shadow-md ${item.iconShadow} group-hover:scale-110 transition-transform duration-300`}>
                       {item.icon}
                     </div>
-                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">
-                      {item.badge}
-                    </span>
+                    <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-100/90 dark:bg-slate-800/90 border border-slate-200/70 dark:border-white/5 text-[9.5px] sm:text-[10px] font-semibold text-slate-600 dark:text-slate-300">
+                      <span className={`w-1.5 h-1.5 rounded-full ${item.dotColor} animate-pulse`} />
+                      <span>{item.status}</span>
+                    </div>
                   </div>
 
-                  <span className="text-xs font-bold text-slate-800 dark:text-slate-100 tracking-tight group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                    {item.name}
-                  </span>
-                  <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium truncate w-full mt-0.5">
-                    {item.desc}
-                  </p>
+                  {/* Middle Content */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between gap-1 flex-wrap">
+                      <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white tracking-tight group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                        {item.name}
+                      </h3>
+                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md border ${item.badgeColor}`}>
+                        {item.badge}
+                      </span>
+                    </div>
+                    <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-normal">
+                      {item.desc}
+                    </p>
+                  </div>
+
+                  {/* Bottom Animated Accent Bar */}
+                  <div className="mt-4 pt-2 border-t border-slate-100 dark:border-slate-800/80">
+                    <div className={`h-1 w-8 group-hover:w-full rounded-full bg-gradient-to-r ${item.accentBar} transition-all duration-300`} />
+                  </div>
                 </div>
               ))}
             </div>

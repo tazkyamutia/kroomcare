@@ -68,10 +68,11 @@ const receiveExternalTicket = async (req, res) => {
 
     const isPriority = (prioritas && prioritas.toLowerCase() === 'high') ? 1 : 0;
     const finalKategori = kategori || 'General';
+    const wibNow = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' });
 
     const insertTicket = `
-      INSERT INTO tickets (external_ticket_id, user_id, judul, deskripsi, is_priority, kategori)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO tickets (external_ticket_id, user_id, judul, deskripsi, is_priority, kategori, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `;
     const [ticketResult] = await db.query(insertTicket, [
       external_ticket_id || null,
@@ -79,7 +80,8 @@ const receiveExternalTicket = async (req, res) => {
       judul,
       deskripsi,
       isPriority,
-      finalKategori
+      finalKategori,
+      wibNow
     ]);
     const ticketId = ticketResult.insertId;
 
@@ -100,8 +102,8 @@ const receiveExternalTicket = async (req, res) => {
         );
         const descPoint = `Reward pembuatan tiket eksternal #${ticketId}`;
         await db.query(
-          'INSERT INTO point_histories (user_id, jenis_transaksi, jumlah_poin, keterangan) VALUES (?, ?, ?, ?)',
-          [userId, 'masuk', 10, descPoint]
+          'INSERT INTO point_histories (user_id, jenis_transaksi, jumlah_poin, keterangan, created_at) VALUES (?, ?, ?, ?, ?)',
+          [userId, 'masuk', 10, descPoint, wibNow]
         );
       }
     } catch (pErr) {
@@ -187,4 +189,55 @@ const receiveExternalStatus = async (req, res) => {
   }
 };
 
-module.exports = { receiveExternalTicket, receiveExternalStatus };
+const receiveExternalReply = async (req, res) => {
+  try {
+    const apiKey = req.headers['x-api-key'];
+    if (!apiKey || apiKey !== process.env.KROOMCARE_API_KEY) {
+      return res.status(401).json({ success: false, message: 'Invalid API Key' });
+    }
+
+    const { external_ticket_id, email, text, konten } = req.body;
+    if (!external_ticket_id || (!text && !konten)) {
+      return res.status(400).json({ success: false, message: 'Missing required fields: external_ticket_id, text/konten' });
+    }
+
+    // Cari tiket berdasarkan external_ticket_id
+    const [tickets] = await db.query('SELECT id, user_id FROM tickets WHERE external_ticket_id = ?', [external_ticket_id]);
+    if (tickets.length === 0) {
+      return res.status(404).json({ success: false, message: 'Ticket not found for external_ticket_id: ' + external_ticket_id });
+    }
+
+    const ticketId = tickets[0].id;
+    let senderUserId = tickets[0].user_id;
+
+    if (email) {
+      const [uRows] = await db.query('SELECT id FROM users WHERE email = ?', [email]);
+      if (uRows.length > 0) {
+        senderUserId = uRows[0].id;
+      }
+    }
+
+    const replyContent = text || konten;
+    const wibNow = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' });
+    const [result] = await db.query(
+      'INSERT INTO ticket_replies (ticket_id, user_id, konten, created_at) VALUES (?, ?, ?, ?)',
+      [ticketId, senderUserId, replyContent, wibNow]
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: 'External reply successfully received and saved.',
+      data: {
+        replyId: result.insertId,
+        ticketId,
+        senderUserId
+      }
+    });
+  } catch (error) {
+    console.error('[ExternalController] receiveExternalReply Error:', error);
+    return res.status(500).json({ success: false, message: 'Internal error', error: error.message });
+  }
+};
+
+module.exports = { receiveExternalTicket, receiveExternalStatus, receiveExternalReply };
+

@@ -4,6 +4,7 @@ import { motion } from 'motion/react';
 import { cn } from '../../lib/utils';
 import { useUser } from '../../context/UserContext';
 import { useLanguageTheme } from '../../context/LanguageThemeContext';
+import { formatWIBDate } from '../../utils/dateUtils';
 
 export const PointHistoryPage = () => {
   const { user } = useUser();
@@ -138,7 +139,7 @@ export const PointHistoryPage = () => {
                       <p className="font-medium text-slate-900 dark:text-slate-100">{tx.keterangan}</p>
                     </td>
                     <td className="px-4 py-3 sm:px-5 text-slate-500 dark:text-slate-400">
-                      {new Date(tx.created_at).toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' })}
+                      {formatWIBDate(tx.created_at, locale, { day: 'numeric', month: 'short', year: 'numeric' })}
                     </td>
                     <td className="px-4 py-3 sm:px-5">
                       <span className={cn(

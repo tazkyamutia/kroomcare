@@ -19,7 +19,14 @@ const pool = mysql.createPool({
   database: process.env.DB_NAME || 'kroomcare',
   waitForConnections: true,
   connectionLimit: 10,
-  queueLimit: 0
+  queueLimit: 0,
+  timezone: '+07:00',
+  dateStrings: true
+});
+
+// Pastikan setiap sesi koneksi MySQL selalu menggunakan zona waktu WIB (+07:00)
+pool.on('connection', (connection) => {
+  connection.query("SET time_zone = '+07:00'");
 });
 
 // Initial verification logic
