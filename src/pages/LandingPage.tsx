@@ -126,21 +126,21 @@ export const LandingPage: React.FC = () => {
       if (response.ok && result.success) {
         setNewsletterToast({
           show: true,
-          message: 'Berhasil berlangganan newsletter KroomCare.',
+          message: t('landing.newsletter_success'),
           type: 'success'
         });
         setNewsletterEmail('');
       } else {
         setNewsletterToast({
           show: true,
-          message: result.message || 'Gagal berlangganan. Coba lagi.',
+          message: result.message || t('landing.newsletter_fail'),
           type: 'error'
         });
       }
     } catch {
       setNewsletterToast({
         show: true,
-        message: 'Koneksi ke server backend gagal.',
+        message: t('landing.newsletter_conn_err'),
         type: 'error'
       });
     } finally {
@@ -159,37 +159,37 @@ export const LandingPage: React.FC = () => {
   // Integration icons placed on concentric orbits around the hero
   const ORBIT_ITEMS: OrbitItem[] = [
     {
-      name: 'Gemini AI',
+      name: t('landing.orbit_gemini'),
       icon: <Bot size={16} className="text-blue-500" />,
       orbitClass: 'top-[16%] left-[10%] sm:left-[16%]',
       delay: 0.1
     },
     {
-      name: 'WhatsApp Bot',
+      name: t('landing.orbit_wa'),
       icon: <Phone size={15} className="text-emerald-500" />,
       orbitClass: 'top-[12%] right-[12%] sm:right-[18%]',
       delay: 0.2
     },
     {
-      name: 'Database MySQL',
+      name: t('landing.orbit_db'),
       icon: <Database size={15} className="text-sky-600" />,
       orbitClass: 'top-[42%] left-[4%] sm:left-[8%]',
       delay: 0.3
     },
     {
-      name: 'Instant SLA',
+      name: t('landing.orbit_sla'),
       icon: <Activity size={15} className="text-teal-500" />,
       orbitClass: 'top-[45%] right-[5%] sm:right-[9%]',
       delay: 0.4
     },
     {
-      name: 'Loyalty Points',
+      name: t('landing.orbit_points'),
       icon: <Coins size={15} className="text-amber-500" />,
       orbitClass: 'bottom-[22%] left-[8%] sm:left-[14%]',
       delay: 0.5
     },
     {
-      name: 'Auto Escalation',
+      name: t('landing.orbit_escalation'),
       icon: <Zap size={15} className="text-purple-500" />,
       orbitClass: 'bottom-[20%] right-[10%] sm:right-[15%]',
       delay: 0.6
@@ -200,7 +200,7 @@ export const LandingPage: React.FC = () => {
     {
       name: 'Google Gemini AI',
       badge: 'AI CRM Engine',
-      desc: 'Routing tiket cerdas & analisis sentimen keluhan pelanggan otomatis dalam hitungan sub-detik.',
+      desc: t('landing.infra_gemini_desc'),
       status: 'Active 2.5 Flash',
       icon: <Bot size={18} className="text-white" />,
       iconBg: 'bg-gradient-to-tr from-blue-600 via-indigo-600 to-cyan-500',
@@ -214,7 +214,7 @@ export const LandingPage: React.FC = () => {
     {
       name: 'WhatsApp Cloud',
       badge: 'Official Meta API',
-      desc: 'Notifikasi instan & tiket update dua arah langsung terhubung ke nomor WhatsApp pelanggan.',
+      desc: t('landing.infra_wa_desc'),
       status: 'Live 2-Way Sync',
       icon: <Phone size={17} className="text-white" />,
       iconBg: 'bg-gradient-to-tr from-emerald-500 via-teal-600 to-green-600',
@@ -228,7 +228,7 @@ export const LandingPage: React.FC = () => {
     {
       name: 'Resend Mailing',
       badge: 'Smart Delivery',
-      desc: 'Pengiriman email respon tiket & laporan berkala dengan jaminan deliverability SLA 99.9%.',
+      desc: t('landing.infra_resend_desc'),
       status: 'SLA 99.9% Inbox',
       icon: <Mail size={17} className="text-white" />,
       iconBg: 'bg-gradient-to-tr from-purple-600 via-violet-600 to-indigo-600',
@@ -242,7 +242,7 @@ export const LandingPage: React.FC = () => {
     {
       name: 'MySQL Enterprise',
       badge: 'v8.0 ACID Secured',
-      desc: 'Penyimpanan terenkripsi data tiket, histori interaksi, & audit trail dengan redundansi tinggi.',
+      desc: t('landing.infra_mysql_desc'),
       status: 'Zero-Loss Storage',
       icon: <Database size={17} className="text-white" />,
       iconBg: 'bg-gradient-to-tr from-sky-600 via-blue-700 to-indigo-700',
@@ -287,7 +287,7 @@ export const LandingPage: React.FC = () => {
               href="#features"
               className="px-3.5 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700/80 rounded-full transition-all duration-150"
             >
-              Fitur
+              {t('landing.nav_features')}
             </a>
             <a 
               href="/rewards"
@@ -297,7 +297,7 @@ export const LandingPage: React.FC = () => {
               }}
               className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700/80 rounded-full transition-all duration-150"
             >
-              <span>Rewards</span>
+              <span>{t('landing.nav_rewards')}</span>
               <span className="px-1.5 py-0.2 text-[8px] font-black uppercase rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-xs">
                 NEW
               </span>
@@ -306,7 +306,7 @@ export const LandingPage: React.FC = () => {
               href="#about"
               className="px-3.5 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700/80 rounded-full transition-all duration-150"
             >
-              Tentang Kami
+              {t('landing.nav_about')}
             </a>
           </nav>
 
@@ -316,7 +316,7 @@ export const LandingPage: React.FC = () => {
             <button
               onClick={toggleLanguage}
               className="h-7 sm:h-8 px-2.5 sm:px-3 rounded-full border border-blue-500 hover:border-blue-600 dark:border-blue-400 bg-white dark:bg-slate-900/90 hover:bg-blue-50/40 dark:hover:bg-blue-950/30 flex items-center gap-1.5 transition-all shadow-xs active:scale-95 cursor-pointer select-none"
-              title={language === 'id' ? 'Switch to English' : 'Ganti ke Bahasa Indonesia'}
+              title={t('landing.switch_lang_title')}
             >
               {language === 'id' ? (
                 <span className="inline-flex w-4 h-2.5 rounded-[2px] overflow-hidden shadow-2xs border border-slate-300/80 dark:border-white/20 shrink-0 flex-col">
@@ -367,7 +367,7 @@ export const LandingPage: React.FC = () => {
               onClick={() => navigate('/login')}
               className="hidden sm:inline-flex text-xs font-semibold text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 px-3 py-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
             >
-              Masuk
+              {t('landing.login_btn')}
             </button>
 
             {/* Primary Action Button (Solid Pill) */}
@@ -375,7 +375,7 @@ export const LandingPage: React.FC = () => {
               onClick={() => navigate('/login')}
               className="inline-flex items-center justify-center min-h-[34px] px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-xs font-semibold transition-all shadow-sm shadow-blue-500/20 hover:shadow-md hover:shadow-blue-500/30 hover:scale-[1.02] active:scale-[0.98] whitespace-nowrap"
             >
-              <span>Mulai Gratis</span>
+              <span>{t('landing.register_btn')}</span>
             </button>
 
             {/* Mobile Hamburger Button */}
@@ -406,7 +406,7 @@ export const LandingPage: React.FC = () => {
                   onClick={() => setMobileMenuOpen(false)}
                   className="px-3 py-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                 >
-                  Fitur
+                  {t('landing.nav_features')}
                 </a>
                 <a 
                   href="/rewards"
@@ -416,7 +416,7 @@ export const LandingPage: React.FC = () => {
                   }}
                   className="flex items-center justify-between px-3 py-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                 >
-                  <span>Rewards</span>
+                  <span>{t('landing.nav_rewards')}</span>
                   <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase rounded-full bg-blue-500 text-white">NEW</span>
                 </a>
                 <a 
@@ -424,7 +424,7 @@ export const LandingPage: React.FC = () => {
                   onClick={() => setMobileMenuOpen(false)}
                   className="px-3 py-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                 >
-                  Tentang Kami
+                  {t('landing.nav_about')}
                 </a>
               </div>
 
@@ -434,7 +434,7 @@ export const LandingPage: React.FC = () => {
                   className="w-full py-2 px-4 text-center text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors flex items-center justify-center gap-2"
                 >
                   <span>{language === 'id' ? '🇮🇩' : '🇬🇧'}</span>
-                  <span>{language === 'id' ? 'Ganti ke English (EN)' : 'Ganti ke Bahasa Indonesia (ID)'}</span>
+                  <span>{t('landing.switch_lang_title')}</span>
                 </button>
                 <button
                   onClick={() => closeMobileMenuAndNavigate('/login')}
@@ -504,12 +504,12 @@ export const LandingPage: React.FC = () => {
                 <span className="w-3.5 h-3.5 rounded-full bg-blue-600 text-white text-[9px] font-bold flex items-center justify-center">
                   G
                 </span>
-                <span>4.9 Google</span>
+                <span>{t('landing.hero_badge_google')}</span>
               </div>
               <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
               <div className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
                 <Star size={11} className="fill-emerald-500 text-emerald-500" />
-                <span>4.9 Customer Satisfaction</span>
+                <span>{t('landing.hero_badge_csat')}</span>
               </div>
             </motion.div>
 
@@ -520,9 +520,9 @@ export const LandingPage: React.FC = () => {
               transition={{ duration: 0.45, ease: 'easeOut' }}
               className="text-xl sm:text-2xl lg:text-[28px] font-bold tracking-tight leading-snug text-slate-900 dark:text-white mb-4 sm:mb-5 max-w-4xl w-full sm:whitespace-nowrap"
             >
-              AI-Powered CRM to Elevate{' '}
+              {t('landing.hero_title_prefix')}
               <span className="text-blue-600 dark:text-blue-500">
-                Customer Support
+                {t('landing.hero_title_highlight')}
               </span>
             </motion.h1>
 
@@ -538,7 +538,7 @@ export const LandingPage: React.FC = () => {
                 onClick={() => navigate('/login')}
                 className="w-full sm:w-auto min-h-[38px] px-6 py-2 bg-slate-950 hover:bg-slate-800 dark:bg-blue-600 dark:hover:bg-blue-700 text-white rounded-full font-medium text-xs shadow-xs hover:shadow-md active:scale-[0.98] transition-all flex items-center justify-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
               >
-                <span>Get Started Free</span>
+                <span>{t('landing.hero_cta_btn')}</span>
                 <ArrowRight size={13} />
               </button>
             </motion.div>
@@ -568,26 +568,26 @@ export const LandingPage: React.FC = () => {
                 {/* Left Column: Feature Description & Bullets */}
                 <div className="lg:col-span-6 space-y-2.5">
                   <span className="text-[10px] sm:text-[10.5px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest flex items-center gap-1.5">
-                    01 / FITUR CRM
+                    {t('landing.f1_badge')}
                   </span>
                   <h3 className="text-base sm:text-lg font-bold tracking-tight text-slate-900 dark:text-white leading-snug">
-                    Klasifikasi Keluhan Pelanggan &amp; Smart Agent Matching
+                    {t('landing.f1_title')}
                   </h3>
                   <p className="text-[11.5px] sm:text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                    Sistem CRM cerdas menganalisis pesan keluhan pelanggan seketika, menentukan urgensi kendala, dan mendistribusikan tiket ke agen customer care yang tepat tanpa antrean manual.
+                    {t('landing.f1_desc')}
                   </p>
                   <ul className="space-y-1.5 pt-0.5 text-[11px] sm:text-[11.5px] text-slate-700 dark:text-slate-300">
                     <li className="flex items-center gap-2">
                       <span className="w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400 shrink-0" />
-                      <span>Analisis Kategori Kendala &amp; Prioritas Tiket Pelanggan (&lt; 1 Detik)</span>
+                      <span>{t('landing.f1_bullet1')}</span>
                     </li>
                     <li className="flex items-center gap-2">
                       <span className="w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400 shrink-0" />
-                      <span>Pencocokan Cerdas Beban Kerja Tim Customer Support</span>
+                      <span>{t('landing.f1_bullet2')}</span>
                     </li>
                     <li className="flex items-center gap-2">
                       <span className="w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400 shrink-0" />
-                      <span>Pemantauan SLA Respon untuk Menjaga Kepuasan Pelanggan (CSAT)</span>
+                      <span>{t('landing.f1_bullet3')}</span>
                     </li>
                   </ul>
                 </div>
@@ -599,7 +599,7 @@ export const LandingPage: React.FC = () => {
                     {/* Floating Top Badge */}
                     <div className="self-start px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-200/60 text-[9.5px] font-bold flex items-center gap-1.5 shadow-xs">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                      <span>AI CRM Engine Active · 0.8s Match</span>
+                      <span>{t('landing.f1_mockup_badge')}</span>
                     </div>
 
                     {/* Floating Mini Dark Terminal Card (CRM Style) */}
@@ -610,9 +610,9 @@ export const LandingPage: React.FC = () => {
                         <span className="w-2 h-2 rounded-full bg-emerald-500" />
                         <span className="ml-1 text-slate-400">crm-ai analyze</span>
                       </div>
-                      <p className="text-emerald-400">$ crm route --customer-ticket #1042</p>
-                      <p className="text-slate-300">✓ Kategori: <span className="text-blue-400">Kendala Layanan &amp; Akun (99.4%)</span></p>
-                      <p className="text-slate-300">✓ Ditugaskan: <span className="text-emerald-400">Tariq A. (Customer Success Agent)</span></p>
+                      <p className="text-emerald-400">$ {t('landing.f1_mockup_cmd')}</p>
+                      <p className="text-slate-300">✓ {t('landing.f1_mockup_cat_label')} <span className="text-blue-400">{t('landing.f1_mockup_cat_val')}</span></p>
+                      <p className="text-slate-300">✓ {t('landing.f1_mockup_assigned_label')} <span className="text-emerald-400">{t('landing.f1_mockup_assigned_val')}</span></p>
                     </div>
 
                     {/* Floating Bottom Ticket Status Card */}
@@ -621,11 +621,11 @@ export const LandingPage: React.FC = () => {
                         T
                       </div>
                       <div className="truncate">
-                        <p className="font-semibold text-slate-900 dark:text-white truncate text-[10px]">Tiket Keluhan #1042 Ditugaskan</p>
-                        <p className="text-[9px] text-slate-400">Target SLA Respon: 15 menit</p>
+                        <p className="font-semibold text-slate-900 dark:text-white truncate text-[10px]">{t('landing.f1_mockup_ticket_assigned')}</p>
+                        <p className="text-[9px] text-slate-400">{t('landing.f1_mockup_sla')}</p>
                       </div>
                       <span className="ml-auto text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 shrink-0">
-                        Aktif
+                        {t('landing.f1_mockup_status')}
                       </span>
                     </div>
 
@@ -646,26 +646,26 @@ export const LandingPage: React.FC = () => {
                 {/* Left Column: Feature Description & Bullets */}
                 <div className="lg:col-span-6 space-y-2.5">
                   <span className="text-[10px] sm:text-[10.5px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-widest flex items-center gap-1.5">
-                    02 / FITUR CRM
+                    {t('landing.f2_badge')}
                   </span>
                   <h3 className="text-base sm:text-lg font-bold tracking-tight text-slate-900 dark:text-white leading-snug">
-                    Leaderboard Tim Support &amp; Peningkatan Kepuasan Pelanggan
+                    {t('landing.f2_title')}
                   </h3>
                   <p className="text-[11.5px] sm:text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                    Tingkatkan standar kepuasan pelanggan dengan budaya kerja interaktif. Staf customer service termotivasi memberikan solusi tercepat dan paling ramah demi meraih rating CSAT tertinggi.
+                    {t('landing.f2_desc')}
                   </p>
                   <ul className="space-y-1.5 pt-0.5 text-[11px] sm:text-[11.5px] text-slate-700 dark:text-slate-300">
                     <li className="flex items-center gap-2">
                       <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
-                      <span>Poin XP Otomatis untuk Resolusi Cepat &amp; Feedback Bintang 5</span>
+                      <span>{t('landing.f2_bullet1')}</span>
                     </li>
                     <li className="flex items-center gap-2">
                       <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
-                      <span>Peringkat Mingguan Agen Customer Care &amp; Lencana Kehormatan</span>
+                      <span>{t('landing.f2_bullet2')}</span>
                     </li>
                     <li className="flex items-center gap-2">
                       <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
-                      <span>Katalog Rewards &amp; Apresiasi Kinerja Pelayanan Pelanggan</span>
+                      <span>{t('landing.f2_bullet3')}</span>
                     </li>
                   </ul>
                 </div>
@@ -677,7 +677,7 @@ export const LandingPage: React.FC = () => {
                     {/* Floating Top Badge */}
                     <div className="self-start px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 border border-amber-200/60 text-[9.5px] font-bold flex items-center gap-1.5 shadow-xs">
                       <Star size={10} className="fill-amber-400 text-amber-500" />
-                      <span>Leaderboard CSAT Minggu Ini Aktif</span>
+                      <span>{t('landing.f2_mockup_badge')}</span>
                     </div>
 
                     {/* Floating Leaderboard Rank 1 Card */}
@@ -689,9 +689,9 @@ export const LandingPage: React.FC = () => {
                         <div>
                           <div className="flex items-center gap-1.5">
                             <span className="text-[11.5px] font-bold text-slate-900 dark:text-white">Tariq A.</span>
-                            <span className="text-[8.5px] font-bold px-1.5 py-0.2 bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 rounded-md">Top Agent #1</span>
+                            <span className="text-[8.5px] font-bold px-1.5 py-0.2 bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 rounded-md">{t('landing.f2_mockup_rank')}</span>
                           </div>
-                          <p className="text-[9.5px] text-slate-400">CSAT 4.9/5.0 · 38 Keluhan Pelanggan Tuntas</p>
+                          <p className="text-[9.5px] text-slate-400">{t('landing.f2_mockup_stats')}</p>
                         </div>
                       </div>
                       <span className="text-[10.5px] font-bold text-blue-600 dark:text-blue-400 px-2 py-0.5 bg-blue-50 dark:bg-blue-950/60 rounded-md shrink-0">
@@ -702,7 +702,7 @@ export const LandingPage: React.FC = () => {
                     {/* Floating Bottom Milestone Progress Card */}
                     <div className="self-end bg-white dark:bg-slate-800/90 rounded-xl px-3 py-2 border border-slate-200/80 dark:border-white/10 shadow-xs space-y-1 w-[88%]">
                       <div className="flex items-center justify-between text-[9.5px]">
-                        <span className="font-semibold text-slate-800 dark:text-slate-200">Target Pelayanan Prima (CSAT &gt; 95%)</span>
+                        <span className="font-semibold text-slate-800 dark:text-slate-200">{t('landing.f2_mockup_target')}</span>
                         <span className="font-bold text-blue-600 dark:text-blue-400">98%</span>
                       </div>
                       <div className="w-full h-1.5 rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden">
@@ -727,26 +727,26 @@ export const LandingPage: React.FC = () => {
                 {/* Left Column: Feature Description & Bullets */}
                 <div className="lg:col-span-6 space-y-2.5">
                   <span className="text-[10px] sm:text-[10.5px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest flex items-center gap-1.5">
-                    03 / FITUR CRM
+                    {t('landing.f3_badge')}
                   </span>
                   <h3 className="text-base sm:text-lg font-bold tracking-tight text-slate-900 dark:text-white leading-snug">
-                    Notifikasi Pelanggan Real-Time &amp; Komunikasi Omnichannel
+                    {t('landing.f3_title')}
                   </h3>
                   <p className="text-[11.5px] sm:text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                    Bangun kepercayaan pelanggan dengan transparansi penuh. Integrasi resmi WhatsApp CRM mengirimkan progres penanganan tiket secara otomatis sejak laporan diterima hingga solusi tuntas.
+                    {t('landing.f3_desc')}
                   </p>
                   <ul className="space-y-1.5 pt-0.5 text-[11px] sm:text-[11.5px] text-slate-700 dark:text-slate-300">
                     <li className="flex items-center gap-2">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                      <span>Notifikasi Otomatis ke WhatsApp Pelanggan (&lt; 2 Detik)</span>
+                      <span>{t('landing.f3_bullet1')}</span>
                     </li>
                     <li className="flex items-center gap-2">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                      <span>Riwayat Interaksi Pelanggan Terpusat &amp; Terverifikasi Dua Arah</span>
+                      <span>{t('landing.f3_bullet2')}</span>
                     </li>
                     <li className="flex items-center gap-2">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                      <span>Pengumpulan Rating Kepuasan (CSAT) Seketika Pasca-Solusi</span>
+                      <span>{t('landing.f3_bullet3')}</span>
                     </li>
                   </ul>
                 </div>
@@ -758,26 +758,26 @@ export const LandingPage: React.FC = () => {
                     {/* Floating Top Badge */}
                     <div className="self-start px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-200/60 text-[9.5px] font-bold flex items-center gap-1.5 shadow-xs">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                      <span>CRM WhatsApp Gateway · Live 200 OK</span>
+                      <span>{t('landing.f3_mockup_badge')}</span>
                     </div>
 
                     {/* Floating WhatsApp Message Preview Card */}
                     <div className="bg-emerald-50/90 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/40 rounded-xl p-2.5 sm:p-3 shadow-xs w-[94%] self-center space-y-1">
                       <div className="flex items-center gap-1.5 text-[10px] sm:text-[10.5px] font-bold text-emerald-700 dark:text-emerald-400">
                         <CheckCircle2 size={12} />
-                        <span>KroomCare Customer Care</span>
+                        <span>{t('landing.f3_mockup_wa_title')}</span>
                       </div>
                       <p className="text-[10px] sm:text-[10.5px] text-slate-800 dark:text-slate-200 leading-snug">
-                        &ldquo;Halo Kak Alif, tiket keluhan #1042 Anda telah selesai ditangani dengan baik. Mohon berikan penilaian kepuasan layanan kami!&rdquo;
+                        {t('landing.f3_mockup_wa_body')}
                       </p>
-                      <p className="text-[8.5px] text-slate-400 text-right">Baru saja · Terkirim ✓✓</p>
+                      <p className="text-[8.5px] text-slate-400 text-right">{t('landing.f3_mockup_wa_time')}</p>
                     </div>
 
                     {/* Floating Bottom Delivery Rate Card */}
                     <div className="self-end bg-white dark:bg-slate-800/90 rounded-xl px-3 py-1.5 border border-slate-200/80 dark:border-white/10 shadow-xs flex items-center justify-between text-xs w-[88%]">
-                      <span className="text-[10px] font-medium text-slate-600 dark:text-slate-300">Pembaruan Status Tiket CRM</span>
+                      <span className="text-[10px] font-medium text-slate-600 dark:text-slate-300">{t('landing.f3_mockup_status_title')}</span>
                       <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 px-2 py-0.2 bg-emerald-50 dark:bg-emerald-950/50 rounded-full">
-                        100% Terkirim ke Pelanggan
+                        {t('landing.f3_mockup_status_rate')}
                       </span>
                     </div>
 
@@ -801,15 +801,15 @@ export const LandingPage: React.FC = () => {
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-blue-500/10 via-indigo-500/10 to-purple-500/10 dark:from-blue-500/20 dark:via-indigo-500/20 dark:to-purple-500/20 border border-blue-500/20 dark:border-blue-400/30 shadow-xs mb-3">
               <Sparkles size={13} className="text-blue-600 dark:text-blue-400 animate-pulse" />
               <span className="text-[10.5px] sm:text-xs font-bold tracking-wider uppercase bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 dark:from-blue-400 dark:via-indigo-300 dark:to-purple-300 bg-clip-text text-transparent">
-                Infrastruktur Teknologi Pendukung Platform CRM
+                {t('landing.infra_badge')}
               </span>
             </div>
 
             <h2 className="text-lg sm:text-xl md:text-2xl font-bold tracking-tight text-slate-900 dark:text-white mb-2">
-              Fondasi Handal untuk Kecepatan &amp; Keamanan Layanan Pelanggan
+              {t('landing.infra_title')}
             </h2>
             <p className="text-xs sm:text-[13px] text-slate-500 dark:text-slate-400 max-w-xl mx-auto mb-8 sm:mb-10 leading-relaxed">
-              Ditenagai integrasi AI cerdas, gateway komunikasi resmi WhatsApp, dan arsitektur database enterprise ber-SLA tinggi.
+              {t('landing.infra_desc')}
             </p>
 
             {/* 4 Focused, Eye-Catching Cards */}
@@ -868,8 +868,8 @@ export const LandingPage: React.FC = () => {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10">
           <div className="rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 p-5 sm:p-7 flex flex-col md:flex-row items-center justify-between gap-5 shadow-md text-white">
             <div>
-              <h3 className="text-sm sm:text-base font-bold">Dapatkan Pembaruan KroomCare</h3>
-              <p className="text-xs text-blue-100 mt-0.5">Tips CRM, informasi fitur baru, dan penawaran menarik langsung di email Anda.</p>
+              <h3 className="text-sm sm:text-base font-bold">{t('landing.newsletter_title')}</h3>
+              <p className="text-xs text-blue-100 mt-0.5">{t('landing.newsletter_desc')}</p>
             </div>
 
             <form onSubmit={handleSubscribe} className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
@@ -878,7 +878,7 @@ export const LandingPage: React.FC = () => {
                 required
                 value={newsletterEmail}
                 onChange={(e) => setNewsletterEmail(e.target.value)}
-                placeholder="Masukkan email Anda..."
+                placeholder={t('landing.newsletter_placeholder')}
                 className="w-full sm:w-60 px-3.5 py-2 bg-white text-slate-800 text-xs rounded-full focus:outline-none focus:ring-2 focus:ring-blue-300 placeholder:text-slate-400"
               />
               <button 
@@ -887,7 +887,7 @@ export const LandingPage: React.FC = () => {
                 className="min-h-[36px] px-4 py-2 bg-slate-950 hover:bg-slate-800 text-white text-xs font-semibold rounded-full transition-all flex items-center justify-center gap-1.5 shrink-0 active:scale-[0.98] disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
               >
                 <Send size={12} />
-                <span>{newsletterLoading ? '...' : 'Subscribe'}</span>
+                <span>{newsletterLoading ? '...' : t('landing.newsletter_btn')}</span>
               </button>
             </form>
           </div>
@@ -908,7 +908,7 @@ export const LandingPage: React.FC = () => {
                 />
                 <span className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">KroomCare</span>
               </div>
-              <p className="leading-relaxed">Platform CRM modern berbasis AI dan gamifikasi untuk operasional customer support.</p>
+              <p className="leading-relaxed">{t('landing.footer_brand_desc')}</p>
               <div className="flex items-center gap-2 pt-1">
                 {[
                   { icon: Instagram, label: 'Instagram Kroombox', href: 'https://www.instagram.com/kroombox' },
@@ -931,18 +931,18 @@ export const LandingPage: React.FC = () => {
 
             {/* Produk */}
             <div className="space-y-2">
-              <h4 className="font-semibold text-xs text-slate-900 dark:text-slate-200">Produk</h4>
+              <h4 className="font-semibold text-xs text-slate-900 dark:text-slate-200">{t('landing.footer_products')}</h4>
               <ul className="space-y-1.5">
-                <li><a href="#features" className="hover:text-blue-600 transition-colors">Fitur Utama</a></li>
-                <li><a href="/login?redirect=/rewards" className="hover:text-blue-600 transition-colors">Rewards &amp; Poin</a></li>
-                <li><a href="/login" className="hover:text-blue-600 transition-colors">Sistem Tiket</a></li>
-                <li><a href="/login" className="hover:text-blue-600 transition-colors">Forum Komunitas</a></li>
+                <li><a href="#features" className="hover:text-blue-600 transition-colors">{t('landing.footer_f_features')}</a></li>
+                <li><a href="/login?redirect=/rewards" className="hover:text-blue-600 transition-colors">{t('landing.footer_f_rewards')}</a></li>
+                <li><a href="/login" className="hover:text-blue-600 transition-colors">{t('landing.footer_f_tickets')}</a></li>
+                <li><a href="/login" className="hover:text-blue-600 transition-colors">{t('landing.footer_f_forum')}</a></li>
               </ul>
             </div>
 
             {/* Kontak */}
             <div className="space-y-2">
-              <h4 className="font-semibold text-xs text-slate-900 dark:text-slate-200">Kontak</h4>
+              <h4 className="font-semibold text-xs text-slate-900 dark:text-slate-200">{t('landing.footer_contact')}</h4>
               <ul className="space-y-1.5">
                 <li className="flex items-center gap-1.5">
                   <Mail size={12} className="text-blue-500 shrink-0" />
@@ -961,19 +961,19 @@ export const LandingPage: React.FC = () => {
 
             {/* Legal */}
             <div className="space-y-2">
-              <h4 className="font-semibold text-xs text-slate-900 dark:text-slate-200">Legal</h4>
+              <h4 className="font-semibold text-xs text-slate-900 dark:text-slate-200">{t('landing.footer_legal')}</h4>
               <ul className="space-y-1.5">
-                <li><a href="#" className="hover:text-blue-600 transition-colors">Kebijakan Privasi</a></li>
-                <li><a href="#" className="hover:text-blue-600 transition-colors">Syarat Layanan</a></li>
-                <li><a href="#" className="hover:text-blue-600 transition-colors">Status Keamanan</a></li>
+                <li><a href="#" className="hover:text-blue-600 transition-colors">{t('landing.footer_privacy')}</a></li>
+                <li><a href="#" className="hover:text-blue-600 transition-colors">{t('landing.footer_terms')}</a></li>
+                <li><a href="#" className="hover:text-blue-600 transition-colors">{t('landing.footer_security')}</a></li>
               </ul>
             </div>
 
           </div>
 
           <div className="pt-5 flex flex-col sm:flex-row items-center justify-between gap-2.5 text-[10px] text-slate-400">
-            <p>&copy; {new Date().getFullYear()} KroomCare. All rights reserved.</p>
-            <p>Designed with high precision &amp; modern SaaS standards.</p>
+            <p>&copy; {new Date().getFullYear()} KroomCare. {t('landing.footer_rights')}</p>
+            <p>{t('landing.footer_tagline')}</p>
           </div>
         </div>
 
