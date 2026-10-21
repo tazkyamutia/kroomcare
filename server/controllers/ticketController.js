@@ -3,26 +3,42 @@ const https = require('https');
 const http = require('http');
 
 const sendWebhook = (webhookUrl, payload) => {
+  return new Promise((resolve) => {
     try {
-        const urlObj = new URL(webhookUrl);
-        const protocol = urlObj.protocol === 'https:' ? https : http;
-        const options = {
-            hostname: urlObj.hostname,
-            port: urlObj.port,
-            path: urlObj.pathname + urlObj.search,
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-api-key': process.env.KROOMCARE_API_KEY
-            }
-        };
-        const req = protocol.request(options);
-        req.on('error', (e) => console.error('[Webhook] Failed:', e.message));
-        req.write(JSON.stringify(payload));
-        req.end();
-    } catch(err) {
-        console.error('[Webhook] setup error:', err.message);
+      const urlObj = new URL(webhookUrl);
+      const protocol = urlObj.protocol === 'https:' ? https : http;
+      const postData = JSON.stringify(payload);
+      const port = urlObj.port ? parseInt(urlObj.port, 10) : (urlObj.protocol === 'https:' ? 443 : 80);
+      const options = {
+        hostname: urlObj.hostname,
+        port: port,
+        path: urlObj.pathname + urlObj.search,
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(postData),
+          'x-api-key': process.env.KROOMCARE_API_KEY
+        }
+      };
+      const req = protocol.request(options, (res) => {
+        let body = '';
+        res.on('data', chunk => body += chunk);
+        res.on('end', () => {
+          console.log(`[Webhook] Sent to ${webhookUrl} (Ext: ${payload.external_ticket_id}) - Status: ${res.statusCode}`);
+          resolve({ success: res.statusCode >= 200 && res.statusCode < 300, statusCode: res.statusCode, body });
+        });
+      });
+      req.on('error', (e) => {
+        console.error('[Webhook] Request failed:', e.message);
+        resolve({ success: false, error: e.message });
+      });
+      req.write(postData);
+      req.end();
+    } catch (err) {
+      console.error('[Webhook] Setup error:', err.message);
+      resolve({ success: false, error: err.message });
     }
+  });
 };
 
 
@@ -465,14 +481,28 @@ const addTicketReply = async (req, res) => {
 
       // --- Sync reply to KolabPanel if this is an external ticket ---
       try {
-        const [tktRows] = await db.query('SELECT external_ticket_id FROM tickets WHERE id = ?', [id]);
-        const extTicketId = tktRows.length > 0 ? tktRows[0].external_ticket_id : null;
+        const [tktRows] = await db.query('SELECT external_ticket_id, judul FROM tickets WHERE id = ?', [id]);
+        let extTicketId = tktRows.length > 0 ? tktRows[0].external_ticket_id : null;
+
+        // Jika external_ticket_id masih kosong, cari berdasarkan judul yang sama di tiket lain
+        if (!extTicketId && tktRows.length > 0 && tktRows[0].judul) {
+          const [matchRows] = await db.query(
+            'SELECT external_ticket_id FROM tickets WHERE judul = ? AND external_ticket_id IS NOT NULL ORDER BY id DESC LIMIT 1',
+            [tktRows[0].judul]
+          );
+          if (matchRows.length > 0) {
+            extTicketId = matchRows[0].external_ticket_id;
+            await db.query('UPDATE tickets SET external_ticket_id = ? WHERE id = ?', [extTicketId, id]);
+          }
+        }
+
         if (extTicketId && process.env.KOLABPANEL_WEBHOOK_URL) {
-            sendWebhook(process.env.KOLABPANEL_WEBHOOK_URL, {
-                external_ticket_id: extTicketId,
-                sender_name: user.nama,
-                text: konten
-            });
+          console.log(`[Webhook] Syncing reply for ticket #${id} (Ext: ${extTicketId}) to ${process.env.KOLABPANEL_WEBHOOK_URL}`);
+          sendWebhook(process.env.KOLABPANEL_WEBHOOK_URL, {
+            external_ticket_id: extTicketId,
+            sender_name: user.nama,
+            text: konten
+          });
         }
       } catch(err) {
         console.error('Failed to process KolabPanel webhook:', err.message);
