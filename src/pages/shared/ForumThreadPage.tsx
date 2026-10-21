@@ -63,7 +63,10 @@ export const ForumThreadPage: React.FC<ForumThreadProps> = ({ userRole }) => {
     if (!id) return;
     try {
       const typePath = isTicketPath ? 'tickets' : 'forums';
-      const resReplies = await fetch(`/api/${typePath}/${id}/replies`);
+      // Tambahkan timestamp untuk mencegah browser cache response polling
+      const resReplies = await fetch(`/api/${typePath}/${id}/replies?_t=${Date.now()}`, {
+        headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' }
+      });
       const repliesResult = await resReplies.json();
       if (resReplies.ok && repliesResult.success) {
         setMessages(repliesResult.data);
@@ -74,13 +77,14 @@ export const ForumThreadPage: React.FC<ForumThreadProps> = ({ userRole }) => {
   React.useEffect(() => {
     fetchDetails();
 
-    // Auto-poll balasan baru setiap 3 detik secara background agar pesan real-time
+    // Auto-poll balasan baru setiap 2 detik secara background agar pesan real-time
     const interval = setInterval(() => {
       fetchRepliesOnly();
-    }, 3000);
+    }, 2000);
 
     return () => clearInterval(interval);
-  }, [id]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, location.pathname]);
 
   if (isLoading) {
     return (
@@ -500,11 +504,13 @@ export const ForumThreadPage: React.FC<ForumThreadProps> = ({ userRole }) => {
               let isRight = false;
               if (isPrivate) {
                 if (isViewerStaff) {
-                  // Staff / Admin melihat tiket: balasan staff di kanan, balasan user di kiri
+                  // Staff / Admin melihat tiket: balasan staff/admin di kanan, balasan customer di kiri
                   isRight = isStaffOrAdmin || isMyMessage;
                 } else {
-                  // User / Customer melihat tiket: chat user di kanan, balasan staff di kiri
-                  isRight = !isStaffOrAdmin || isMyMessage;
+                  // User / Customer melihat tiket: pesan dari diri sendiri di kanan, pesan staff di kiri
+                  // isStaffOrAdmin=true → pesan dari staff → tampil di KIRI (isRight=false)
+                  // isStaffOrAdmin=false → pesan dari customer → tampil di KANAN (isRight=true)
+                  isRight = !isStaffOrAdmin;
                 }
               }
 
