@@ -15,23 +15,25 @@ export const TicketQueuePage = () => {
 
   const locale = language === 'en' ? 'en-US' : 'id-ID';
 
-  const fetchAllTickets = React.useCallback(async () => {
+  const fetchAllTickets = React.useCallback(async (silent = false) => {
     try {
-      const response = await fetch('/api/tickets');
+      const response = await fetch(`/api/tickets?_t=${Date.now()}`);
       const result = await response.json();
       if (response.ok && result.success) {
         setTickets(result.data);
       }
     } catch (error) {
-      console.error('Failed to fetch all tickets:', error);
+      if (!silent) console.error('Failed to fetch all tickets:', error);
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
   }, []);
 
   React.useEffect(() => {
-    fetchAllTickets();
-    const interval = setInterval(fetchAllTickets, 10000);
+    fetchAllTickets(false);
+    const interval = setInterval(() => {
+      fetchAllTickets(true);
+    }, 3000);
     return () => clearInterval(interval);
   }, [fetchAllTickets]);
 

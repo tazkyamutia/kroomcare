@@ -28,7 +28,7 @@ export const AdminDashboard = () => {
 
   const fetchAdminData = async () => {
     try {
-      const response = await fetch('/api/admin/stats');
+      const response = await fetch(`/api/admin/stats?_t=${Date.now()}`);
       const result = await response.json();
       if (response.ok && result.success) {
         setData(result);
@@ -46,7 +46,7 @@ export const AdminDashboard = () => {
 
   React.useEffect(() => {
     fetchAdminData();
-    const interval = setInterval(fetchAdminData, 15000);
+    const interval = setInterval(fetchAdminData, 5000);
     return () => clearInterval(interval);
   }, []);
 

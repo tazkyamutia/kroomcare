@@ -17,26 +17,32 @@ export const TicketSettingsPage = () => {
   const [showToast, setShowToast] = React.useState(false);
   const [toastMessage, setToastMessage] = React.useState('');
 
-  const fetchTickets = async () => {
-    setLoading(true);
+  const fetchTickets = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
-      const response = await fetch('/api/tickets');
+      const response = await fetch(`/api/tickets?_t=${Date.now()}`);
       const result = await response.json();
       if (response.ok && result.success) {
         setTickets(result.data);
       } else {
-        setError(result.message || (language === 'en' ? 'Failed to load tickets.' : 'Gagal memuat tiket.'));
+        if (!silent) setError(result.message || (language === 'en' ? 'Failed to load tickets.' : 'Gagal memuat tiket.'));
       }
     } catch (err) {
-      console.error(err);
-      setError(language === 'en' ? 'Failed to connect to server.' : 'Koneksi gagal ke server.');
+      if (!silent) {
+        console.error(err);
+        setError(language === 'en' ? 'Failed to connect to server.' : 'Koneksi gagal ke server.');
+      }
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
   React.useEffect(() => {
-    fetchTickets();
+    fetchTickets(false);
+    const interval = setInterval(() => {
+      fetchTickets(true);
+    }, 3000);
+    return () => clearInterval(interval);
   }, []);
 
   const handlePriorityChange = async (ticketId: string, value: string) => {

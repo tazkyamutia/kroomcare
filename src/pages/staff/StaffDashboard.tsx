@@ -29,7 +29,7 @@ export const StaffDashboard = () => {
   const fetchStats = React.useCallback(async () => {
     try {
       const staffId = user?.id || '';
-      const response = await fetch(`/api/admin/stats/staff?staffId=${staffId}&shift=${shift}`);
+      const response = await fetch(`/api/admin/stats/staff?staffId=${staffId}&shift=${shift}&_t=${Date.now()}`);
       const result = await response.json();
       if (response.ok && result.success) {
         setStats(result.data);
@@ -43,7 +43,7 @@ export const StaffDashboard = () => {
 
   React.useEffect(() => {
     fetchStats();
-    const interval = setInterval(fetchStats, 10000);
+    const interval = setInterval(fetchStats, 5000);
     return () => clearInterval(interval);
   }, [fetchStats]);
 
