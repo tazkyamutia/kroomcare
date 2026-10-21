@@ -32,13 +32,16 @@ export const ForumThreadPage: React.FC<ForumThreadProps> = ({ userRole }) => {
   const isEscalated = messages.some(msg => msg.text && (msg.text.includes("dieskalasi") || msg.text.includes("escalated")));
   const locale = language === 'en' ? 'en-US' : 'id-ID';
 
+  const messagesEndRef = React.useRef<HTMLDivElement>(null);
+  const prevMessagesCountRef = React.useRef(0);
+
   const fetchDetails = async () => {
     if (!id) return;
     setIsLoading(true);
     try {
       const typePath = isTicketPath ? 'tickets' : 'forums';
       
-      const resDetail = await fetch(`/api/${typePath}/${id}`);
+      const resDetail = await fetch(`/api/${typePath}/${id}?_t=${Date.now()}`);
       const detailResult = await resDetail.json();
       if (resDetail.ok && detailResult.success) {
         setTicket(detailResult.data);
@@ -47,10 +50,11 @@ export const ForumThreadPage: React.FC<ForumThreadProps> = ({ userRole }) => {
         }
       }
 
-      const resReplies = await fetch(`/api/${typePath}/${id}/replies`);
+      const resReplies = await fetch(`/api/${typePath}/${id}/replies?_t=${Date.now()}`);
       const repliesResult = await resReplies.json();
       if (resReplies.ok && repliesResult.success) {
         setMessages(repliesResult.data);
+        prevMessagesCountRef.current = repliesResult.data.length;
       }
     } catch (err) {
       console.error('Error fetching thread details:', err);
@@ -63,15 +67,42 @@ export const ForumThreadPage: React.FC<ForumThreadProps> = ({ userRole }) => {
     if (!id) return;
     try {
       const typePath = isTicketPath ? 'tickets' : 'forums';
-      // Tambahkan timestamp untuk mencegah browser cache response polling
-      const resReplies = await fetch(`/api/${typePath}/${id}/replies?_t=${Date.now()}`, {
-        headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' }
-      });
+      // Gunakan query param timestamp untuk anti-cache tanpa header kustom agar tidak memicu CORS error di iframe/embed
+      const resReplies = await fetch(`/api/${typePath}/${id}/replies?_t=${Date.now()}`);
       const repliesResult = await resReplies.json();
-      if (resReplies.ok && repliesResult.success) {
-        setMessages(repliesResult.data);
+      if (resReplies.ok && repliesResult.success && Array.isArray(repliesResult.data)) {
+        setMessages(prev => {
+          if (prev.length !== repliesResult.data.length || JSON.stringify(prev) !== JSON.stringify(repliesResult.data)) {
+            return repliesResult.data;
+          }
+          return prev;
+        });
+
+        // Jika ada balasan baru masuk dari lawan bicara, scroll otomatis ke pesan terbaru
+        if (repliesResult.data.length > prevMessagesCountRef.current) {
+          prevMessagesCountRef.current = repliesResult.data.length;
+          setTimeout(() => {
+            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+          }, 150);
+        }
       }
-    } catch (_) {}
+
+      // Sinkronisasi status tiket bila diubah oleh staf (misal dari Open ke In Progress / Resolved)
+      if (isTicketPath) {
+        const resDetail = await fetch(`/api/tickets/${id}?_t=${Date.now()}`);
+        const detailResult = await resDetail.json();
+        if (resDetail.ok && detailResult.success && detailResult.data) {
+          setTicket(prev => {
+            if (prev && prev.status !== detailResult.data.status) {
+              return { ...prev, status: detailResult.data.status };
+            }
+            return prev;
+          });
+        }
+      }
+    } catch (err) {
+      console.warn('Polling error:', err);
+    }
   };
 
   React.useEffect(() => {
@@ -219,8 +250,12 @@ export const ForumThreadPage: React.FC<ForumThreadProps> = ({ userRole }) => {
       const result = await res.json();
       if (res.ok && result.success) {
         setMessages((prev: any) => [...prev, result.data]);
+        prevMessagesCountRef.current += 1;
         setReply('');
         setReplyingTo(null);
+        setTimeout(() => {
+          messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
         if (userRole === 'staff' && isTicketPath) {
           setTicket((prev: any) => prev ? { ...prev, status: 'In Progress' } : null);
         }
@@ -661,6 +696,7 @@ export const ForumThreadPage: React.FC<ForumThreadProps> = ({ userRole }) => {
             );
             })}
           </AnimatePresence>
+          <div ref={messagesEndRef} />
         </div>
       </div>
 

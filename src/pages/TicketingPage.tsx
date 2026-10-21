@@ -29,21 +29,28 @@ export const TicketingPage = () => {
       return;
     }
     
-    const fetchTickets = async () => {
+    const fetchTickets = async (silent = false) => {
       try {
-        const response = await fetch(`/api/tickets?user_id=${user.id}`);
+        const response = await fetch(`/api/tickets?user_id=${user.id}&_t=${Date.now()}`);
         const result = await response.json();
         if (response.ok && result.success) {
           setTickets(result.data);
         }
       } catch (error) {
-        console.error('Failed to fetch tickets:', error);
+        if (!silent) console.error('Failed to fetch tickets:', error);
       } finally {
-        setIsLoading(false);
+        if (!silent) setIsLoading(false);
       }
     };
 
-    fetchTickets();
+    fetchTickets(false);
+
+    // Auto-poll status tiket terbaru setiap 3 detik
+    const interval = setInterval(() => {
+      fetchTickets(true);
+    }, 3000);
+
+    return () => clearInterval(interval);
   }, [user]);
 
   const filteredTickets = tickets.filter(ticket => {
