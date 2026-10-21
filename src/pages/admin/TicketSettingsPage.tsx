@@ -134,7 +134,7 @@ export const TicketSettingsPage = () => {
                     : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
                 )}
               >
-                {s === 'All' ? t('admin_users.filter_all') : s === 'Open' ? (language === 'en' ? 'Open' : 'Baru') : s === 'In Progress' ? (language === 'en' ? 'In Progress' : 'Proses') : (language === 'en' ? 'Resolved' : 'Selesai')}
+                {s === 'All' ? t('admin_users.filter_all') : s === 'Open' ? (language === 'en' ? 'New (Waiting)' : 'Baru (Menunggu)') : s === 'In Progress' ? (language === 'en' ? 'In Progress' : 'Diproses') : (language === 'en' ? 'Resolved' : 'Selesai')}
               </button>
             ))}
           </div>
@@ -204,8 +204,8 @@ export const TicketSettingsPage = () => {
                               : "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700"
                           )}
                         >
-                          <option value="Low">{t('admin_tickets.priority_normal')}</option>
-                          <option value="High">{t('admin_tickets.priority_high')}</option>
+                          <option value="Low">{language === 'en' ? 'Normal' : 'Normal'}</option>
+                          <option value="High">{language === 'en' ? 'High' : 'Tinggi'}</option>
                         </select>
                       </td>
                       <td className="px-4 py-3 sm:px-5">
@@ -220,8 +220,8 @@ export const TicketSettingsPage = () => {
                             "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
                           )}
                         >
-                          <option value="Open">{language === 'en' ? 'Open' : 'Baru'}</option>
-                          <option value="In Progress">{language === 'en' ? 'In Progress' : 'Proses'}</option>
+                          <option value="Open">{language === 'en' ? 'New (Waiting)' : 'Baru (Menunggu)'}</option>
+                          <option value="In Progress">{language === 'en' ? 'In Progress' : 'Diproses'}</option>
                           <option value="Resolved">{language === 'en' ? 'Resolved' : 'Selesai'}</option>
                         </select>
                       </td>

@@ -18,7 +18,7 @@ const receiveExternalTicket = async (req, res) => {
     }
 
     // ── 2. Validasi Payload ──────────────────────────────────────────────────
-    const { external_ticket_id, email, nama, judul, kategori, prioritas, deskripsi } = req.body;
+    const { external_ticket_id, email, nama, judul, kategori, prioritas, priority, deskripsi } = req.body;
     if (!email || !judul || !deskripsi) {
       return res.status(400).json({
         success: false,
@@ -66,7 +66,9 @@ const receiveExternalTicket = async (req, res) => {
       }
     }
 
-    const isPriority = (prioritas && prioritas.toLowerCase() === 'high') ? 1 : 0;
+    // Default prioritas tiket dari panel adalah Normal (0), hanya diset 1 jika secara eksplisit urgent/critical
+    const prioRaw = (prioritas || priority || '').toString().toLowerCase();
+    const isPriority = (prioRaw === 'urgent' || prioRaw === 'critical') ? 1 : 0;
     const finalKategori = kategori || 'General';
     const wibNow = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' });
 
@@ -178,7 +180,12 @@ const receiveExternalStatus = async (req, res) => {
     }
 
     // Map KolabPanel status to Kroomcare status
-    const dbStatus = (status === 'CLOSED' || status === 'Closed' || status === 'Resolved') ? 'selesai' : 'menunggu';
+    const statusLower = (status || '').toString().toLowerCase();
+    const dbStatus = (statusLower === 'closed' || statusLower === 'resolved' || statusLower === 'selesai') 
+      ? 'selesai' 
+      : (statusLower === 'in_progress' || statusLower === 'in progress' || statusLower === 'diproses')
+        ? 'diproses'
+        : 'menunggu';
 
     await db.query('UPDATE tickets SET status = ? WHERE external_ticket_id = ?', [dbStatus, external_ticket_id]);
 

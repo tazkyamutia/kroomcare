@@ -348,7 +348,7 @@ export const StaffDashboard = () => {
                         "text-[10px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider",
                         tkt.isPriority ? "bg-red-50 text-red-700 border border-red-200 dark:bg-red-950/40 dark:text-red-300 dark:border-red-800" : "bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
                       )}>
-                        {tkt.isPriority ? (language === 'en' ? 'High' : 'Tinggi') : (language === 'en' ? 'Low' : 'Rendah')}
+                        {tkt.isPriority ? (language === 'en' ? 'High' : 'Tinggi') : (language === 'en' ? 'Normal' : 'Normal')}
                       </span>
                     </td>
                     <td className="py-3 px-3">
@@ -358,7 +358,7 @@ export const StaffDashboard = () => {
                           tkt.status === 'In Progress' ? "bg-amber-500" : "bg-blue-500"
                         )} />
                         <span className="text-xs font-medium text-slate-600 dark:text-slate-300">
-                          {tkt.status === 'In Progress' ? t('tickets.status_processing') : t('tickets.status_waiting')}
+                          {tkt.status === 'In Progress' ? t('tickets.status_processing') : (language === 'en' ? 'New (Waiting)' : 'Baru (Menunggu)')}
                         </span>
                       </div>
                     </td>
@@ -378,7 +378,7 @@ export const StaffDashboard = () => {
           </div>
         ) : (
           <div className="py-8 text-center text-slate-400 text-xs">
-            {language === 'en' ? 'All tickets have been handled! Great job.' : 'Semua tiket telah ditangani dengan baik! Tidak ada antrean pending.'}
+            {language === 'en' ? 'All tickets have been handled! Great job.' : 'Semua tiket telah ditangani dengan baik! Tidak ada antrean tiket baru.'}
           </div>
         )}
       </div>

@@ -69,7 +69,7 @@ export const TicketQueuePage = () => {
 
   const tabs = [
     { id: 'All', label: language === 'en' ? 'All Active' : 'Semua Aktif' },
-    { id: 'Open', label: language === 'en' ? 'Waiting' : 'Menunggu' },
+    { id: 'Open', label: language === 'en' ? 'New (Waiting)' : 'Baru (Menunggu)' },
     { id: 'InProgress', label: language === 'en' ? 'In Progress' : 'Diproses' },
     { id: 'Priority', label: language === 'en' ? 'Urgent' : 'Prioritas Tinggi' },
     { id: 'Resolved', label: language === 'en' ? 'Resolved' : 'Selesai' },
@@ -182,7 +182,7 @@ export const TicketQueuePage = () => {
                         "text-[10px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider",
                         ticket.isPriority ? "bg-red-50 text-red-700 border border-red-200 dark:bg-red-950/40 dark:text-red-300 dark:border-red-800" : "bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
                       )}>
-                        {ticket.isPriority ? (language === 'en' ? 'High' : 'Tinggi') : (language === 'en' ? 'Low' : 'Rendah')}
+                        {ticket.isPriority ? (language === 'en' ? 'High' : 'Tinggi') : (language === 'en' ? 'Normal' : 'Normal')}
                       </span>
                     </td>
                     <td className="px-4 py-3 sm:px-5">
@@ -195,7 +195,7 @@ export const TicketQueuePage = () => {
                         <span className="text-xs font-medium text-slate-600 dark:text-slate-300">
                           {(ticket.status === 'Resolved' || ticket.status === 'selesai') ? t('tickets.status_resolved') :
                            (ticket.status === 'In Progress' || ticket.status === 'proses') ? t('tickets.status_processing') :
-                           t('tickets.status_waiting')}
+                           (language === 'en' ? 'New (Waiting)' : 'Baru (Siap Diambil)')}
                         </span>
                       </div>
                     </td>
