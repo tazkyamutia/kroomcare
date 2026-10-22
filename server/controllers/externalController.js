@@ -365,5 +365,15 @@ const receiveExternalReply = async (req, res) => {
   }
 };
 
-module.exports = { receiveExternalTicket, receiveExternalStatus, receiveExternalReply };
+const triggerPanelSync = async (req, res) => {
+  try {
+    const { syncPanelTickets } = require('../utils/panelSyncWorker');
+    await syncPanelTickets();
+    return res.status(200).json({ success: true, message: 'Sinkronisasi tiket & balasan panel Kroombox selesai.' });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: 'Gagal sinkronisasi panel', error: err.message });
+  }
+};
+
+module.exports = { receiveExternalTicket, receiveExternalStatus, receiveExternalReply, triggerPanelSync };
 
