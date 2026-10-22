@@ -670,18 +670,38 @@ const addTicketReply = async (req, res) => {
       }).catch(err => console.error('[LocalSync] Gagal meneruskan balasan ke live server:', err.message));
     }
 
+    const senderType = (user.role === 'staff' || user.role === 'admin') ? 'staff' : 'user';
+    const standardizedData = {
+      ticket_id: id.toString(),
+      id: result.insertId.toString(),
+      message_id: result.insertId.toString(),
+      ticketId: id.toString(),
+      userId: user_id.toString(),
+      sender_id: user_id.toString(),
+      sender_name: user.nama,
+      userName: user.nama,
+      sender_type: senderType,
+      userRole: user.role === 'member' ? 'customer' : user.role,
+      message: konten,
+      text: konten,
+      konten: konten,
+      created_at: wibNow,
+      createdAt: wibNow,
+      status: 'sent'
+    };
+
+    // Broadcast ke Realtime Event Channel: kroomcare_ticket_{ticket_id}
+    try {
+      const { broadcastTicketMessage } = require('../utils/realtimeHub');
+      broadcastTicketMessage(id, standardizedData);
+    } catch (rtErr) {
+      console.warn('[RealtimeHub] Broadcast error:', rtErr.message);
+    }
+
     res.status(201).json({
       success: true,
       message: 'Balasan tiket berhasil ditambahkan.',
-      data: {
-        id: result.insertId.toString(),
-        ticketId: id.toString(),
-        userId: user_id.toString(),
-        userName: user.nama,
-        userRole: user.role === 'member' ? 'customer' : user.role,
-        text: konten,
-        createdAt: wibNow
-      }
+      data: standardizedData
     });
   } catch (error) {
     console.error('Error in addTicketReply:', error);

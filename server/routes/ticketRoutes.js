@@ -31,6 +31,10 @@ router.put('/:id/status', updateStatus);
 router.put('/:id/escalate', escalateTicket);
 
 
+// Rute Real-time Stream SSE untuk channel kroomcare_ticket_{ticket_id}
+const { handleTicketSubscription } = require('../utils/realtimeHub');
+router.get('/:id/realtime', handleTicketSubscription);
+
 // Rute ambil chat/balasan tiket
 router.get('/:id/replies', getTicketReplies);
 

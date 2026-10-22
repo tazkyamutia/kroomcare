@@ -1,5 +1,5 @@
 import React from 'react';
-import { MessageSquare, User, ShieldCheck, ArrowLeft, Send, AlertTriangle, Coins, CheckCircle2, MoreHorizontal, Loader2, Trash2 } from 'lucide-react';
+import { MessageSquare, User, ShieldCheck, ArrowLeft, Send, AlertTriangle, Coins, CheckCircle2, MoreHorizontal, Loader2, Trash2, AlertCircle, CheckCheck, RotateCw } from 'lucide-react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../../lib/utils';
@@ -108,14 +108,64 @@ export const ForumThreadPage: React.FC<ForumThreadProps> = ({ userRole }) => {
   React.useEffect(() => {
     fetchDetails();
 
-    // Auto-poll balasan baru setiap 2 detik secara background agar pesan real-time
+    // 1. Real-time Subscription Channel: kroomcare_ticket_{ticket_id} via SSE stream
+    let eventSource: EventSource | null = null;
+    if (id && isTicketPath) {
+      try {
+        eventSource = new EventSource(`/api/tickets/${id}/realtime`);
+
+        eventSource.addEventListener('MessageSent', (event: MessageEvent) => {
+          try {
+            const incoming = JSON.parse(event.data);
+            setMessages(prev => {
+              // Deduplikasi: hindari memasukkan pesan yang sudah ada
+              const incomingId = String(incoming.id || incoming.message_id);
+              const isDuplicate = prev.some(m => String(m.id) === incomingId || String(m.message_id) === incomingId);
+              if (isDuplicate) return prev;
+
+              // Cocokkan dengan pesan optimistic yang sedang berstatus 'sending' jika pengirimnya adalah kita
+              const matchIdx = prev.findIndex(m => m.status === 'sending' && (m.text === incoming.text || m.konten === incoming.konten));
+              if (matchIdx !== -1) {
+                const nextList = [...prev];
+                nextList[matchIdx] = { ...incoming, status: 'sent' };
+                return nextList;
+              }
+
+              // Tambahkan pesan baru secara immutable
+              return [...prev, { ...incoming, status: 'sent' }];
+            });
+
+            // Auto-scroll halus ke elemen pesan terbawah
+            setTimeout(() => {
+              messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+            }, 80);
+          } catch (err) {
+            console.warn('[Realtime] Parse MessageSent error:', err);
+          }
+        });
+
+        eventSource.onerror = () => {
+          // EventSource secara otomatis melakukan auto-reconnect di browser
+        };
+      } catch (err) {
+        console.warn('[Realtime] SSE Connection error:', err);
+      }
+    }
+
+    // 2. Background fallback polling setiap 4 detik untuk cadangan jika jaringan klien menolak streaming
     const interval = setInterval(() => {
       fetchRepliesOnly();
-    }, 2000);
+    }, 4000);
 
-    return () => clearInterval(interval);
+    // 3. Lifecycle Clean up: Unsubscribe & tutup koneksi saat komponen unmount untuk mencegah memory leak
+    return () => {
+      if (eventSource) {
+        eventSource.close();
+      }
+      clearInterval(interval);
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, location.pathname]);
+  }, [id, location.pathname, isTicketPath]);
 
   if (isLoading) {
     return (
@@ -228,8 +278,37 @@ export const ForumThreadPage: React.FC<ForumThreadProps> = ({ userRole }) => {
   };
 
   const handleSendReply = async () => {
-    if (!reply.trim() || !user?.id) return;
+    if (!reply.trim() || !user?.id || !id) return;
     const contentToSend = replyingTo ? `@${replyingTo.name} ${reply}` : reply;
+    const tempId = `temp_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+    const nowIso = new Date().toISOString();
+
+    // 1. Optimistic UI: Pesan langsung tampil di antarmuka pengirim dengan status 'sending'
+    const optimisticMessage = {
+      id: tempId,
+      tempId,
+      ticket_id: id,
+      ticketId: id,
+      userId: String(user.id),
+      sender_id: String(user.id),
+      userName: user.name || (userRole === 'staff' ? 'Staff KroomCare' : 'Me'),
+      sender_name: user.name || (userRole === 'staff' ? 'Staff KroomCare' : 'Me'),
+      userRole: userRole === 'member' ? 'customer' : (user.role || userRole),
+      sender_type: (userRole === 'staff' || userRole === 'admin') ? 'staff' : 'user',
+      text: contentToSend,
+      konten: contentToSend,
+      message: contentToSend,
+      createdAt: nowIso,
+      created_at: nowIso,
+      status: 'sending' as const
+    };
+
+    setMessages((prev: any) => [...prev, optimisticMessage]);
+    setReply('');
+    setReplyingTo(null);
+    setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 60);
 
     try {
       let res;
@@ -249,22 +328,57 @@ export const ForumThreadPage: React.FC<ForumThreadProps> = ({ userRole }) => {
 
       const result = await res.json();
       if (res.ok && result.success) {
-        setMessages((prev: any) => [...prev, result.data]);
-        prevMessagesCountRef.current += 1;
-        setReply('');
-        setReplyingTo(null);
-        setTimeout(() => {
-          messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-        }, 100);
+        // 2. Sukses: Update status pesan menjadi 'sent' dengan ID permanen dari backend
+        setMessages((prev: any) => prev.map((m: any) => 
+          (m.id === tempId || m.tempId === tempId) ? { ...result.data, status: 'sent' } : m
+        ));
         if ((userRole === 'staff' || userRole === 'admin' || user?.role === 'staff' || user?.role === 'admin') && isTicketPath) {
           setTicket((prev: any) => prev ? { ...prev, status: 'In Progress' } : null);
         }
       } else {
-        alert(result.message || (language === 'en' ? 'Failed to send reply.' : 'Gagal mengirim balasan.'));
+        // Gagal dari respons server: Tandai status 'failed' dengan tombol retry
+        setMessages((prev: any) => prev.map((m: any) => 
+          (m.id === tempId || m.tempId === tempId) ? { ...m, status: 'failed' } : m
+        ));
       }
     } catch (error) {
-      console.error(error);
-      alert(language === 'en' ? 'Connection error.' : 'Terjadi kesalahan koneksi.');
+      console.error('[SendReply] Network/Server Error:', error);
+      // Gagal koneksi/timeout: Tandai status 'failed' tanpa menghilangkan pesan
+      setMessages((prev: any) => prev.map((m: any) => 
+        (m.id === tempId || m.tempId === tempId) ? { ...m, status: 'failed' } : m
+      ));
+    }
+  };
+
+  const handleRetryMessage = async (failedMsg: any) => {
+    const targetText = failedMsg.text || failedMsg.konten || failedMsg.message;
+    if (!targetText || !user?.id || !id) return;
+
+    // Ubah status kembali menjadi 'sending'
+    setMessages((prev: any) => prev.map((m: any) => 
+      (m.id === failedMsg.id || m.tempId === failedMsg.id) ? { ...m, status: 'sending' } : m
+    ));
+
+    try {
+      const res = await fetch(`/api/tickets/${id}/replies`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: user.id, konten: targetText })
+      });
+      const result = await res.json();
+      if (res.ok && result.success) {
+        setMessages((prev: any) => prev.map((m: any) => 
+          (m.id === failedMsg.id || m.tempId === failedMsg.id) ? { ...result.data, status: 'sent' } : m
+        ));
+      } else {
+        setMessages((prev: any) => prev.map((m: any) => 
+          (m.id === failedMsg.id || m.tempId === failedMsg.id) ? { ...m, status: 'failed' } : m
+        ));
+      }
+    } catch (err) {
+      setMessages((prev: any) => prev.map((m: any) => 
+        (m.id === failedMsg.id || m.tempId === failedMsg.id) ? { ...m, status: 'failed' } : m
+      ));
     }
   };
 
@@ -694,12 +808,37 @@ export const ForumThreadPage: React.FC<ForumThreadProps> = ({ userRole }) => {
                         )}>
                           {msg.text}
                         </p>
-                        <span className={cn(
-                          "text-[9px] block mt-2 text-right",
-                          isRight ? "text-blue-100/80" : "text-slate-400"
-                        )}>
-                          {formatWIBTime(msg.createdAt, locale)}
-                        </span>
+                        <div className="flex items-center justify-end gap-1.5 mt-2">
+                          <span className={cn(
+                            "text-[9px]",
+                            isRight ? "text-blue-100/80" : "text-slate-400"
+                          )}>
+                            {formatWIBTime(msg.createdAt, locale)}
+                          </span>
+                          {isRight && msg.status === 'sending' && (
+                            <span className="inline-flex items-center gap-1 text-[9px] text-blue-100/80" title={language === 'en' ? 'Sending...' : 'Mengirim...'}>
+                              <Loader2 size={10} className="animate-spin" />
+                            </span>
+                          )}
+                          {isRight && (msg.status === 'sent' || !msg.status) && (
+                            <CheckCheck size={11} className={isRight ? "text-blue-200" : "text-slate-400"} />
+                          )}
+                        </div>
+                        {msg.status === 'failed' && (
+                          <div className="flex items-center justify-between gap-1.5 mt-1.5 text-[10px] text-red-100 bg-red-900/80 px-2.5 py-1 rounded-lg shadow-sm border border-red-700/60">
+                            <div className="flex items-center gap-1.5">
+                              <AlertCircle size={11} className="text-red-300 shrink-0" />
+                              <span>{language === 'en' ? 'Failed to send' : 'Gagal terkirim'}</span>
+                            </div>
+                            <button
+                              onClick={() => handleRetryMessage(msg)}
+                              className="inline-flex items-center gap-1 px-2 py-0.5 bg-white/20 hover:bg-white/30 rounded font-bold text-white text-[9px] cursor-pointer transition-colors"
+                            >
+                              <RotateCw size={9} />
+                              {language === 'en' ? 'Retry' : 'Coba Lagi'}
+                            </button>
+                          </div>
+                        )}
                       </>
                     )}
                   </div>

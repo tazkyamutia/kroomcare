@@ -299,6 +299,31 @@ const receiveExternalReply = async (req, res) => {
       console.error('[ExternalController] Gagal membuat notifikasi balasan:', nErr.message);
     }
 
+    // Broadcast via Realtime Hub ke channel kroomcare_ticket_{ticketId}
+    try {
+      const { broadcastTicketMessage } = require('../utils/realtimeHub');
+      const [senderRoleRow] = await db.query('SELECT role, nama FROM users WHERE id = ?', [senderUserId]);
+      const senderRole = senderRoleRow[0]?.role || 'customer';
+      const senderName = senderRoleRow[0]?.nama || 'Pengguna';
+      broadcastTicketMessage(ticketId, {
+        ticket_id: String(ticketId),
+        id: result.insertId.toString(),
+        message_id: result.insertId.toString(),
+        sender_id: String(senderUserId),
+        sender_name: senderName,
+        sender_type: (senderRole === 'staff' || senderRole === 'admin') ? 'staff' : 'user',
+        userRole: senderRole === 'member' ? 'customer' : senderRole,
+        message: replyContent,
+        text: replyContent,
+        konten: replyContent,
+        created_at: wibNow,
+        createdAt: wibNow,
+        status: 'sent'
+      });
+    } catch (rtErr) {
+      console.warn('[RealtimeHub] Error broadcasting external reply:', rtErr.message);
+    }
+
     return res.status(200).json({
       success: true,
       message: 'External reply successfully received and saved.',
