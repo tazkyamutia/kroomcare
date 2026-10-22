@@ -1,112 +1,226 @@
 /**
  * Real-Time Event & Channel Pub/Sub Hub for KroomCare & Kroombox Panel
- * Provides two-way real-time communication channel: `kroomcare_ticket_{ticket_id}`
- * Supports Server-Sent Events (SSE) and WebSocket/Pusher broadcasting with zero external overhead.
+ * Supports two-way channels:
+ * - `private-ticket.{ticket_id}` (Standard Laravel WebSockets / Pusher / Kroombox format)
+ * - `kroomcare_ticket_{ticket_id}` (Internal alias)
+ * - `presence-staff-notifications` (Global staff/admin notification stream)
+ * Features:
+ * - Anti-buffering (`X-Accel-Buffering: no`, `Cache-Control: no-cache, no-transform`)
+ * - Keep-alive heartbeats (20s)
+ * - Auto-cleanup on disconnect (zero memory leak)
+ * - Verified payload validation ({ ticket_id, message_id, content, sender_role, timestamp })
  */
 
 // Channels store: Map<string, Set<http.ServerResponse>>
-const ticketChannels = new Map();
+const channelSubscribers = new Map();
 
 /**
- * Get or create subscriber set for channel `kroomcare_ticket_{ticketId}`
+ * Get or create subscriber set for any channel name
+ * @param {string} channelName
  */
-function getChannelSubscribers(ticketId) {
-  const channelName = `kroomcare_ticket_${ticketId}`;
-  if (!ticketChannels.has(channelName)) {
-    ticketChannels.set(channelName, new Set());
+function getChannelSet(channelName) {
+  const normalized = String(channelName).trim();
+  if (!channelSubscribers.has(normalized)) {
+    channelSubscribers.set(normalized, new Set());
   }
-  return ticketChannels.get(channelName);
+  return channelSubscribers.get(normalized);
 }
 
 /**
- * Subscribe client (HTTP SSE) to ticket channel
+ * Generic SSE subscription handler for any channel
  */
-function handleTicketSubscription(req, res) {
-  const ticketId = req.params.id;
-  const channelName = `kroomcare_ticket_${ticketId}`;
+function handleChannelSubscription(req, res) {
+  const channelName = req.params.channel || req.query.channel || 'presence-staff-notifications';
 
-  // Headers wajib SSE & anti-buffering Nginx/Proxy
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
     'Cache-Control': 'no-cache, no-transform',
     'Connection': 'keep-alive',
     'X-Accel-Buffering': 'no',
-    'Access-Control-Allow-Origin': '*'
+    'Access-Control-Allow-Origin': '*',
+    'Content-Security-Policy': 'frame-ancestors *'
   });
 
-  const subscribers = getChannelSubscribers(ticketId);
-  subscribers.add(res);
+  const subs = getChannelSet(channelName);
+  subs.add(res);
 
-  // Kirim event sambungan awal
-  const initialPayload = JSON.stringify({
+  // Initial connected handshake
+  const handshake = {
     channel: channelName,
-    ticket_id: String(ticketId),
-    status: 'subscribed',
+    status: 'connected',
     timestamp: new Date().toISOString()
-  });
-  res.write(`event: connected\ndata: ${initialPayload}\n\n`);
+  };
+  res.write(`event: connected\ndata: ${JSON.stringify(handshake)}\n\n`);
 
-  // Heartbeat ping berkala setiap 20 detik agar reverse-proxy / firewall tidak memutus koneksi
-  const heartbeatTimer = setInterval(() => {
-    res.write(`: ping\n\n`);
+  const heartbeat = setInterval(() => {
+    try {
+      res.write(': keepalive ping\n\n');
+    } catch (_) {}
   }, 20000);
 
-  // Lifecycle cleanup ketika koneksi terputus / tab ditutup / navigasi (mencegah memory leak)
   req.on('close', () => {
-    clearInterval(heartbeatTimer);
-    subscribers.delete(res);
-    if (subscribers.size === 0) {
-      ticketChannels.delete(channelName);
+    clearInterval(heartbeat);
+    subs.delete(res);
+    if (subs.size === 0) {
+      channelSubscribers.delete(channelName);
     }
   });
 }
 
 /**
- * Broadcast payload seragam ke channel `kroomcare_ticket_{ticketId}`
- * @param {string|number} ticketId
- * @param {object} messagePayload
+ * Subscription handler for Ticket Chat (subscribes to both private-ticket.{id} and kroomcare_ticket_{id})
  */
-function broadcastTicketMessage(ticketId, messagePayload) {
-  const channelName = `kroomcare_ticket_${ticketId}`;
-  const subscribers = ticketChannels.get(channelName);
-  
-  if (!subscribers || subscribers.size === 0) {
-    return false;
-  }
+function handleTicketSubscription(req, res) {
+  const ticketId = String(req.params.id);
+  const primaryChannel = `private-ticket.${ticketId}`;
+  const aliasChannel = `kroomcare_ticket_${ticketId}`;
 
-  // Schema payload standar
-  const standardizedPayload = {
-    ticket_id: String(ticketId),
-    id: String(messagePayload.id || messagePayload.message_id || Date.now()),
-    message_id: String(messagePayload.id || messagePayload.message_id || Date.now()),
-    sender_id: String(messagePayload.sender_id || messagePayload.userId || ''),
-    sender_name: messagePayload.sender_name || messagePayload.userName || 'User',
-    sender_type: (messagePayload.sender_type || (messagePayload.userRole === 'staff' || messagePayload.userRole === 'admin' ? 'staff' : 'user')),
-    userRole: messagePayload.userRole || (messagePayload.sender_type === 'staff' ? 'staff' : 'customer'),
-    message: messagePayload.message || messagePayload.text || messagePayload.konten || '',
-    text: messagePayload.text || messagePayload.message || messagePayload.konten || '',
-    konten: messagePayload.konten || messagePayload.message || messagePayload.text || '',
-    created_at: messagePayload.created_at || messagePayload.createdAt || new Date().toISOString(),
-    createdAt: messagePayload.createdAt || messagePayload.created_at || new Date().toISOString(),
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache, no-transform',
+    'Connection': 'keep-alive',
+    'X-Accel-Buffering': 'no',
+    'Access-Control-Allow-Origin': '*',
+    'Content-Security-Policy': 'frame-ancestors *'
+  });
+
+  const primarySubs = getChannelSet(primaryChannel);
+  const aliasSubs = getChannelSet(aliasChannel);
+  primarySubs.add(res);
+  aliasSubs.add(res);
+
+  const handshake = {
+    channels: [primaryChannel, aliasChannel],
+    ticket_id: ticketId,
+    status: 'connected',
+    timestamp: new Date().toISOString()
+  };
+  res.write(`event: connected\ndata: ${JSON.stringify(handshake)}\n\n`);
+
+  const heartbeat = setInterval(() => {
+    try {
+      res.write(': keepalive ping\n\n');
+    } catch (_) {}
+  }, 20000);
+
+  req.on('close', () => {
+    clearInterval(heartbeat);
+    primarySubs.delete(res);
+    aliasSubs.delete(res);
+    if (primarySubs.size === 0) channelSubscribers.delete(primaryChannel);
+    if (aliasSubs.size === 0) channelSubscribers.delete(aliasChannel);
+  });
+}
+
+/**
+ * Subscription handler specifically for staff global presence
+ */
+function handleStaffSubscription(req, res) {
+  req.params.channel = 'presence-staff-notifications';
+  return handleChannelSubscription(req, res);
+}
+
+/**
+ * Broadcast event & payload to a specific channel
+ * @param {string} channelName
+ * @param {string} eventName
+ * @param {object} payload
+ */
+function broadcastToChannel(channelName, eventName, payload) {
+  const normalized = String(channelName).trim();
+  const subs = channelSubscribers.get(normalized);
+  if (!subs || subs.size === 0) return 0;
+
+  const eventData = `event: ${eventName}\ndata: ${JSON.stringify(payload)}\n\n`;
+  let sentCount = 0;
+  for (const client of Array.from(subs)) {
+    try {
+      client.write(eventData);
+      sentCount++;
+    } catch (err) {
+      subs.delete(client);
+    }
+  }
+  return sentCount;
+}
+
+/**
+ * Broadcast validated message payload to all ticket channels and notify staff
+ * @param {string|number} ticketId
+ * @param {object} rawPayload
+ * @param {string} [externalTicketId]
+ */
+function broadcastTicketMessage(ticketId, rawPayload, externalTicketId) {
+  const tid = String(ticketId);
+  const textContent = String(rawPayload.content || rawPayload.message || rawPayload.text || rawPayload.konten || '').trim();
+  const msgId = String(rawPayload.message_id || rawPayload.id || Date.now());
+  const senderRole = rawPayload.sender_role || (rawPayload.sender_type === 'staff' || rawPayload.userRole === 'staff' || rawPayload.userRole === 'admin' ? 'staff' : 'user');
+  const nowIso = rawPayload.timestamp || rawPayload.created_at || rawPayload.createdAt || new Date().toISOString();
+
+  // 1. Validasi & Standardisasi Schema Payload
+  const verifiedPayload = {
+    ticket_id: tid,
+    external_ticket_id: externalTicketId ? String(externalTicketId) : undefined,
+    message_id: msgId,
+    id: msgId,
+    content: textContent,
+    message: textContent,
+    text: textContent,
+    konten: textContent,
+    sender_role: senderRole,
+    sender_type: senderRole,
+    sender_id: String(rawPayload.sender_id || rawPayload.userId || ''),
+    sender_name: rawPayload.sender_name || rawPayload.userName || (senderRole === 'staff' ? 'Staff KroomCare' : 'User'),
+    timestamp: nowIso,
+    created_at: nowIso,
+    createdAt: nowIso,
+    isAdmin: senderRole === 'staff',
     status: 'sent'
   };
 
-  const eventData = `event: MessageSent\ndata: ${JSON.stringify(standardizedPayload)}\n\n`;
+  // 2. Broadcast ke channel tiket (format Laravel: private-ticket.{id} & internal alias)
+  const channelsToBroadcast = [
+    `private-ticket.${tid}`,
+    `kroomcare_ticket_${tid}`
+  ];
 
-  for (const clientRes of subscribers) {
-    try {
-      clientRes.write(eventData);
-    } catch (err) {
-      console.warn(`[RealtimeHub] Error sending to subscriber in ${channelName}:`, err.message);
-      subscribers.delete(clientRes);
-    }
+  if (externalTicketId) {
+    channelsToBroadcast.push(`private-ticket.${externalTicketId}`);
+    channelsToBroadcast.push(`kroomcare_ticket_${externalTicketId}`);
   }
 
-  return true;
+  for (const ch of channelsToBroadcast) {
+    broadcastToChannel(ch, 'MessageSent', verifiedPayload);
+  }
+
+  // 3. Broadcast ke notifikasi global staff agar header/dashboard langsung tahu ada chat baru
+  broadcastToChannel('presence-staff-notifications', 'MessageSent', verifiedPayload);
+
+  return verifiedPayload;
+}
+
+/**
+ * Broadcast event notifikasi global staff (misal: TicketCreated)
+ * @param {string} eventName - 'TicketCreated' | 'NotificationCreated'
+ * @param {object} payload
+ */
+function broadcastStaffNotification(eventName, payload) {
+  const normalizedPayload = {
+    ...payload,
+    timestamp: payload.timestamp || payload.created_at || new Date().toISOString()
+  };
+  broadcastToChannel('presence-staff-notifications', eventName, normalizedPayload);
+  broadcastToChannel('staff-notifications', eventName, normalizedPayload);
+  return normalizedPayload;
 }
 
 module.exports = {
+  handleChannelSubscription,
   handleTicketSubscription,
+  handleStaffSubscription,
+  broadcastToChannel,
   broadcastTicketMessage,
-  ticketChannels
+  broadcastStaffNotification,
+  channelSubscribers
 };
+

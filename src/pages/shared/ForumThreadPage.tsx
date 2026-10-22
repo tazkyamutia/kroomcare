@@ -108,31 +108,70 @@ export const ForumThreadPage: React.FC<ForumThreadProps> = ({ userRole }) => {
   React.useEffect(() => {
     fetchDetails();
 
-    // 1. Real-time Subscription Channel: kroomcare_ticket_{ticket_id} via SSE stream
+    // 1. Real-time Subscription Channel: private-ticket.{id} & kroomcare_ticket_{id}
     let eventSource: EventSource | null = null;
-    if (id && isTicketPath) {
+    let reconnectTimeout: any = null;
+    let fallbackInterval: any = null;
+    let retryDelay = 1000;
+    let isConnected = false;
+
+    const startFallbackPolling = () => {
+      if (!fallbackInterval) {
+        fallbackInterval = setInterval(fetchRepliesOnly, 5000);
+      }
+    };
+
+    const stopFallbackPolling = () => {
+      if (fallbackInterval) {
+        clearInterval(fallbackInterval);
+        fallbackInterval = null;
+      }
+    };
+
+    const connectTicketStream = () => {
+      if (!id || !isTicketPath) return;
+
       try {
         eventSource = new EventSource(`/api/tickets/${id}/realtime`);
+
+        eventSource.addEventListener('connected', () => {
+          isConnected = true;
+          retryDelay = 1000;
+          stopFallbackPolling();
+        });
 
         eventSource.addEventListener('MessageSent', (event: MessageEvent) => {
           try {
             const incoming = JSON.parse(event.data);
+            const incomingMsgText = incoming.content || incoming.text || incoming.konten || incoming.message || '';
+
             setMessages(prev => {
               // Deduplikasi: hindari memasukkan pesan yang sudah ada
               const incomingId = String(incoming.id || incoming.message_id);
               const isDuplicate = prev.some(m => String(m.id) === incomingId || String(m.message_id) === incomingId);
               if (isDuplicate) return prev;
 
-              // Cocokkan dengan pesan optimistic yang sedang berstatus 'sending' jika pengirimnya adalah kita
-              const matchIdx = prev.findIndex(m => m.status === 'sending' && (m.text === incoming.text || m.konten === incoming.konten));
+              // Cocokkan dengan pesan optimistic yang sedang berstatus 'sending' jika kontennya sama
+              const matchIdx = prev.findIndex(m => m.status === 'sending' && (m.konten === incomingMsgText || m.text === incomingMsgText));
               if (matchIdx !== -1) {
                 const nextList = [...prev];
-                nextList[matchIdx] = { ...incoming, status: 'sent' };
+                nextList[matchIdx] = {
+                  ...nextList[matchIdx],
+                  ...incoming,
+                  id: incomingId,
+                  konten: incomingMsgText,
+                  status: 'sent'
+                };
                 return nextList;
               }
 
               // Tambahkan pesan baru secara immutable
-              return [...prev, { ...incoming, status: 'sent' }];
+              return [...prev, {
+                ...incoming,
+                id: incomingId,
+                konten: incomingMsgText,
+                status: 'sent'
+              }];
             });
 
             // Auto-scroll halus ke elemen pesan terbawah
@@ -145,27 +184,40 @@ export const ForumThreadPage: React.FC<ForumThreadProps> = ({ userRole }) => {
         });
 
         eventSource.onerror = () => {
-          // EventSource secara otomatis melakukan auto-reconnect di browser
+          isConnected = false;
+          if (eventSource) {
+            eventSource.close();
+            eventSource = null;
+          }
+          // Saat sambungan realtime terputus, aktifkan fallback short-polling 5 detik
+          startFallbackPolling();
+
+          // Auto-reconnect dengan exponential backoff (1s, 2s, 4s, maks 15s)
+          reconnectTimeout = setTimeout(() => {
+            retryDelay = Math.min(retryDelay * 2, 15000);
+            connectTicketStream();
+          }, retryDelay);
         };
       } catch (err) {
-        console.warn('[Realtime] SSE Connection error:', err);
+        startFallbackPolling();
       }
+    };
+
+    if (id && isTicketPath) {
+      connectTicketStream();
+    } else {
+      startFallbackPolling();
     }
 
-    // 2. Background fallback polling setiap 4 detik untuk cadangan jika jaringan klien menolak streaming
-    const interval = setInterval(() => {
-      fetchRepliesOnly();
-    }, 4000);
-
-    // 3. Lifecycle Clean up: Unsubscribe & tutup koneksi saat komponen unmount untuk mencegah memory leak
+    // 2. Lifecycle Clean up: Unsubscribe & tutup koneksi saat komponen unmount untuk mencegah memory leak
     return () => {
-      if (eventSource) {
-        eventSource.close();
-      }
-      clearInterval(interval);
+      if (eventSource) eventSource.close();
+      if (reconnectTimeout) clearTimeout(reconnectTimeout);
+      stopFallbackPolling();
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, location.pathname, isTicketPath]);
+
 
   if (isLoading) {
     return (

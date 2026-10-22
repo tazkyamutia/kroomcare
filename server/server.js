@@ -48,11 +48,11 @@ app.use('/api/newsletter', newsletterRoutes);
 app.use('/api/external', externalRoutes);
 app.use('/api/notifications', notificationRoutes);
 
-// Realtime SSE Pub/Sub Hub Channel: kroomcare_ticket_{ticket_id}
-const { handleTicketSubscription } = require('./utils/realtimeHub');
+// Realtime SSE Pub/Sub Hub Channels (private-ticket.{id}, presence-staff-notifications, etc.)
+const { handleTicketSubscription, handleChannelSubscription, handleStaffSubscription } = require('./utils/realtimeHub');
 app.get('/api/realtime/tickets/:id', handleTicketSubscription);
-
-
+app.get('/api/realtime/staff', handleStaffSubscription);
+app.get('/api/realtime/channel/:channel', handleChannelSubscription);
 
 // Dokumentasi Swagger API
 const swaggerDocument = YAML.load(path.join(__dirname, 'swagger_spec.yaml'));

@@ -106,6 +106,28 @@ const receiveExternalTicket = async (req, res) => {
       console.error('[ExternalController] Gagal membuat notifikasi staff/admin:', nErr.message);
     }
 
+    // Broadcast instant real-time event ke channel presence-staff-notifications (Staff Dashboard)
+    try {
+      const { broadcastStaffNotification } = require('../utils/realtimeHub');
+      broadcastStaffNotification('TicketCreated', {
+        ticket_id: String(ticketId),
+        external_ticket_id: external_ticket_id || null,
+        subject: judul,
+        title: judul,
+        category: finalKategori,
+        priority: isPriority ? 'high' : 'normal',
+        isPriority: Boolean(isPriority),
+        customer_name: nama || 'User KolabPanel',
+        customer_email: email,
+        status: 'Open',
+        timestamp: wibNow,
+        created_at: wibNow,
+        link: `/staff/tickets/${ticketId}`
+      });
+    } catch (rtErr) {
+      console.warn('[ExternalController] Realtime broadcast error:', rtErr.message);
+    }
+
     // ── 5. Tambah Reward Koin (Anti-spam 1x per hari, 10 poin) ────────────────
     try {
       const [todayReward] = await db.query(
@@ -299,27 +321,31 @@ const receiveExternalReply = async (req, res) => {
       console.error('[ExternalController] Gagal membuat notifikasi balasan:', nErr.message);
     }
 
-    // Broadcast via Realtime Hub ke channel kroomcare_ticket_{ticketId}
+    // Broadcast via Realtime Hub ke channel private-ticket.{ticketId} & kroomcare_ticket_{ticketId}
     try {
       const { broadcastTicketMessage } = require('../utils/realtimeHub');
       const [senderRoleRow] = await db.query('SELECT role, nama FROM users WHERE id = ?', [senderUserId]);
       const senderRole = senderRoleRow[0]?.role || 'customer';
       const senderName = senderRoleRow[0]?.nama || 'Pengguna';
+      const senderRoleMapped = (senderRole === 'staff' || senderRole === 'admin') ? 'staff' : 'user';
+
       broadcastTicketMessage(ticketId, {
         ticket_id: String(ticketId),
-        id: result.insertId.toString(),
+        external_ticket_id: tickets[0]?.external_ticket_id || undefined,
         message_id: result.insertId.toString(),
-        sender_id: String(senderUserId),
-        sender_name: senderName,
-        sender_type: (senderRole === 'staff' || senderRole === 'admin') ? 'staff' : 'user',
-        userRole: senderRole === 'member' ? 'customer' : senderRole,
+        id: result.insertId.toString(),
+        content: replyContent,
         message: replyContent,
         text: replyContent,
         konten: replyContent,
+        sender_role: senderRoleMapped,
+        sender_type: senderRoleMapped,
+        sender_id: String(senderUserId),
+        sender_name: senderName,
+        timestamp: wibNow,
         created_at: wibNow,
-        createdAt: wibNow,
         status: 'sent'
-      });
+      }, tickets[0]?.external_ticket_id);
     } catch (rtErr) {
       console.warn('[RealtimeHub] Error broadcasting external reply:', rtErr.message);
     }

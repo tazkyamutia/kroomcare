@@ -122,6 +122,28 @@ async function syncPanelTickets() {
       const ticketId = ticketInsertRes.insertId;
       console.log(`[PanelSync] Tiket baru dari panel terdeteksi (${pt.id}) -> Diimpor sebagai KroomCare ID #${ticketId}`);
 
+      // Broadcast real-time ke dasbor staf
+      try {
+        const { broadcastStaffNotification } = require('./realtimeHub');
+        broadcastStaffNotification('TicketCreated', {
+          ticket_id: String(ticketId),
+          external_ticket_id: pt.id,
+          subject: pt.subject,
+          title: pt.subject,
+          category: kategori,
+          priority: 'normal',
+          isPriority: false,
+          customer_name: nama,
+          customer_email: email,
+          status: statusMapped === 'menunggu' ? 'Open' : (statusMapped === 'diproses' ? 'In Progress' : 'Resolved'),
+          timestamp: ticketDateStr,
+          created_at: ticketDateStr,
+          link: `/staff/tickets/${ticketId}`
+        });
+      } catch (bcErr) {
+        console.warn('[PanelSync] Broadcast error:', bcErr.message);
+      }
+
       // 6. Otomatis kirim Notifikasi WhatsApp via Kroomhook
       const targetJid = process.env.WA_TARGET_JID || '6285847255010@s.whatsapp.net';
       const newUserNote = isNewUser ? '\n⚠️ _Akun baru telah dibuat secara otomatis di KroomCare (JIT)_' : '';

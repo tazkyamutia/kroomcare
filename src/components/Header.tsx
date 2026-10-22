@@ -61,9 +61,88 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar, isSidebarOpen =
   React.useEffect(() => {
     fetchNotifications();
 
-    // Polling notifikasi setiap 4 detik agar selalu sinkron real-time
-    const interval = setInterval(fetchNotifications, 4000);
-    return () => clearInterval(interval);
+    // 1. Subscribe ke Real-time Stream Staff Channel (presence-staff-notifications)
+    let eventSource: EventSource | null = null;
+    let reconnectTimeout: any = null;
+    let fallbackInterval: any = null;
+    let retryDelay = 1000;
+    let isConnected = false;
+
+    const startFallbackPolling = () => {
+      if (!fallbackInterval) {
+        fallbackInterval = setInterval(fetchNotifications, 5000);
+      }
+    };
+
+    const stopFallbackPolling = () => {
+      if (fallbackInterval) {
+        clearInterval(fallbackInterval);
+        fallbackInterval = null;
+      }
+    };
+
+    const connectSSE = () => {
+      try {
+        eventSource = new EventSource('/api/realtime/staff');
+
+        eventSource.addEventListener('connected', () => {
+          isConnected = true;
+          retryDelay = 1000;
+          stopFallbackPolling();
+        });
+
+        // Event: Tiket Baru Dibuat dari Kroombox Panel atau Customer
+        eventSource.addEventListener('TicketCreated', (e: MessageEvent) => {
+          try {
+            const data = JSON.parse(e.data);
+            const newNotif: AppNotification = {
+              id: Date.now(),
+              title: `Tiket Baru #${data.ticket_id}`,
+              description: `Tiket #${data.ticket_id} (${data.category || 'General'}) dari ${data.customer_name}: "${data.subject || data.title}"`,
+              time: data.timestamp || data.created_at || new Date().toISOString(),
+              type: 'ticket',
+              link: data.link || `/tickets/${data.ticket_id}`,
+              is_read: false
+            };
+            setNotifications(prev => [newNotif, ...prev]);
+          } catch (parseErr) {
+            console.warn('[Header SSE] Parse TicketCreated error:', parseErr);
+          }
+        });
+
+        // Event: Balasan Chat Baru Masuk
+        eventSource.addEventListener('MessageSent', () => {
+          fetchNotifications();
+        });
+
+        eventSource.onerror = () => {
+          isConnected = false;
+          if (eventSource) {
+            eventSource.close();
+            eventSource = null;
+          }
+          // Mulai fallback polling (interval 5 detik) saat koneksi putus
+          startFallbackPolling();
+
+          // Auto-reconnect dengan exponential backoff (1s, 2s, 4s, maks 15s)
+          reconnectTimeout = setTimeout(() => {
+            retryDelay = Math.min(retryDelay * 2, 15000);
+            connectSSE();
+          }, retryDelay);
+        };
+      } catch (err) {
+        startFallbackPolling();
+      }
+    };
+
+    connectSSE();
+
+    // Cleanup: unsubscribe & clear timers saat unmount
+    return () => {
+      if (eventSource) eventSource.close();
+      if (reconnectTimeout) clearTimeout(reconnectTimeout);
+      stopFallbackPolling();
+    };
   }, [fetchNotifications]);
 
   const unreadCount = React.useMemo(() => {

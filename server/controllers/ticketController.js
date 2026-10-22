@@ -135,6 +135,28 @@ const createTicket = async (req, res) => {
       console.error('Failed to notify staff/admin of new ticket:', nErr.message);
     }
 
+    // Broadcast instant real-time event ke channel presence-staff-notifications (Staff Dashboard)
+    try {
+      const { broadcastStaffNotification } = require('../utils/realtimeHub');
+      broadcastStaffNotification('TicketCreated', {
+        ticket_id: String(ticketId),
+        external_ticket_id: null,
+        subject: judul,
+        title: judul,
+        category: kategori || 'Support',
+        priority: is_priority ? 'high' : 'normal',
+        isPriority: Boolean(is_priority),
+        customer_name: userNama,
+        customer_email: userEmail,
+        status: 'Open',
+        timestamp: wibNow,
+        created_at: wibNow,
+        link: `/staff/tickets/${ticketId}`
+      });
+    } catch (rtErr) {
+      console.warn('[TicketController] Realtime broadcast error:', rtErr.message);
+    }
+
     // Antrekan notifikasi dan lakukan pengiriman awal secara asinkron
     const { queueNotification, sendNotification, updateNotificationStatus } = require('../utils/notificationQueue');
     queueNotification(targetJid, messageContent)
@@ -673,27 +695,32 @@ const addTicketReply = async (req, res) => {
     const senderType = (user.role === 'staff' || user.role === 'admin') ? 'staff' : 'user';
     const standardizedData = {
       ticket_id: id.toString(),
-      id: result.insertId.toString(),
+      external_ticket_id: extTicketId || undefined,
       message_id: result.insertId.toString(),
+      id: result.insertId.toString(),
+      content: konten,
+      message: konten,
+      text: konten,
+      konten: konten,
+      sender_role: senderType,
+      sender_type: senderType,
       ticketId: id.toString(),
       userId: user_id.toString(),
       sender_id: user_id.toString(),
       sender_name: user.nama,
       userName: user.nama,
-      sender_type: senderType,
       userRole: user.role === 'member' ? 'customer' : user.role,
-      message: konten,
-      text: konten,
-      konten: konten,
+      timestamp: wibNow,
       created_at: wibNow,
       createdAt: wibNow,
+      isAdmin: senderType === 'staff',
       status: 'sent'
     };
 
-    // Broadcast ke Realtime Event Channel: kroomcare_ticket_{ticket_id}
+    // Broadcast ke Realtime Event Channels: private-ticket.{ticket_id}, kroomcare_ticket_{ticket_id}, and presence-staff-notifications
     try {
       const { broadcastTicketMessage } = require('../utils/realtimeHub');
-      broadcastTicketMessage(id, standardizedData);
+      broadcastTicketMessage(id, standardizedData, extTicketId);
     } catch (rtErr) {
       console.warn('[RealtimeHub] Broadcast error:', rtErr.message);
     }

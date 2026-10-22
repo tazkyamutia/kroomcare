@@ -31,10 +31,25 @@ export const TicketQueuePage = () => {
 
   React.useEffect(() => {
     fetchAllTickets(false);
+
+    // Real-time Event Listener untuk Tiket Baru Masuk dari Kroombox / Customer
+    let eventSource: EventSource | null = null;
+    try {
+      eventSource = new EventSource('/api/realtime/staff');
+      eventSource.addEventListener('TicketCreated', () => {
+        fetchAllTickets(true);
+      });
+    } catch (_) {}
+
+    // Polling fallback interval 5 detik
     const interval = setInterval(() => {
       fetchAllTickets(true);
-    }, 3000);
-    return () => clearInterval(interval);
+    }, 5000);
+
+    return () => {
+      if (eventSource) eventSource.close();
+      clearInterval(interval);
+    };
   }, [fetchAllTickets]);
 
   const filteredTickets = tickets.filter(tkt => {
