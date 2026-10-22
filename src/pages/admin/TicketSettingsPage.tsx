@@ -99,6 +99,7 @@ export const TicketSettingsPage = () => {
   const filteredTickets = tickets
     .filter(t => {
       const matchesSearch = (t.id || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
+                            (t.externalTicketId || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
                             (t.customerName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
                             (t.subject || '').toLowerCase().includes(searchQuery.toLowerCase());
       
@@ -175,13 +176,20 @@ export const TicketSettingsPage = () => {
                   filteredTickets.map((ticket) => (
                     <tr key={ticket.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors text-xs sm:text-sm">
                       <td className="px-4 py-3 sm:px-5 font-mono text-xs font-semibold text-blue-600 dark:text-blue-400">
-                        <button 
-                          onClick={() => navigate(`/tickets/${ticket.id}`)}
-                          className="hover:underline font-bold"
-                          title="Buka detail tiket"
-                        >
-                          #{ticket.id}
-                        </button>
+                        <div className="flex flex-col gap-1 items-start">
+                          <button 
+                            onClick={() => navigate(`/tickets/${ticket.id}`)}
+                            className="hover:underline font-bold"
+                            title="Buka detail tiket"
+                          >
+                            #{ticket.id}
+                          </button>
+                          {ticket.externalTicketId && (
+                            <span className="text-[9px] font-sans font-semibold bg-indigo-50 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-300 px-1.5 py-0.5 rounded border border-indigo-200 dark:border-indigo-800" title={`ID Tiket Panel: ${ticket.externalTicketId}`}>
+                              Panel: {ticket.externalTicketId}
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-4 py-3 sm:px-5 font-medium text-slate-900 dark:text-white">{ticket.customerName}</td>
                       <td className="px-4 py-3 sm:px-5 text-slate-600 dark:text-slate-400 max-w-xs truncate" title={ticket.subject}>

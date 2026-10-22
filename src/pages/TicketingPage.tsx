@@ -69,7 +69,12 @@ export const TicketingPage = () => {
     }
 
     return matchesSearch && matchesStatus;
-  }).sort((a, b) => Number(b.id) - Number(a.id));
+  }).sort((a, b) => {
+    const timeA = new Date(a.lastReplyAt || a.updatedAt || a.createdAt || 0).getTime();
+    const timeB = new Date(b.lastReplyAt || b.updatedAt || b.createdAt || 0).getTime();
+    if (timeB !== timeA) return timeB - timeA;
+    return Number(b.id) - Number(a.id);
+  });
 
   const isEmbedded = typeof window !== 'undefined' && window.parent && window.parent !== window;
 
@@ -194,6 +199,17 @@ export const TicketingPage = () => {
                     <span className="text-xs text-slate-400 font-medium whitespace-nowrap">
                       #{ticket.id} • {formatWIBDate(ticket.createdAt || ticket.created_at, language === 'en' ? 'en-US' : 'id-ID')}
                     </span>
+                    {ticket.hasStaffReply && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200/50 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse" />
+                        {ticket.lastReplyRole === 'admin' ? 'Dibalas Admin' : 'Dibalas Staff'}
+                      </span>
+                    )}
+                    {(ticket.replyCount || 0) > 0 && (
+                      <span className="text-[10px] font-medium px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200/60 dark:border-slate-700/60">
+                        {ticket.replyCount} {language === 'en' ? 'replies' : 'balasan'}
+                      </span>
+                    )}
                   </div>
                   
                   <h3 className="text-sm sm:text-base font-semibold text-slate-900 dark:text-white group-hover:text-blue-600 transition-colors mb-1 truncate">
@@ -203,6 +219,27 @@ export const TicketingPage = () => {
                   <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
                     {ticket.description || ticket.deskripsi}
                   </p>
+
+                  {ticket.lastReply && (
+                    <div className="mt-2.5 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 flex items-start gap-2 text-xs">
+                      <div className={cn(
+                        "w-1.5 h-1.5 rounded-full mt-1.5 shrink-0",
+                        ticket.hasStaffReply ? "bg-emerald-500" : "bg-blue-500"
+                      )} />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                          <span className="font-semibold text-slate-700 dark:text-slate-200">
+                            {ticket.lastReplyBy || (ticket.lastReplyRole === 'admin' ? 'Admin' : (ticket.lastReplyRole === 'staff' ? 'Staff' : 'Anda'))}
+                          </span>
+                          <span>•</span>
+                          <span>{formatWIBDate(ticket.lastReplyAt || ticket.updatedAt, language === 'en' ? 'en-US' : 'id-ID')}</span>
+                        </div>
+                        <p className="text-slate-600 dark:text-slate-300 line-clamp-1 italic text-xs mt-0.5">
+                          "{ticket.lastReply}"
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 
                 <div className="flex flex-col items-end gap-2 shrink-0">

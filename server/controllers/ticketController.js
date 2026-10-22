@@ -116,6 +116,25 @@ const createTicket = async (req, res) => {
 *Deskripsi:* ${deskripsi}
 *Prioritas:* ${is_priority ? 'Tinggi (High)' : 'Normal'}`;
 
+    // Kirim Notifikasi in-app ke seluruh staff & admin
+    try {
+      const [staffAndAdmin] = await db.query("SELECT id FROM users WHERE role IN ('staff', 'admin')");
+      for (const sa of staffAndAdmin) {
+        await db.query(
+          "INSERT INTO notifications (user_id, title, type, message, link, is_read, created_at) VALUES (?, ?, 'ticket', ?, ?, 0, ?)",
+          [
+            sa.id,
+            `Tiket Baru #${ticketId}`,
+            `Tiket baru dari ${userNama}: "${judul}"`,
+            `/tickets/${ticketId}`,
+            wibNow
+          ]
+        );
+      }
+    } catch (nErr) {
+      console.error('Failed to notify staff/admin of new ticket:', nErr.message);
+    }
+
     // Antrekan notifikasi dan lakukan pengiriman awal secara asinkron
     const { queueNotification, sendNotification, updateNotificationStatus } = require('../utils/notificationQueue');
     queueNotification(targetJid, messageContent)
@@ -165,18 +184,33 @@ const getTickets = async (req, res) => {
     let query = `
       SELECT 
         t.id, 
+        t.external_ticket_id,
         t.user_id, 
         t.staff_id, 
         t.judul, 
         t.deskripsi, 
         t.status, 
         t.is_priority, 
+        t.kategori,
         t.created_at,
+        t.updated_at,
         u1.nama AS nama_pengirim,
-        u2.nama AS nama_staf
+        u2.nama AS nama_staf,
+        COALESCE(rep.reply_count, 0) AS reply_count,
+        latest_rep.konten AS last_reply,
+        latest_rep.created_at AS last_reply_at,
+        latest_user.nama AS last_reply_by,
+        latest_user.role AS last_reply_role
       FROM tickets t
       LEFT JOIN users u1 ON t.user_id = u1.id
       LEFT JOIN users u2 ON t.staff_id = u2.id
+      LEFT JOIN (
+        SELECT ticket_id, COUNT(*) AS reply_count, MAX(id) AS max_reply_id
+        FROM ticket_replies
+        GROUP BY ticket_id
+      ) rep ON t.id = rep.ticket_id
+      LEFT JOIN ticket_replies latest_rep ON rep.max_reply_id = latest_rep.id
+      LEFT JOIN users latest_user ON latest_rep.user_id = latest_user.id
     `;
     let params = [];
 
@@ -185,7 +219,7 @@ const getTickets = async (req, res) => {
       params.push(user_id);
     }
     
-    query += ' ORDER BY t.id DESC';
+    query += ' ORDER BY COALESCE(latest_rep.created_at, t.updated_at, t.created_at) DESC, t.id DESC';
 
     const [rows] = await db.query(query, params);
     
@@ -197,17 +231,29 @@ const getTickets = async (req, res) => {
       else if (s === 'diproses' || s === 'proses' || s === 'in progress' || s === 'progress') mappedStatus = 'In Progress';
       else mappedStatus = 'Resolved';
 
+      const lastReplyRoleMapped = row.last_reply_role === 'member' ? 'customer' : row.last_reply_role;
+      const hasStaffReply = row.last_reply_role === 'staff' || row.last_reply_role === 'admin';
+
       return {
         id: row.id.toString(),
+        externalTicketId: row.external_ticket_id || null,
         subject: row.judul,
         description: row.deskripsi,
         status: mappedStatus,
         isPriority: !!row.is_priority,
         createdAt: row.created_at,
+        updatedAt: row.last_reply_at || row.updated_at || row.created_at,
         customerId: row.user_id ? row.user_id.toString() : '',
         customerName: row.nama_pengirim || 'Unknown Customer',
         assignedTo: row.staff_id ? row.staff_id.toString() : undefined,
-        category: 'Support'
+        assignedStaffName: row.nama_staf,
+        category: row.kategori || 'Support',
+        replyCount: row.reply_count || 0,
+        lastReply: row.last_reply || null,
+        lastReplyBy: row.last_reply_by || null,
+        lastReplyRole: lastReplyRoleMapped || null,
+        lastReplyAt: row.last_reply_at || null,
+        hasStaffReply: Boolean(hasStaffReply)
       };
     });
 
@@ -236,6 +282,7 @@ const getTicketDetail = async (req, res) => {
     const query = `
       SELECT 
         t.id, 
+        t.external_ticket_id,
         t.user_id, 
         t.staff_id, 
         t.judul, 
@@ -269,6 +316,7 @@ const getTicketDetail = async (req, res) => {
 
     const mappedTicket = {
       id: row.id.toString(),
+      externalTicketId: row.external_ticket_id || null,
       subject: row.judul,
       description: row.deskripsi,
       status: row.status === 'menunggu' ? 'Open' : (row.status === 'diproses' ? 'In Progress' : 'Resolved'),
@@ -478,23 +526,55 @@ const addTicketReply = async (req, res) => {
     const [userRows] = await db.query('SELECT nama, role FROM users WHERE id = ?', [user_id]);
     const user = userRows[0] || { nama: 'Unknown', role: 'member' };
 
+    // Ambil info tiket untuk sinkronisasi notifikasi dan webhook
+    const [tktRows] = await db.query('SELECT user_id, staff_id, external_ticket_id, judul, deskripsi FROM tickets WHERE id = ?', [id]);
+    const ticketData = tktRows.length > 0 ? tktRows[0] : null;
+
     // Jika pengirim adalah staff atau admin, secara otomatis assign tiket dan ubah status menjadi 'diproses'
     if (user.role === 'staff' || user.role === 'admin') {
-      await db.query("UPDATE tickets SET staff_id = COALESCE(staff_id, ?), status = 'diproses' WHERE id = ?", [user_id, id]);
+      await db.query("UPDATE tickets SET staff_id = COALESCE(staff_id, ?), status = 'diproses', updated_at = ? WHERE id = ?", [user_id, wibNow, id]);
+
+      // Buat notifikasi in-app untuk customer jika dibalas oleh staff / admin
+      if (ticketData && ticketData.user_id && ticketData.user_id !== parseInt(user_id, 10)) {
+        try {
+          const roleLabel = user.role === 'admin' ? 'Administrator' : 'Staff KroomCare';
+          await db.query(`
+            INSERT INTO notifications (user_id, title, type, message, link, is_read, created_at)
+            VALUES (?, ?, 'ticket', ?, ?, FALSE, ?)
+          `, [
+            ticketData.user_id,
+            `Balasan dari ${user.nama} (${roleLabel})`,
+            `Staff membalas tiket #${id} "${ticketData.judul}": "${konten.slice(0, 80)}"`,
+            `/tickets/${id}`,
+            wibNow
+          ]);
+        } catch (notifErr) {
+          console.error('Failed to create in-app notification for customer:', notifErr.message);
+        }
+      }
 
       // --- Sync reply to KolabPanel if this is an external ticket ---
       try {
-        const [tktRows] = await db.query('SELECT external_ticket_id, judul FROM tickets WHERE id = ?', [id]);
-        let extTicketId = tktRows.length > 0 ? tktRows[0].external_ticket_id : null;
+        let extTicketId = ticketData ? ticketData.external_ticket_id : null;
 
-        // Jika external_ticket_id masih kosong, cari berdasarkan judul yang sama di tiket lain
-        if (!extTicketId && tktRows.length > 0 && tktRows[0].judul) {
+        // 1. Jika external_ticket_id masih kosong, cari berdasarkan judul yang sama di tiket lain
+        if (!extTicketId && ticketData && ticketData.judul) {
           const [matchRows] = await db.query(
             'SELECT external_ticket_id FROM tickets WHERE judul = ? AND external_ticket_id IS NOT NULL ORDER BY id DESC LIMIT 1',
-            [tktRows[0].judul]
+            [ticketData.judul]
           );
           if (matchRows.length > 0) {
             extTicketId = matchRows[0].external_ticket_id;
+            await db.query('UPDATE tickets SET external_ticket_id = ? WHERE id = ?', [extTicketId, id]);
+          }
+        }
+
+        // 2. Jika masih kosong, cek apakah subjek atau deskripsi mengandung ID panel format (t_...)
+        if (!extTicketId && ticketData) {
+          const combinedText = `${ticketData.judul} ${ticketData.deskripsi || ''}`;
+          const matchRegex = combinedText.match(/\b(t_\d+_[a-z0-9]+)\b/i);
+          if (matchRegex) {
+            extTicketId = matchRegex[1];
             await db.query('UPDATE tickets SET external_ticket_id = ? WHERE id = ?', [extTicketId, id]);
           }
         }
@@ -506,9 +586,66 @@ const addTicketReply = async (req, res) => {
             sender_name: user.nama,
             text: konten
           });
+
+          // Sinkronisasikan status tiket ke KolabPanel juga
+          const webhookStatusUrl = process.env.KOLABPANEL_WEBHOOK_URL.replace('/external-reply', '/external-status');
+          sendWebhook(webhookStatusUrl, {
+            external_ticket_id: extTicketId,
+            status: 'In Progress'
+          });
         }
       } catch(err) {
         console.error('Failed to process KolabPanel webhook:', err.message);
+      }
+    } else {
+      // Jika pengguna (customer / member) yang membalas
+      await db.query("UPDATE tickets SET updated_at = ? WHERE id = ?", [wibNow, id]);
+
+      // Buat notifikasi untuk staff/admin yang menangani tiket atau seluruh staff & admin jika belum di-assign
+      try {
+        const targetStaff = (ticketData && ticketData.staff_id)
+          ? [{ id: ticketData.staff_id }]
+          : (await db.query("SELECT id FROM users WHERE role IN ('staff', 'admin')"))[0];
+
+        for (const st of targetStaff) {
+          if (st.id !== parseInt(user_id, 10)) {
+            await db.query(`
+              INSERT INTO notifications (user_id, title, type, message, link, is_read, created_at)
+              VALUES (?, ?, 'ticket', ?, ?, FALSE, ?)
+            `, [
+              st.id,
+              `Balasan dari ${user.nama} (Customer)`,
+              `Pelanggan membalas tiket #${id} "${ticketData?.judul || ''}": "${konten.slice(0, 80)}"`,
+              `/staff/tickets/${id}`,
+              wibNow
+            ]);
+          }
+        }
+      } catch (notifErr) {
+        console.error('Failed to create in-app notification for staff/admin:', notifErr.message);
+      }
+
+      // Sinkronkan balasan customer ke KolabPanel webhook jika tiket berasal dari panel
+      try {
+        let extTicketId = ticketData ? ticketData.external_ticket_id : null;
+        if (!extTicketId && ticketData && ticketData.judul) {
+          const [matchRows] = await db.query(
+            'SELECT external_ticket_id FROM tickets WHERE judul = ? AND external_ticket_id IS NOT NULL ORDER BY id DESC LIMIT 1',
+            [ticketData.judul]
+          );
+          if (matchRows.length > 0) {
+            extTicketId = matchRows[0].external_ticket_id;
+          }
+        }
+        if (extTicketId && process.env.KOLABPANEL_WEBHOOK_URL) {
+          sendWebhook(process.env.KOLABPANEL_WEBHOOK_URL, {
+            external_ticket_id: extTicketId,
+            sender_name: user.nama,
+            text: konten
+          });
+        }
+      } catch (syncErr) {
+        console.error('Failed to sync customer reply to KolabPanel webhook:', syncErr.message);
       }
     }
 

@@ -8,12 +8,13 @@ import { useUser } from '../context/UserContext';
 import { useLanguageTheme } from '../context/LanguageThemeContext';
 
 interface AppNotification {
-  id: string;
+  id: string | number;
   title: string;
   description: string;
   time: string;
-  type: 'ticket' | 'point_in' | 'point_out';
+  type: string;
   link: string;
+  is_read?: boolean;
 }
 
 interface HeaderProps {
@@ -35,101 +36,189 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar, isSidebarOpen =
     if (!user?.id) return;
 
     try {
-      const list: AppNotification[] = [];
-
-      if (user.role === 'customer') {
-        const [ticketsRes, pointsRes] = await Promise.all([
-          fetch(`/api/tickets?user_id=${user.id}`),
-          fetch(`/api/points/history/${user.id}`)
-        ]);
-
-        const ticketsData = await ticketsRes.json();
-        const pointsData = await pointsRes.json();
-
-        if (ticketsRes.ok && ticketsData.success) {
-          ticketsData.data.forEach((ticket: any) => {
-            list.push({
-              id: `t-create-${ticket.id}`,
-              title: 'Complaint Ticket Created',
-              description: `Ticket #${ticket.id} "${ticket.judul}" has been registered.`,
-              time: ticket.created_at,
-              type: 'ticket',
-              link: '/tickets'
-            });
-
-            if (ticket.status === 'selesai') {
-              list.push({
-                id: `t-solve-${ticket.id}`,
-                title: 'Ticket Resolved',
-                description: `Ticket #${ticket.id} "${ticket.judul}" has been resolved.`,
-                time: ticket.updated_at || ticket.created_at,
-                type: 'ticket',
-                link: '/tickets'
-              });
-            }
-          });
-        }
-
-        if (pointsRes.ok && pointsData.success) {
-          pointsData.data.forEach((tx: any) => {
-            if (tx.jenis_transaksi === 'masuk') {
-              list.push({
-                id: `p-in-${tx.id}`,
-                title: 'Coin Reward Received',
-                description: `Received +${tx.jumlah_poin} Points: ${tx.keterangan}`,
-                time: tx.created_at,
-                type: 'point_in',
-                link: '/points-history'
-              });
-            } else {
-              list.push({
-                id: `p-out-${tx.id}`,
-                title: 'Voucher Redeemed',
-                description: `Used -${tx.jumlah_poin} Points for voucher: ${tx.keterangan.replace('Penukaran voucher: ', '')}`,
-                time: tx.created_at,
-                type: 'point_out',
-                link: '/rewards'
-              });
-            }
-          });
-        }
-      } else if (user.role === 'staff') {
-        const ticketsRes = await fetch('/api/tickets');
-        const ticketsData = await ticketsRes.json();
-        if (ticketsRes.ok && ticketsData.success) {
-          ticketsData.data.forEach((ticket: any) => {
-            if (ticket.status === 'menunggu') {
-              list.push({
-                id: `staff-new-${ticket.id}`,
-                title: 'New Ticket Received',
-                description: `Ticket #${ticket.id} "${ticket.judul}" is awaiting your response.`,
-                time: ticket.created_at,
-                type: 'ticket',
-                link: '/staff'
-              });
-            }
-          });
+      const res = await fetch(`/api/notifications?user_id=${user.id}&_t=${Date.now()}`);
+      if (res.ok) {
+        const result = await res.json();
+        if (result.success && Array.isArray(result.data)) {
+          const mapped: AppNotification[] = result.data.map((item: any) => ({
+            id: item.id,
+            title: item.title,
+            description: item.message || item.pesan || '',
+            time: item.created_at,
+            type: item.type || 'ticket',
+            link: item.link || '/tickets',
+            is_read: Boolean(item.is_read)
+          }));
+          setNotifications(mapped);
+          return;
         }
       }
-
-      list.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
-      setNotifications(list.slice(0, 5));
     } catch (error) {
-      console.error('Failed to construct notifications:', error);
+      console.warn('Failed to fetch real-time notifications:', error);
     }
-  }, [user]);
+  }, [user?.id]);
 
   React.useEffect(() => {
     fetchNotifications();
 
-    // Polling notifikasi setiap 10 detik agar terasa real-time
-    const interval = setInterval(fetchNotifications, 10000);
+    // Polling notifikasi setiap 4 detik agar selalu sinkron real-time
+    const interval = setInterval(fetchNotifications, 4000);
     return () => clearInterval(interval);
   }, [fetchNotifications]);
+
+  const unreadCount = React.useMemo(() => {
+    return notifications.filter(n => !n.is_read).length;
+  }, [notifications]);
+
+  const handleMarkAllRead = async () => {
+    if (!user?.id) return;
+    try {
+      await fetch('/api/notifications/read-all', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: user.id })
+      });
+      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+    } catch (err) {
+      console.error('Failed to mark all as read:', err);
+    }
+  };
+
+  const handleNotificationClick = async (notif: AppNotification) => {
+    if (!user?.id) return;
+    setShowNotifications(false);
+    if (!notif.is_read) {
+      try {
+        fetch(`/api/notifications/${notif.id}/read`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: user.id })
+        });
+        setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, is_read: true } : n));
+      } catch (err) {
+        console.error('Failed to mark as read:', err);
+      }
+    }
+    navigate(notif.link);
+  };
 
   if (!user) return null;
 
   const { role, name: userName, points = 0, avatar } = user;
+
+  const renderNotificationBell = (isSm: boolean = false) => (
+    <div className="relative">
+      <button 
+        onClick={() => setShowNotifications(!showNotifications)}
+        className={cn(
+          "flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-white transition-all relative backdrop-blur-sm cursor-pointer",
+          isSm 
+            ? "w-7 h-7 rounded-lg bg-white/90 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 shadow-2xs hover:border-blue-300 dark:hover:border-blue-500/30" 
+            : "w-8 h-8 sm:w-9 sm:h-9 bg-white dark:bg-slate-900/50 border border-slate-200/60 dark:border-white/5 rounded-xl shadow-xs hover:border-slate-300 dark:hover:border-white/15 dark:hover:bg-slate-900/80"
+        )}
+        aria-label="Notifikasi"
+        title="Notifikasi"
+      >
+        <Bell size={isSm ? 13 : 17} />
+        {unreadCount > 0 && (
+          <span className={cn(
+            "absolute bg-red-500 text-white font-bold rounded-full flex items-center justify-center border border-white dark:border-slate-900 animate-pulse",
+            isSm 
+              ? "-top-1 -right-1 min-w-[15px] h-[15px] text-[9px] px-0.5" 
+              : "-top-1 -right-1 min-w-[18px] h-[18px] text-[10px] px-1 border-2"
+          )}>
+            {unreadCount > 9 ? '9+' : unreadCount}
+          </span>
+        )}
+      </button>
+
+      <AnimatePresence>
+        {showNotifications && (
+          <>
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-transparent z-40"
+              onClick={() => setShowNotifications(false)}
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className={cn(
+                "absolute right-0 mt-2 bg-white dark:bg-slate-900/95 backdrop-blur-xl rounded-2xl border border-slate-200/80 dark:border-white/10 shadow-2xl p-3 z-50 overflow-hidden",
+                isSm ? "w-72 sm:w-80" : "w-80 sm:w-96"
+              )}
+            >
+              <div className="flex items-center justify-between px-2 py-1.5 border-b border-slate-100 dark:border-white/5 mb-2">
+                <div className="flex items-center gap-1.5">
+                  <h3 className="font-semibold text-slate-800 dark:text-slate-100 text-xs">{t('header.notifications')}</h3>
+                  {unreadCount > 0 && (
+                    <span className="text-[10px] font-bold bg-red-50 text-red-600 dark:bg-red-950/60 dark:text-red-400 px-1.5 py-0.5 rounded-full">
+                      {unreadCount} baru
+                    </span>
+                  )}
+                </div>
+                {unreadCount > 0 && (
+                  <button
+                    onClick={handleMarkAllRead}
+                    className="text-[10px] font-semibold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+                  >
+                    {language === 'en' ? 'Mark all read' : 'Tandai semua dibaca'}
+                  </button>
+                )}
+              </div>
+              <div className="max-h-[300px] overflow-y-auto space-y-1">
+                {notifications.length > 0 ? (
+                  notifications.map((notif) => (
+                    <div 
+                      key={notif.id}
+                      onClick={() => handleNotificationClick(notif)}
+                      className={cn(
+                        "flex items-start gap-2.5 p-2 rounded-xl transition-all cursor-pointer",
+                        !notif.is_read 
+                          ? "bg-blue-50/70 dark:bg-blue-950/40 hover:bg-blue-100/60 dark:hover:bg-blue-950/60" 
+                          : "hover:bg-slate-50 dark:hover:bg-white/5"
+                      )}
+                    >
+                      <div className={cn(
+                        "w-7 h-7 rounded-lg flex items-center justify-center shrink-0",
+                        notif.type === 'ticket' || notif.type === 'ticket_reply' ? "bg-blue-100 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400" :
+                        notif.type === 'point_in' ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400" : "bg-red-100 text-red-600 dark:bg-red-950/60 dark:text-red-400"
+                      )}>
+                        {notif.type === 'ticket' || notif.type === 'ticket_reply' ? <Ticket size={14} /> :
+                         notif.type === 'point_in' ? <Sparkles size={14} /> : <Gift size={14} />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-1">
+                          <p className={cn(
+                            "text-xs leading-tight truncate",
+                            !notif.is_read ? "font-bold text-slate-900 dark:text-white" : "font-semibold text-slate-700 dark:text-slate-300"
+                          )}>
+                            {notif.title}
+                          </p>
+                          {!notif.is_read && (
+                            <span className="w-2 h-2 rounded-full bg-blue-600 shrink-0" />
+                          )}
+                        </div>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-snug break-words line-clamp-2">{notif.description}</p>
+                        <p className="text-[9px] text-slate-400 mt-1 font-medium">
+                          {new Date(notif.time).toLocaleDateString(language === 'en' ? 'en-US' : 'id-ID', { hour: '2-digit', minute: '2-digit' }) + ' • ' + new Date(notif.time).toLocaleDateString(language === 'en' ? 'en-US' : 'id-ID', { day: 'numeric', month: 'short' })}
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-xs text-slate-400 text-center py-6">{t('header.no_notifications')}</p>
+                )}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </div>
+  );
 
   if (isEmbeddedEffective) {
     return (
@@ -160,6 +249,8 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar, isSidebarOpen =
               </span>
             </motion.div>
           )}
+
+          {renderNotificationBell(true)}
         </div>
       </header>
     );
@@ -206,78 +297,8 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar, isSidebarOpen =
             </div>
           </motion.div>
         )}
-        
-        {/* Bell Button & Dropdown */}
-        <div className="relative">
-          <button 
-            onClick={() => setShowNotifications(!showNotifications)}
-            className="w-8 h-8 sm:w-9 sm:h-9 bg-white dark:bg-slate-900/50 border border-slate-200/60 dark:border-white/5 rounded-xl flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-white dark:hover:border-white/15 dark:hover:bg-slate-900/80 transition-all shadow-xs relative backdrop-blur-sm"
-          >
-            <Bell size={17} />
-            {notifications.length > 0 && (
-              <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border border-white dark:border-slate-900" />
-            )}
-          </button>
 
-          <AnimatePresence>
-            {showNotifications && (
-              <>
-                <motion.div 
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="fixed inset-0 bg-transparent z-40"
-                  onClick={() => setShowNotifications(false)}
-                />
-                <motion.div 
-                  initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                  className="absolute right-0 mt-2 w-80 sm:w-96 bg-white dark:bg-slate-900/95 backdrop-blur-xl rounded-xl border border-slate-200/80 dark:border-white/10 shadow-xl p-3 z-50 overflow-hidden"
-                >
-                  <div className="flex items-center justify-between px-2 py-1.5 border-b border-slate-100 dark:border-white/5 mb-2">
-                    <h3 className="font-semibold text-slate-800 dark:text-slate-100 text-xs">{t('header.notifications')}</h3>
-                    <span className="text-[10px] font-bold bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded-md">
-                      {notifications.length} {t('header.info')}
-                    </span>
-                  </div>
-                  <div className="max-h-[300px] overflow-y-auto space-y-1">
-                    {notifications.length > 0 ? (
-                      notifications.map((notif) => (
-                        <div 
-                          key={notif.id}
-                          onClick={() => {
-                            setShowNotifications(false);
-                            navigate(notif.link);
-                          }}
-                          className="flex items-start gap-2.5 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer"
-                        >
-                          <div className={cn(
-                            "w-7 h-7 rounded-lg flex items-center justify-center shrink-0",
-                            notif.type === 'ticket' ? "bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400" :
-                            notif.type === 'point_in' ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400" : "bg-red-50 text-red-600 dark:bg-red-950/40 dark:text-red-400"
-                          )}>
-                            {notif.type === 'ticket' ? <Ticket size={14} /> :
-                             notif.type === 'point_in' ? <Sparkles size={14} /> : <Gift size={14} />}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-semibold text-slate-800 dark:text-slate-100 leading-tight">{notif.title}</p>
-                            <p className="text-[11px] text-slate-500 mt-0.5 leading-snug break-all">{notif.description}</p>
-                            <p className="text-[9px] text-slate-400 mt-1 font-medium">
-                              {new Date(notif.time).toLocaleDateString('en-US', { hour: '2-digit', minute: '2-digit' }) + ' • ' + new Date(notif.time).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}
-                            </p>
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-xs text-slate-400 text-center py-6">{t('header.no_notifications')}</p>
-                    )}
-                  </div>
-                </motion.div>
-              </>
-            )}
-          </AnimatePresence>
-        </div>
+        {renderNotificationBell(false)}
 
         {/* Language Quick Toggle (Pill model with flag & code) - Hidden in Support Center / Embedded panel */}
         {!isEmbeddedEffective && (

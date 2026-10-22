@@ -256,7 +256,7 @@ export const ForumThreadPage: React.FC<ForumThreadProps> = ({ userRole }) => {
         setTimeout(() => {
           messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
         }, 100);
-        if (userRole === 'staff' && isTicketPath) {
+        if ((userRole === 'staff' || userRole === 'admin' || user?.role === 'staff' || user?.role === 'admin') && isTicketPath) {
           setTicket((prev: any) => prev ? { ...prev, status: 'In Progress' } : null);
         }
       } else {
@@ -670,12 +670,24 @@ export const ForumThreadPage: React.FC<ForumThreadProps> = ({ userRole }) => {
 
                     {isPrivate && (
                       <>
-                        <p className={cn(
-                          "text-[10px] font-bold mb-1",
-                          isRight ? "text-blue-100" : "text-blue-600 dark:text-blue-400"
-                        )}>
-                          {msg.userName}
-                        </p>
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <p className={cn(
+                            "text-[10px] font-bold",
+                            isRight ? "text-blue-100" : "text-blue-600 dark:text-blue-400"
+                          )}>
+                            {msg.userName}
+                          </p>
+                          {isStaffOrAdmin && (
+                            <span className={cn(
+                              "text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md",
+                              isRight
+                                ? "bg-white/20 text-white"
+                                : "bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-300"
+                            )}>
+                              {msg.userRole === 'admin' ? 'Admin' : 'Staff'}
+                            </span>
+                          )}
+                        </div>
                         <p className={cn(
                           "text-sm leading-relaxed",
                           isRight ? "text-white" : "text-slate-700 dark:text-slate-200"

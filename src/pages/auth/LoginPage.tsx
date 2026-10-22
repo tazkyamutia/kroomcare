@@ -480,6 +480,7 @@ export const LoginPage = () => {
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                       <input
+                        id="login-email"
                         type="email"
                         required
                         value={email}
@@ -512,6 +513,7 @@ export const LoginPage = () => {
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                       <input
+                        id="login-password"
                         type={showPassword ? 'text' : 'password'}
                         required
                         value={password}
@@ -537,9 +539,10 @@ export const LoginPage = () => {
 
                   {/* Submit Button */}
                   <button
+                    id="login-submit-btn"
                     type="submit"
                     disabled={isLoading}
-                    className="w-full py-2.5 mt-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl shadow-md shadow-blue-500/20 transition-all active:scale-[0.99] flex items-center justify-center gap-2 text-xs sm:text-sm disabled:opacity-50"
+                    className="w-full py-2.5 mt-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl shadow-md shadow-blue-500/20 transition-all active:scale-[0.99] flex items-center justify-center gap-2 text-xs sm:text-sm disabled:opacity-50 cursor-pointer"
                   >
                     {isLoading ? (
                       <Loader2 size={16} className="animate-spin" />

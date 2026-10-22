@@ -2,13 +2,18 @@ const db = require('../config/db');
 
 const getNotifications = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user?.id || req.query.user_id;
+    if (!userId) {
+      return res.status(400).json({ success: false, message: 'User ID diperlukan.' });
+    }
 
     const [rows] = await db.query(
-      'SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 50',
+      'SELECT id, user_id, title, type, message, link, is_read, created_at FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 50',
       [userId]
     );
 
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
     res.status(200).json({
       success: true,
       data: rows
@@ -25,13 +30,18 @@ const getNotifications = async (req, res) => {
 
 const getUnreadCount = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user?.id || req.query.user_id;
+    if (!userId) {
+      return res.status(400).json({ success: false, message: 'User ID diperlukan.' });
+    }
 
     const [rows] = await db.query(
       'SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND is_read = FALSE',
       [userId]
     );
 
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
     res.status(200).json({
       success: true,
       data: { count: rows[0].count }
@@ -49,12 +59,16 @@ const getUnreadCount = async (req, res) => {
 const markAsRead = async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.user.id;
+    const userId = req.user?.id || req.body.user_id || req.query.user_id;
 
-    const [result] = await db.query(
-      'UPDATE notifications SET is_read = TRUE WHERE id = ? AND user_id = ?',
-      [id, userId]
-    );
+    let query = 'UPDATE notifications SET is_read = TRUE WHERE id = ?';
+    let params = [id];
+    if (userId) {
+      query += ' AND user_id = ?';
+      params.push(userId);
+    }
+
+    const [result] = await db.query(query, params);
 
     if (result.affectedRows === 0) {
       return res.status(404).json({ success: false, message: 'Notifikasi tidak ditemukan.' });
@@ -76,7 +90,10 @@ const markAsRead = async (req, res) => {
 
 const markAllAsRead = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user?.id || req.body.user_id || req.query.user_id;
+    if (!userId) {
+      return res.status(400).json({ success: false, message: 'User ID diperlukan.' });
+    }
 
     await db.query(
       'UPDATE notifications SET is_read = TRUE WHERE user_id = ?',
@@ -97,15 +114,16 @@ const markAllAsRead = async (req, res) => {
   }
 };
 
-// Fungsi helper untuk insert notifikasi secara internal (dipanggil dari controller lain)
-const createInAppNotification = async (user_id, type, message, link) => {
+// Helper internal untuk menambah notifikasi
+const createInAppNotification = async (user_id, title, message, link, type = 'ticket') => {
   try {
+    const wibNow = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' });
     await db.query(
-      'INSERT INTO notifications (user_id, type, message, link) VALUES (?, ?, ?, ?)',
-      [user_id, type, message, link || null]
+      'INSERT INTO notifications (user_id, title, type, message, link, is_read, created_at) VALUES (?, ?, ?, ?, ?, FALSE, ?)',
+      [user_id, title, type, message, link || null, wibNow]
     );
   } catch (err) {
-    console.error('Gagal mengirim notifikasi:', err);
+    console.error('Gagal membuat in-app notification:', err.message);
   }
 };
 

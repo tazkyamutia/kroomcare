@@ -87,6 +87,25 @@ const receiveExternalTicket = async (req, res) => {
     ]);
     const ticketId = ticketResult.insertId;
 
+    // Kirim notifikasi in-app ke seluruh staf & admin
+    try {
+      const [staffAndAdmin] = await db.query("SELECT id FROM users WHERE role IN ('staff', 'admin')");
+      for (const sa of staffAndAdmin) {
+        await db.query(
+          "INSERT INTO notifications (user_id, title, type, message, link, is_read, created_at) VALUES (?, ?, 'ticket', ?, ?, 0, ?)",
+          [
+            sa.id,
+            `Tiket Baru dari Panel #${ticketId}`,
+            `Tiket #${ticketId} (${external_ticket_id || 'Panel'}) dari ${nama || 'User Panel'}: "${judul}"`,
+            `/tickets/${ticketId}`,
+            wibNow
+          ]
+        );
+      }
+    } catch (nErr) {
+      console.error('[ExternalController] Gagal membuat notifikasi staff/admin:', nErr.message);
+    }
+
     // ── 5. Tambah Reward Koin (Anti-spam 1x per hari, 10 poin) ────────────────
     try {
       const [todayReward] = await db.query(
@@ -203,15 +222,22 @@ const receiveExternalReply = async (req, res) => {
       return res.status(401).json({ success: false, message: 'Invalid API Key' });
     }
 
-    const { external_ticket_id, email, text, konten } = req.body;
-    if (!external_ticket_id || (!text && !konten)) {
-      return res.status(400).json({ success: false, message: 'Missing required fields: external_ticket_id, text/konten' });
+    const { external_ticket_id, email, text, konten, ticket_id, id: rawId, message } = req.body;
+    const extTicketId = external_ticket_id || ticket_id || rawId;
+    const replyContent = text || konten || message;
+
+    if (!extTicketId || !replyContent) {
+      return res.status(400).json({ success: false, message: 'Missing required fields: external_ticket_id/ticket_id, text/konten/message' });
     }
 
-    // Cari tiket berdasarkan external_ticket_id
-    const [tickets] = await db.query('SELECT id, user_id FROM tickets WHERE external_ticket_id = ?', [external_ticket_id]);
+    // Cari tiket berdasarkan external_ticket_id atau ID tiket lokal
+    let [tickets] = await db.query('SELECT id, user_id, staff_id, judul FROM tickets WHERE external_ticket_id = ?', [extTicketId]);
+    if (tickets.length === 0 && !isNaN(Number(extTicketId))) {
+      [tickets] = await db.query('SELECT id, user_id, staff_id, judul FROM tickets WHERE id = ?', [Number(extTicketId)]);
+    }
+
     if (tickets.length === 0) {
-      return res.status(404).json({ success: false, message: 'Ticket not found for external_ticket_id: ' + external_ticket_id });
+      return res.status(404).json({ success: false, message: 'Ticket not found for external_ticket_id: ' + extTicketId });
     }
 
     const ticketId = tickets[0].id;
@@ -224,12 +250,54 @@ const receiveExternalReply = async (req, res) => {
       }
     }
 
-    const replyContent = text || konten;
     const wibNow = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' });
     const [result] = await db.query(
       'INSERT INTO ticket_replies (ticket_id, user_id, konten, created_at) VALUES (?, ?, ?, ?)',
       [ticketId, senderUserId, replyContent, wibNow]
     );
+
+    // Update updated_at tiket
+    await db.query('UPDATE tickets SET updated_at = ? WHERE id = ?', [wibNow, ticketId]);
+
+    // Beritahukan staff atau customer jika ada balasan masuk
+    try {
+      const [senderRoleRow] = await db.query('SELECT role, nama FROM users WHERE id = ?', [senderUserId]);
+      const senderRole = senderRoleRow[0]?.role || 'customer';
+      const senderName = senderRoleRow[0]?.nama || 'Pengguna';
+
+      if (senderRole === 'staff' || senderRole === 'admin') {
+        // Balasan dari staff/admin -> Beritahukan pelanggan pemilik tiket
+        await db.query(`
+          INSERT INTO notifications (user_id, title, type, message, link, is_read, created_at)
+          VALUES (?, ?, 'ticket', ?, ?, FALSE, ?)
+        `, [
+          tickets[0].user_id,
+          `Balasan dari ${senderName} (Staff)`,
+          `Staff membalas tiket #${ticketId} "${tickets[0].judul}": "${replyContent.slice(0, 80)}"`,
+          `/tickets/${ticketId}`,
+          wibNow
+        ]);
+      } else {
+        // Balasan dari customer -> Beritahukan staf yang ditugaskan atau seluruh staf & admin
+        const [targetRecipients] = tickets[0].staff_id
+          ? [[{ id: tickets[0].staff_id }]]
+          : await db.query("SELECT id FROM users WHERE role IN ('staff', 'admin')");
+
+        for (const recipient of targetRecipients) {
+          await db.query(`
+            INSERT INTO notifications (user_id, title, type, message, link, is_read, created_at)
+            VALUES (?, 'Balasan Masuk dari KolabPanel', 'ticket', ?, ?, FALSE, ?)
+          `, [
+            recipient.id,
+            `Pengguna membalas tiket #${ticketId} "${tickets[0].judul}": "${replyContent.slice(0, 80)}"`,
+            `/tickets/${ticketId}`,
+            wibNow
+          ]);
+        }
+      }
+    } catch (nErr) {
+      console.error('[ExternalController] Gagal membuat notifikasi balasan:', nErr.message);
+    }
 
     return res.status(200).json({
       success: true,

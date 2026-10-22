@@ -39,6 +39,7 @@ export const TicketQueuePage = () => {
 
   const filteredTickets = tickets.filter(tkt => {
     const matchesSearch = (tkt.id || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          (tkt.externalTicketId || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
                           (tkt.subject || tkt.judul || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
                           (tkt.customerName || '').toLowerCase().includes(searchQuery.toLowerCase());
 
@@ -153,10 +154,15 @@ export const TicketQueuePage = () => {
                     )}
                   >
                     <td className="px-4 py-3 sm:px-5">
-                      <div className="flex items-center gap-2 mb-0.5">
+                      <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                         <span className="text-[10px] font-mono font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50 px-1.5 py-0.5 rounded border border-blue-100 dark:border-blue-900">
                           #{ticket.id}
                         </span>
+                        {ticket.externalTicketId && (
+                          <span className="text-[9px] font-semibold bg-indigo-50 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-300 px-1.5 py-0.5 rounded border border-indigo-200 dark:border-indigo-800" title={`ID Panel: ${ticket.externalTicketId}`}>
+                            Panel: {ticket.externalTicketId}
+                          </span>
+                        )}
                         {ticket.isPriority && (
                           <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 bg-red-500 text-white rounded">
                             {language === 'en' ? 'Urgent' : 'Mendesak'}
