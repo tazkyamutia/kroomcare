@@ -2,7 +2,7 @@ const db = require('../config/db');
 const https = require('https');
 const http = require('http');
 
-const sendWebhook = (webhookUrl, payload) => {
+const sendWebhook = (webhookUrl, payload, method = 'POST') => {
   return new Promise((resolve) => {
     try {
       const urlObj = new URL(webhookUrl);
@@ -13,7 +13,7 @@ const sendWebhook = (webhookUrl, payload) => {
         hostname: urlObj.hostname,
         port: port,
         path: urlObj.pathname + urlObj.search,
-        method: 'POST',
+        method: method,
         headers: {
           'Content-Type': 'application/json',
           'Content-Length': Buffer.byteLength(postData),
@@ -439,6 +439,16 @@ const updateStatus = async (req, res) => {
       console.error('[Kroomcare] Error fetching ticket for sync:', syncErr.message);
     }
 
+    // Jika di lokal, teruskan juga pembaruan status ke live server KroomCare
+    if (!req.body.is_synced && (process.env.PORT === '5000' || process.env.DB_PORT === '3306')) {
+      const liveStatusEndpoint = (process.env.LIVE_KROOMCARE_URL || 'https://kroomcare.kroombox.com') + `/api/tickets/${id}/status`;
+      sendWebhook(liveStatusEndpoint, {
+        status,
+        staff_id,
+        is_synced: true
+      }, 'PUT').catch(err => console.error('[LocalSync] Gagal meneruskan status ke live server:', err.message));
+    }
+
     res.status(200).json({
       success: true,
       message: 'Status tiket berhasil diperbarui.',
@@ -647,6 +657,17 @@ const addTicketReply = async (req, res) => {
       } catch (syncErr) {
         console.error('Failed to sync customer reply to KolabPanel webhook:', syncErr.message);
       }
+    }
+
+    // Jika balasan dibuat di server lokal (port 5000 / DB port 3306), otomatis sinkronkan ke Live Server KroomCare (port 5550)
+    // agar balasan yang diketik oleh staf di localhost langsung muncul di Support Center Panel Kroombox
+    if (!req.body.is_synced && (process.env.PORT === '5000' || process.env.DB_PORT === '3306')) {
+      const liveEndpoint = (process.env.LIVE_KROOMCARE_URL || 'https://kroomcare.kroombox.com') + `/api/tickets/${id}/replies`;
+      sendWebhook(liveEndpoint, {
+        user_id,
+        konten,
+        is_synced: true
+      }).catch(err => console.error('[LocalSync] Gagal meneruskan balasan ke live server:', err.message));
     }
 
     res.status(201).json({
