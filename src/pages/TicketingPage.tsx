@@ -69,12 +69,7 @@ export const TicketingPage = () => {
     }
 
     return matchesSearch && matchesStatus;
-  }).sort((a, b) => {
-    const timeA = new Date(a.lastReplyAt || a.updatedAt || a.createdAt || 0).getTime();
-    const timeB = new Date(b.lastReplyAt || b.updatedAt || b.createdAt || 0).getTime();
-    if (timeB !== timeA) return timeB - timeA;
-    return Number(b.id) - Number(a.id);
-  });
+  }).sort((a, b) => Number(b.id) - Number(a.id));
 
   const isEmbedded = typeof window !== 'undefined' && window.parent && window.parent !== window;
 

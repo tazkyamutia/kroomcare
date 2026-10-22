@@ -219,7 +219,7 @@ const getTickets = async (req, res) => {
       params.push(user_id);
     }
     
-    query += ' ORDER BY COALESCE(latest_rep.created_at, t.updated_at, t.created_at) DESC, t.id DESC';
+    query += ' ORDER BY t.id DESC';
 
     const [rows] = await db.query(query, params);
     

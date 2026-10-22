@@ -64,7 +64,7 @@ export const TicketQueuePage = () => {
       return true;
     }
     return true;
-  });
+  }).sort((a, b) => Number(b.id) - Number(a.id));
 
   const priorityCount = tickets.filter(tkt => tkt.isPriority && tkt.status !== 'Resolved' && tkt.status !== 'selesai').length;
 
