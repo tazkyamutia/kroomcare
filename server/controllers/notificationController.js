@@ -2,7 +2,7 @@ const db = require('../config/db');
 
 const getNotifications = async (req, res) => {
   try {
-    const userId = req.user?.id || req.query.user_id;
+    const userId = req.user.id;
     if (!userId) {
       return res.status(400).json({ success: false, message: 'User ID diperlukan.' });
     }
@@ -22,15 +22,14 @@ const getNotifications = async (req, res) => {
     console.error('Error getNotifications:', error);
     res.status(500).json({
       success: false,
-      message: 'Terjadi kesalahan server.',
-      error: error.message
+      message: 'Terjadi kesalahan server.'
     });
   }
 };
 
 const getUnreadCount = async (req, res) => {
   try {
-    const userId = req.user?.id || req.query.user_id;
+    const userId = req.user.id;
     if (!userId) {
       return res.status(400).json({ success: false, message: 'User ID diperlukan.' });
     }
@@ -50,8 +49,7 @@ const getUnreadCount = async (req, res) => {
     console.error('Error getUnreadCount:', error);
     res.status(500).json({
       success: false,
-      message: 'Terjadi kesalahan server.',
-      error: error.message
+      message: 'Terjadi kesalahan server.'
     });
   }
 };
@@ -59,16 +57,10 @@ const getUnreadCount = async (req, res) => {
 const markAsRead = async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.user?.id || req.body.user_id || req.query.user_id;
+    const userId = req.user.id;
 
-    let query = 'UPDATE notifications SET is_read = TRUE WHERE id = ?';
-    let params = [id];
-    if (userId) {
-      query += ' AND user_id = ?';
-      params.push(userId);
-    }
-
-    const [result] = await db.query(query, params);
+    // Hanya notifikasi milik pengguna yang sedang login yang bisa ditandai
+    const [result] = await db.query('UPDATE notifications SET is_read = TRUE WHERE id = ? AND user_id = ?', [id, userId]);
 
     if (result.affectedRows === 0) {
       return res.status(404).json({ success: false, message: 'Notifikasi tidak ditemukan.' });
@@ -82,15 +74,14 @@ const markAsRead = async (req, res) => {
     console.error('Error markAsRead:', error);
     res.status(500).json({
       success: false,
-      message: 'Terjadi kesalahan server.',
-      error: error.message
+      message: 'Terjadi kesalahan server.'
     });
   }
 };
 
 const markAllAsRead = async (req, res) => {
   try {
-    const userId = req.user?.id || req.body.user_id || req.query.user_id;
+    const userId = req.user.id;
     if (!userId) {
       return res.status(400).json({ success: false, message: 'User ID diperlukan.' });
     }
@@ -108,8 +99,7 @@ const markAllAsRead = async (req, res) => {
     console.error('Error markAllAsRead:', error);
     res.status(500).json({
       success: false,
-      message: 'Terjadi kesalahan server.',
-      error: error.message
+      message: 'Terjadi kesalahan server.'
     });
   }
 };

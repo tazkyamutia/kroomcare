@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User } from '../types';
+import { getToken, clearToken, getStoredUser, setStoredUser, getTokenUserId } from '../utils/token';
+import { UNAUTHORIZED_EVENT } from '../utils/fetchAuth';
 
 interface UserContextType {
   user: User | null;
@@ -12,15 +14,31 @@ const UserContext = createContext<UserContextType | undefined>(undefined);
 
 export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(() => {
-    const savedUser = localStorage.getItem('kroomcare_user');
-    return savedUser ? JSON.parse(savedUser) : null;
+    // Sesi lama tanpa token (sebelum login bertoken diberlakukan) dianggap keluar dan diminta login ulang.
+    const savedUser = getStoredUser();
+    if (!savedUser || !getToken()) return null;
+    try {
+      const parsed = JSON.parse(savedUser);
+      // Data pengguna dan token harus milik akun yang sama; bila tidak, minta login ulang.
+      return Number(parsed?.id) === getTokenUserId() ? parsed : null;
+    } catch {
+      return null;
+    }
   });
+
+  // API menjawab 401 (token kedaluwarsa / akun dicabut) -> keluar dari sesi.
+  useEffect(() => {
+    const onUnauthorized = () => setUser(null);
+    window.addEventListener(UNAUTHORIZED_EVENT, onUnauthorized);
+    return () => window.removeEventListener(UNAUTHORIZED_EVENT, onUnauthorized);
+  }, []);
 
   useEffect(() => {
     if (user) {
-      localStorage.setItem('kroomcare_user', JSON.stringify(user));
+      setStoredUser(JSON.stringify(user));
     } else {
-      localStorage.removeItem('kroomcare_user');
+      setStoredUser(null);
+      clearToken();
     }
   }, [user]);
 
@@ -71,6 +89,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = () => {
+    clearToken();
     setUser(null);
   };
 

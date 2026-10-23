@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { cn } from '../../lib/utils';
 import { motion } from 'motion/react';
 import { useLanguageTheme } from '../../context/LanguageThemeContext';
+import { withAuthToken } from '../../utils/fetchAuth';
 
 export const TicketQueuePage = () => {
   const navigate = useNavigate();
@@ -35,7 +36,7 @@ export const TicketQueuePage = () => {
     // Real-time Event Listener untuk Tiket Baru Masuk dari Kroombox / Customer
     let eventSource: EventSource | null = null;
     try {
-      eventSource = new EventSource('/api/realtime/staff');
+      eventSource = new EventSource(withAuthToken('/api/realtime/staff'));
       eventSource.addEventListener('TicketCreated', () => {
         fetchAllTickets(true);
       });

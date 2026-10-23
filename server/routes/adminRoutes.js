@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { requireAuth, requireAdmin, requireStaffOrAdmin } = require('../middleware/auth');
 const { 
   getAdminStats, 
   getAllUsers, 
@@ -12,14 +13,23 @@ const {
   generateApiKey,
   getWhatsAppConfig,
   updateWhatsAppConfig,
-  testWhatsAppNotification
+  testWhatsAppNotification,
+  getStaffList
 } = require('../controllers/adminController');
+
+router.use(requireAuth);
+
+// Statistik dashboard staff boleh diakses staff maupun admin
+router.get('/stats/staff', requireStaffOrAdmin, getStaffDashboardStats);
+
+// Daftar staff untuk pilihan penugasan tiket (staff/admin)
+router.get('/staff', requireStaffOrAdmin, getStaffList);
+
+// Seluruh rute di bawah ini khusus administrator
+router.use(requireAdmin);
 
 // Route untuk mendapatkan seluruh data statistik admin dashboard
 router.get('/stats', getAdminStats);
-
-// Route untuk statistik staff dashboard
-router.get('/stats/staff', getStaffDashboardStats);
 
 // Route manajemen pengguna admin
 router.get('/users', getAllUsers);

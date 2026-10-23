@@ -7,6 +7,14 @@ import { UserRole } from '../../types';
 import { useUser } from '../../context/UserContext';
 import { useLanguageTheme } from '../../context/LanguageThemeContext';
 import { formatWIBDateTime, formatWIBTime, formatWIBDateGroup, getWIBDateKey } from '../../utils/dateUtils';
+import { withAuthToken } from '../../utils/fetchAuth';
+
+// Penanda balasan eskalasi (teks baru & lama) — sama dengan server/utils/ticketAccess.js.
+const ESCALATION_MARKERS = ['[ESKALASI]', '[SISTEM AUTO-ESKALASI]', '[SYSTEM AUTO-ESCALATION]', 'Tiket telah dieskalasi ke tim teknis'];
+const isEscalationMessage = (msg: any) => {
+  const text = String(msg?.text || msg?.konten || msg?.message || '');
+  return (msg?.userRole === 'staff' || msg?.userRole === 'admin') && ESCALATION_MARKERS.some(m => text.startsWith(m));
+};
 
 interface ForumThreadProps {
   userRole: UserRole;
@@ -27,9 +35,12 @@ export const ForumThreadPage: React.FC<ForumThreadProps> = ({ userRole }) => {
   const [isGivingReward, setIsGivingReward] = React.useState(false);
   const [rewardPoints, setRewardPoints] = React.useState<number | ''>(50);
   const [showToastTransfer, setShowToastTransfer] = React.useState(false);
+  const [staffOptions, setStaffOptions] = React.useState<{ id: string; name: string; role: string }[]>([]);
+  const [isAssigning, setIsAssigning] = React.useState(false);
+  const [isChangingStatus, setIsChangingStatus] = React.useState(false);
 
   const isTicketPath = location.pathname.includes('/tickets') || location.pathname.includes('/staff');
-  const isEscalated = messages.some(msg => msg.text && (msg.text.includes("dieskalasi") || msg.text.includes("escalated")));
+  const isEscalated = Boolean(ticket?.isEscalated) || messages.some(isEscalationMessage);
   const locale = language === 'en' ? 'en-US' : 'id-ID';
 
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
@@ -92,11 +103,11 @@ export const ForumThreadPage: React.FC<ForumThreadProps> = ({ userRole }) => {
         const resDetail = await fetch(`/api/tickets/${id}?_t=${Date.now()}`);
         const detailResult = await resDetail.json();
         if (resDetail.ok && detailResult.success && detailResult.data) {
-          setTicket(prev => {
-            if (prev && prev.status !== detailResult.data.status) {
-              return { ...prev, status: detailResult.data.status };
-            }
-            return prev;
+          const d = detailResult.data;
+          setTicket((prev: any) => {
+            if (!prev) return prev;
+            if (prev.status === d.status && prev.assignedTo === d.assignedTo && prev.isPriority === d.isPriority && prev.isEscalated === d.isEscalated) return prev;
+            return { ...prev, status: d.status, assignedTo: d.assignedTo, assignedStaffName: d.assignedStaffName, isPriority: d.isPriority, isEscalated: d.isEscalated };
           });
         }
       }
@@ -132,7 +143,7 @@ export const ForumThreadPage: React.FC<ForumThreadProps> = ({ userRole }) => {
       if (!id || !isTicketPath) return;
 
       try {
-        eventSource = new EventSource(`/api/tickets/${id}/realtime`);
+        eventSource = new EventSource(withAuthToken(`/api/tickets/${id}/realtime`));
 
         eventSource.addEventListener('connected', () => {
           isConnected = true;
@@ -183,6 +194,19 @@ export const ForumThreadPage: React.FC<ForumThreadProps> = ({ userRole }) => {
           }
         });
 
+        // Perubahan status / penugasan / prioritas dari pihak lain langsung tampil tanpa reload.
+        const patchTicket = (patch: (data: any) => Record<string, any>) => (event: MessageEvent) => {
+          try {
+            const data = JSON.parse(event.data);
+            setTicket((prev: any) => prev ? { ...prev, ...patch(data) } : prev);
+          } catch (err) {
+            console.warn('[Realtime] Parse ticket event error:', err);
+          }
+        };
+        eventSource.addEventListener('StatusChanged', patchTicket(d => ({ status: d.status })) as EventListener);
+        eventSource.addEventListener('TicketAssigned', patchTicket(d => ({ assignedTo: d.assignedTo || undefined, assignedStaffName: d.assignedStaffName })) as EventListener);
+        eventSource.addEventListener('TicketUpdated', patchTicket(d => ('isPriority' in d ? { isPriority: !!d.isPriority } : {})) as EventListener);
+
         eventSource.onerror = () => {
           isConnected = false;
           if (eventSource) {
@@ -219,6 +243,14 @@ export const ForumThreadPage: React.FC<ForumThreadProps> = ({ userRole }) => {
   }, [id, location.pathname, isTicketPath]);
 
 
+  React.useEffect(() => {
+    if (!isTicketPath || user?.role !== 'admin') return;
+    fetch('/api/admin/staff')
+      .then(res => res.json())
+      .then(result => { if (result.success && Array.isArray(result.data)) setStaffOptions(result.data); })
+      .catch(() => {});
+  }, [isTicketPath, user?.role]);
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center py-20">
@@ -249,7 +281,8 @@ export const ForumThreadPage: React.FC<ForumThreadProps> = ({ userRole }) => {
   };
 
   const handleStatusChange = async (newStatus: 'Open' | 'In Progress' | 'Resolved') => {
-    if (!ticket) return;
+    if (!ticket || isChangingStatus) return;
+    setIsChangingStatus(true);
     try {
       const res = await fetch(`/api/tickets/${id}/status`, {
         method: 'PUT',
@@ -258,11 +291,42 @@ export const ForumThreadPage: React.FC<ForumThreadProps> = ({ userRole }) => {
       });
       const result = await res.json();
       if (res.ok && result.success) {
-        setTicket((prev: any) => prev ? { ...prev, status: newStatus } : null);
+        setTicket((prev: any) => {
+          if (!prev) return null;
+          const claimed = newStatus === 'In Progress' && !prev.assignedTo && user?.role === 'staff';
+          return { ...prev, status: newStatus, ...(claimed ? { assignedTo: String(user?.id), assignedStaffName: user?.name } : {}) };
+        });
+      } else {
+        alert(result.message || (language === 'en' ? 'Failed to update status.' : 'Gagal mengubah status.'));
       }
     } catch (error) {
       console.error(error);
       alert(language === 'en' ? 'Connection error.' : 'Terjadi kesalahan koneksi.');
+    } finally {
+      setIsChangingStatus(false);
+    }
+  };
+
+  const handleAssign = async (staffId: string | null) => {
+    if (!ticket || isAssigning) return;
+    setIsAssigning(true);
+    try {
+      const res = await fetch(`/api/tickets/${id}/assign`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ staff_id: staffId })
+      });
+      const result = await res.json();
+      if (res.ok && result.success) {
+        setTicket((prev: any) => prev ? { ...prev, assignedTo: result.data.assignedTo || undefined, assignedStaffName: result.data.assignedStaffName } : null);
+      } else {
+        alert(result.message || (language === 'en' ? 'Failed to assign ticket.' : 'Gagal menugaskan tiket.'));
+      }
+    } catch (error) {
+      console.error(error);
+      alert(language === 'en' ? 'Connection error.' : 'Terjadi kesalahan koneksi.');
+    } finally {
+      setIsAssigning(false);
     }
   };
 
@@ -270,22 +334,13 @@ export const ForumThreadPage: React.FC<ForumThreadProps> = ({ userRole }) => {
     if (!ticket || isEscalated) return;
 
     try {
-      const escalationText = language === 'en' 
-        ? `[SYSTEM AUTO-ESCALATION]: Ticket #${id} has been escalated to Tier-2 Technical Maintenance.`
-        : `[SISTEM AUTO-ESKALASI]: Tiket #${id} telah dieskalasi ke tim teknis perbaikan sistem (Maintenance).`;
-
-      const res = await fetch(`/api/tickets/${id}/replies`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          user_id: user?.id,
-          konten: escalationText
-        })
-      });
+      const res = await fetch(`/api/tickets/${id}/escalate`, { method: 'PUT' });
 
       const result = await res.json();
       if (res.ok && result.success) {
-        setMessages((prev: any) => [...prev, result.data]);
+        const escReply = result.data?.reply;
+        setMessages((prev: any) => escReply && !prev.some((m: any) => String(m.id) === String(escReply.id)) ? [...prev, escReply] : prev);
+        setTicket((prev: any) => prev ? { ...prev, isEscalated: true, isPriority: true, status: 'In Progress' } : null);
         setShowToastTransfer(true);
         setTimeout(() => setShowToastTransfer(false), 4000);
       } else {
@@ -305,11 +360,7 @@ export const ForumThreadPage: React.FC<ForumThreadProps> = ({ userRole }) => {
       const res = await fetch(`/api/points/reward`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ticket_id: id,
-          user_id: ticket.customerId,
-          points: rewardPoints
-        })
+        body: JSON.stringify({ ticket_id: id, points: rewardPoints })
       });
 
       const result = await res.json();
@@ -368,7 +419,7 @@ export const ForumThreadPage: React.FC<ForumThreadProps> = ({ userRole }) => {
         res = await fetch(`/api/tickets/${id}/replies`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ user_id: user.id, konten: contentToSend })
+          body: JSON.stringify({ konten: contentToSend })
         });
       } else {
         res = await fetch(`/api/forums/replies`, {
@@ -384,8 +435,14 @@ export const ForumThreadPage: React.FC<ForumThreadProps> = ({ userRole }) => {
         setMessages((prev: any) => prev.map((m: any) => 
           (m.id === tempId || m.tempId === tempId) ? { ...result.data, status: 'sent' } : m
         ));
-        if ((userRole === 'staff' || userRole === 'admin' || user?.role === 'staff' || user?.role === 'admin') && isTicketPath) {
-          setTicket((prev: any) => prev ? { ...prev, status: 'In Progress' } : null);
+        if (isTicketPath) {
+          const staffSender = user?.role === 'staff' || user?.role === 'admin';
+          // Balasan staff menandai tiket diproses; balasan pelanggan pada tiket selesai membukanya kembali.
+          setTicket((prev: any) => {
+            if (!prev) return null;
+            if (staffSender) return { ...prev, status: 'In Progress', ...(!prev.assignedTo ? { assignedTo: String(user?.id), assignedStaffName: user?.name } : {}) };
+            return prev.status === 'Resolved' ? { ...prev, status: 'Open' } : prev;
+          });
         }
       } else {
         // Gagal dari respons server: Tandai status 'failed' dengan tombol retry
@@ -415,7 +472,7 @@ export const ForumThreadPage: React.FC<ForumThreadProps> = ({ userRole }) => {
       const res = await fetch(`/api/tickets/${id}/replies`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: user.id, konten: targetText })
+        body: JSON.stringify({ konten: targetText })
       });
       const result = await res.json();
       if (res.ok && result.success) {
@@ -448,7 +505,7 @@ export const ForumThreadPage: React.FC<ForumThreadProps> = ({ userRole }) => {
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-20">
       {/* Staff Priority Bar */}
-      {userRole === 'staff' && (
+      {(userRole === 'staff' || userRole === 'admin') && isTicketPath && (
         <motion.div 
           initial={{ y: -20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -545,6 +602,41 @@ export const ForumThreadPage: React.FC<ForumThreadProps> = ({ userRole }) => {
                 </button>
               ))}
             </div>
+
+            {/* Penanggung jawab tiket: admin memilih staff, staff mengambil tiket yang belum dipegang */}
+            {isTicketPath && (
+              <div className="flex items-center gap-2 flex-wrap text-xs">
+                <span className="text-[10px] font-black uppercase text-slate-400">{language === 'en' ? 'Handler' : 'Penanggung jawab'}</span>
+                {user?.role === 'admin' ? (
+                  <select
+                    value={ticket.assignedTo || ''}
+                    disabled={isAssigning}
+                    onChange={(e) => handleAssign(e.target.value || null)}
+                    className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none cursor-pointer"
+                  >
+                    <option value="">{language === 'en' ? 'Unassigned' : 'Belum ditugaskan'}</option>
+                    {ticket.assignedTo && !staffOptions.some(s => s.id === String(ticket.assignedTo)) && (
+                      <option value={ticket.assignedTo}>{ticket.assignedStaffName || `#${ticket.assignedTo}`}</option>
+                    )}
+                    {staffOptions.map(s => (
+                      <option key={s.id} value={s.id}>{s.name}{s.role === 'admin' ? ' (Admin)' : ''}</option>
+                    ))}
+                  </select>
+                ) : ticket.assignedTo ? (
+                  <span className="px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-semibold text-slate-700 dark:text-slate-200">
+                    {String(ticket.assignedTo) === String(user?.id) ? (language === 'en' ? 'You' : 'Anda') : (ticket.assignedStaffName || `#${ticket.assignedTo}`)}
+                  </span>
+                ) : (
+                  <button
+                    onClick={() => handleAssign(String(user?.id))}
+                    disabled={isAssigning}
+                    className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-black uppercase tracking-wider text-[10px] cursor-pointer"
+                  >
+                    {language === 'en' ? 'Take ticket' : 'Ambil tiket'}
+                  </button>
+                )}
+              </div>
+            )}
 
             {/* Pemberian / Pengeditan Poin Reward */}
             <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-end">
@@ -903,8 +995,36 @@ export const ForumThreadPage: React.FC<ForumThreadProps> = ({ userRole }) => {
         </div>
       </div>
 
-      {/* Reply Container */}
-      {ticket.status !== 'Resolved' && (
+      {/* Pelanggan: tandai selesai atau buka kembali tiketnya sendiri */}
+      {isTicketPath && isPrivate && !isViewerStaff && (
+        <div className="flex flex-wrap items-center justify-between gap-3 p-3 sm:p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800">
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            {ticket.status === 'Resolved'
+              ? (language === 'en' ? 'This ticket is resolved. Reply below or reopen it if the problem persists.' : 'Tiket ini sudah selesai. Balas di bawah atau buka kembali bila masalah belum tuntas.')
+              : (ticket.assignedStaffName
+                ? (language === 'en' ? `Handled by ${ticket.assignedStaffName}.` : `Ditangani oleh ${ticket.assignedStaffName}.`)
+                : (language === 'en' ? 'Waiting for a staff member to pick up this ticket.' : 'Menunggu staff mengambil tiket ini.'))}
+          </p>
+          <button
+            onClick={() => handleStatusChange(ticket.status === 'Resolved' ? 'Open' : 'Resolved')}
+            disabled={isChangingStatus}
+            className={cn(
+              "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer disabled:opacity-50",
+              ticket.status === 'Resolved'
+                ? "bg-blue-600 hover:bg-blue-700 text-white"
+                : "bg-emerald-600 hover:bg-emerald-700 text-white"
+            )}
+          >
+            {ticket.status === 'Resolved'
+              ? (language === 'en' ? 'Reopen ticket' : 'Buka kembali')
+              : (language === 'en' ? 'Mark as resolved' : 'Tandai selesai')}
+          </button>
+        </div>
+      )}
+
+      {/* Reply Container — tetap tersedia pada tiket selesai; balasan pelanggan membuka kembali tiket */}
+      {(
+
         <div className="sticky bottom-0 left-0 right-0 p-3 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-t-xl border-t border-slate-200/80 dark:border-slate-800 z-30 -mx-3 sm:mx-0 shadow-lg">
           <div className="max-w-4xl mx-auto">
             {replyingTo && (

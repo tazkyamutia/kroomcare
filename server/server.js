@@ -20,21 +20,34 @@ const notificationRoutes = require('./routes/notificationRoutes');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware
-app.use(cors());
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
+// Origin yang boleh memanggil API dari browser & menyematkan KroomCare dalam iframe (Support Center Panel).
+const allowedOrigins = String(process.env.ALLOWED_ORIGINS || '')
+  .split(',')
+  .map((o) => o.trim().replace(/\/+$/, ''))
+  .filter(Boolean);
 
-// Framing & CORS headers untuk Kroombox Panel Embed
+app.set('trust proxy', 'loopback');
+
+// Middleware
+app.use(cors({
+  origin: (origin, callback) => {
+    // Permintaan tanpa Origin (same-origin GET, server-ke-server) selalu boleh; lainnya harus terdaftar.
+    if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) return callback(null, true);
+    return callback(null, false);
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-api-key', 'Cache-Control', 'Pragma']
+}));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
+
+// Framing: hanya panel yang terdaftar (dan KroomCare sendiri) yang boleh menyematkan halaman ini.
+const frameAncestors = ["'self'", ...allowedOrigins].join(' ');
 app.use((req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-api-key, Cache-Control, Pragma');
-  res.setHeader('Content-Security-Policy', "frame-ancestors *");
+  res.setHeader('Content-Security-Policy', `frame-ancestors ${frameAncestors}`);
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.removeHeader('X-Frame-Options');
-  if (req.method === 'OPTIONS') {
-    return res.sendStatus(200);
-  }
   next();
 });
 
@@ -54,9 +67,11 @@ app.get('/api/realtime/tickets/:id', handleTicketSubscription);
 app.get('/api/realtime/staff', handleStaffSubscription);
 app.get('/api/realtime/channel/:channel', handleChannelSubscription);
 
-// Dokumentasi Swagger API
-const swaggerDocument = YAML.load(path.join(__dirname, 'swagger_spec.yaml'));
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+// Dokumentasi Swagger API hanya bila diaktifkan lewat SWAGGER_ENABLED=true
+if (process.env.SWAGGER_ENABLED === 'true') {
+  const swaggerDocument = YAML.load(path.join(__dirname, 'swagger_spec.yaml'));
+  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+}
 
 // Anti-Cache Middleware for HTML files so iframe updates are always instant
 app.use((req, res, next) => {
@@ -102,15 +117,20 @@ app.use('/api/*', (req, res) => {
 // Middleware global error handler
 app.use((err, req, res, next) => {
   console.error(err.stack);
+  if (err.type === 'entity.too.large') {
+    return res.status(413).json({ success: false, message: 'Ukuran data terlalu besar.' });
+  }
   res.status(500).json({
     success: false,
-    message: 'Terjadi kesalahan internal server.',
-    error: err.message
+    message: 'Terjadi kesalahan internal server.'
   });
 });
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server is running on http://0.0.0.0:${PORT}`);
-  startNotificationWorker();
-  startPanelSyncWorker(6000);
+  // DISABLE_WORKERS=1 untuk instance uji agar tidak ikut mengirim WA / sinkronisasi panel.
+  if (process.env.DISABLE_WORKERS !== '1') {
+    startNotificationWorker();
+    startPanelSyncWorker();
+  }
 });

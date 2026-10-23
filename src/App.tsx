@@ -170,6 +170,8 @@ export default function App() {
                   <Route path="/admin/users" element={<UserManagementPage />} />
                   <Route path="/admin/tickets" element={<TicketSettingsPage />} />
                   <Route path="/admin/api" element={<ApiIntegrationPage />} />
+                  <Route path="/staff" element={<TicketQueuePage />} />
+                  <Route path="/staff/tickets/:id" element={<ForumThreadPage userRole="admin" />} />
                 </>
               )}
 

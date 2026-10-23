@@ -1,5 +1,12 @@
 const express = require('express');
 const router = express.Router();
+const { requireAuth, requireSelfOrAdmin } = require('../middleware/auth');
+const rateLimit = require('../middleware/rateLimit');
+
+// Batas percobaan untuk endpoint yang bisa ditebak (password, OTP, kode reset, tiket SSO).
+const loginLimiter = rateLimit({ max: 20, windowMs: 15 * 60 * 1000, message: 'Terlalu banyak percobaan. Coba lagi dalam 15 menit.' });
+const otpLimiter = rateLimit({ max: 10, windowMs: 15 * 60 * 1000, message: 'Terlalu banyak percobaan kode. Coba lagi dalam 15 menit.' });
+const selfId = (req) => req.params.id;
 const { 
   login, 
   register,
@@ -16,23 +23,23 @@ const {
 } = require('../controllers/authController');
 
 // Route untuk Single Sign-On (SSO) Kroombox Panel
-router.post('/sso-exchange', ssoExchange);
+router.post('/sso-exchange', loginLimiter, ssoExchange);
 
 // Route untuk login & register
-router.post('/login', login);
-router.post('/register', register);
-router.post('/login/2fa', login2FA);
-router.post('/forgot-password', forgotPassword);
-router.post('/reset-password', resetPassword);
+router.post('/login', loginLimiter, login);
+router.post('/register', loginLimiter, register);
+router.post('/login/2fa', otpLimiter, login2FA);
+router.post('/forgot-password', otpLimiter, forgotPassword);
+router.post('/reset-password', otpLimiter, resetPassword);
 
 // Route untuk profil pengguna
-router.get('/profile/:id', getProfile);
-router.put('/profile/:id', updateProfile);
-router.put('/profile/:id/password', changePassword);
+router.get('/profile/:id', requireAuth, requireSelfOrAdmin(selfId), getProfile);
+router.put('/profile/:id', requireAuth, requireSelfOrAdmin(selfId), updateProfile);
+router.put('/profile/:id/password', requireAuth, requireSelfOrAdmin(selfId), otpLimiter, changePassword);
 
 // Route untuk 2FA
-router.post('/2fa/setup', setup2FA);
-router.post('/2fa/verify', verify2FA);
-router.post('/2fa/disable', disable2FA);
+router.post('/2fa/setup', requireAuth, setup2FA);
+router.post('/2fa/verify', requireAuth, otpLimiter, verify2FA);
+router.post('/2fa/disable', requireAuth, otpLimiter, disable2FA);
 
 module.exports = router;

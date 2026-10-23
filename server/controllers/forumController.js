@@ -1,4 +1,5 @@
 const db = require('../config/db');
+const { isStaffRole } = require('../middleware/auth');
 
 // Get All Forums
 const getForums = async (req, res) => {
@@ -41,8 +42,7 @@ const getForums = async (req, res) => {
     console.error('Error in getForums:', error);
     res.status(500).json({
       success: false,
-      message: 'Terjadi kesalahan server.',
-      error: error.message
+      message: 'Terjadi kesalahan server.'
     });
   }
 };
@@ -50,12 +50,13 @@ const getForums = async (req, res) => {
 // Create Forum Thread
 const createForum = async (req, res) => {
   try {
-    const { user_id, judul, konten } = req.body;
+    const { judul, konten } = req.body;
+    const user_id = req.user.id;
 
     if (!user_id || !judul || !konten) {
       return res.status(400).json({
         success: false,
-        message: 'user_id, judul, dan konten wajib diisi.'
+        message: 'Judul dan konten wajib diisi.'
       });
     }
 
@@ -77,8 +78,7 @@ const createForum = async (req, res) => {
     console.error('Error in createForum:', error);
     res.status(500).json({
       success: false,
-      message: 'Terjadi kesalahan server.',
-      error: error.message
+      message: 'Terjadi kesalahan server.'
     });
   }
 };
@@ -131,8 +131,7 @@ const getForumDetail = async (req, res) => {
     console.error('Error in getForumDetail:', error);
     res.status(500).json({
       success: false,
-      message: 'Terjadi kesalahan server.',
-      error: error.message
+      message: 'Terjadi kesalahan server.'
     });
   }
 };
@@ -176,8 +175,7 @@ const getForumReplies = async (req, res) => {
     console.error('Error in getForumReplies:', error);
     res.status(500).json({
       success: false,
-      message: 'Terjadi kesalahan server.',
-      error: error.message
+      message: 'Terjadi kesalahan server.'
     });
   }
 };
@@ -185,12 +183,13 @@ const getForumReplies = async (req, res) => {
 // Add Reply to Forum
 const addReply = async (req, res) => {
   try {
-    const { forum_id, user_id, konten } = req.body;
+    const { forum_id, konten } = req.body;
+    const user_id = req.user.id;
 
     if (!forum_id || !user_id || !konten) {
       return res.status(400).json({
         success: false,
-        message: 'forum_id, user_id, dan konten wajib diisi.'
+        message: 'forum_id dan konten wajib diisi.'
       });
     }
 
@@ -218,8 +217,7 @@ const addReply = async (req, res) => {
     console.error('Error in addReply:', error);
     res.status(500).json({
       success: false,
-      message: 'Terjadi kesalahan server.',
-      error: error.message
+      message: 'Terjadi kesalahan server.'
     });
   }
 };
@@ -228,7 +226,16 @@ const addReply = async (req, res) => {
 const deleteForum = async (req, res) => {
   try {
     const { id } = req.params;
-    
+
+    // Thread hanya boleh dihapus pembuatnya atau staff/admin (moderasi)
+    const [owner] = await db.query('SELECT user_id FROM forums WHERE id = ?', [id]);
+    if (!owner.length) {
+      return res.status(404).json({ success: false, message: 'Thread forum tidak ditemukan.' });
+    }
+    if (!isStaffRole(req.user) && Number(owner[0].user_id) !== req.user.id) {
+      return res.status(403).json({ success: false, message: 'Anda tidak berhak menghapus thread ini.' });
+    }
+
     // Hapus terlebih dahulu balasan terkait (foreign key constraint)
     await db.query('DELETE FROM forum_replies WHERE forum_id = ?', [id]);
     
@@ -250,8 +257,7 @@ const deleteForum = async (req, res) => {
     console.error('Error in deleteForum:', error);
     res.status(500).json({
       success: false,
-      message: 'Terjadi kesalahan server saat menghapus thread.',
-      error: error.message
+      message: 'Terjadi kesalahan server saat menghapus thread.'
     });
   }
 };
@@ -260,6 +266,13 @@ const deleteForum = async (req, res) => {
 const deleteReply = async (req, res) => {
   try {
     const { id } = req.params;
+    const [owner] = await db.query('SELECT user_id FROM forum_replies WHERE id = ?', [id]);
+    if (!owner.length) {
+      return res.status(404).json({ success: false, message: 'Balasan tidak ditemukan.' });
+    }
+    if (!isStaffRole(req.user) && Number(owner[0].user_id) !== req.user.id) {
+      return res.status(403).json({ success: false, message: 'Anda tidak berhak menghapus balasan ini.' });
+    }
     const [result] = await db.query('DELETE FROM forum_replies WHERE id = ?', [id]);
     
     if (result.affectedRows === 0) {
@@ -277,8 +290,7 @@ const deleteReply = async (req, res) => {
     console.error('Error in deleteReply:', error);
     res.status(500).json({
       success: false,
-      message: 'Terjadi kesalahan server saat menghapus balasan.',
-      error: error.message
+      message: 'Terjadi kesalahan server saat menghapus balasan.'
     });
   }
 };

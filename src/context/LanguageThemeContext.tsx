@@ -1458,6 +1458,8 @@ export const LanguageThemeProvider: React.FC<{ children: React.ReactNode }> = ({
 
     // 2. Listen to postMessage from parent (Kroombox Panel theme broadcast)
     const handleMessage = (event: MessageEvent) => {
+      // Hanya panel induk yang boleh mengatur tema/bahasa; abaikan pesan dari jendela lain.
+      if (!isEmbedded || event.source !== window.parent) return;
       const incomingTheme = parseThemeFromData(event.data);
       if (incomingTheme) {
         lastKnownParentTheme = incomingTheme;
@@ -1598,6 +1600,8 @@ export const LanguageThemeProvider: React.FC<{ children: React.ReactNode }> = ({
 
     // 2. Listen to postMessage from parent (Kroombox Panel language broadcast)
     const handleMessage = (event: MessageEvent) => {
+      // Hanya panel induk yang boleh mengatur tema/bahasa; abaikan pesan dari jendela lain.
+      if (!isEmbedded || event.source !== window.parent) return;
       const incomingLang = parseLanguageFromData(event.data);
       if (incomingLang) {
         syncLanguage(incomingLang);

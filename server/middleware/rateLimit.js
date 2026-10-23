@@ -32,9 +32,8 @@ const rateLimit = (options = {}) => {
 
   return (req, res, next) => {
     // Ambil IP klien; handle proxy trust bila ada
-    const ip = req.headers['x-forwarded-for']
-      ? req.headers['x-forwarded-for'].split(',')[0].trim()
-      : req.ip || req.connection.remoteAddress || 'unknown';
+    // IP asli dari Cloudflare bila ada; X-Forwarded-For paling kiri bisa diisi sembarang oleh klien.
+    const ip = req.headers['cf-connecting-ip'] || req.ip || req.connection.remoteAddress || 'unknown';
 
     const key = `${ip}:${req.method}:${req.originalUrl || req.url}`;
     const now = Date.now();

@@ -37,8 +37,10 @@ const hashPassword = async (password) => {
 const verifyPassword = async (password, stored) => {
   if (!stored) return { match: false, needsRehash: false };
 
-  // Legacy plaintext di database
+  // Legacy plaintext di database. Akun otomatis dari panel/SSO dulu diberi placeholder 'EXT_USER_<waktu>' /
+  // 'SSO_<waktu>' yang bisa ditebak; akun seperti itu tidak boleh login dengan password.
   if (!stored.startsWith(`${PREFIX}$`)) {
+    if (/^(EXT_USER_|SSO_)\d+$/.test(stored)) return { match: false, needsRehash: false };
     const match = (stored === password);
     return { match, needsRehash: match };
   }
@@ -63,7 +65,11 @@ const verifyPassword = async (password, stored) => {
   }
 };
 
+// Password acak untuk akun yang dibuat otomatis (SSO / tiket panel): login hanya lewat SSO atau reset password.
+const randomUnusablePassword = () => hashPassword(crypto.randomBytes(32).toString('base64url'));
+
 module.exports = {
   hashPassword,
-  verifyPassword
+  verifyPassword,
+  randomUnusablePassword
 };

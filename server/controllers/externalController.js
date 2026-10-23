@@ -1,4 +1,7 @@
 const db = require('../config/db');
+const { isServiceRequest } = require('../middleware/auth');
+const { randomUnusablePassword } = require('../utils/password');
+const { notifyUser } = require('../utils/ticketAccess');
 
 /**
  * receiveExternalTicket
@@ -9,8 +12,7 @@ const db = require('../config/db');
 const receiveExternalTicket = async (req, res) => {
   try {
     // ── 1. Validasi API Key ──────────────────────────────────────────────────
-    const apiKey = req.headers['x-api-key'];
-    if (!apiKey || apiKey !== process.env.KROOMCARE_API_KEY) {
+    if (!isServiceRequest(req)) {
       return res.status(401).json({
         success: false,
         message: 'Invalid or missing API Key'
@@ -33,7 +35,7 @@ const receiveExternalTicket = async (req, res) => {
 
     if (rows.length === 0) {
       // Buat akun baru dengan role 'member' (password placeholder, tidak untuk login langsung)
-      const defaultPassword = 'EXT_USER_' + Date.now();
+      const defaultPassword = await randomUnusablePassword();
       const insertUser = `
         INSERT INTO users (nama, email, password, role, koin_reward)
         VALUES (?, ?, ?, 'member', 0)
@@ -97,7 +99,7 @@ const receiveExternalTicket = async (req, res) => {
             sa.id,
             `Tiket Baru dari Panel #${ticketId}`,
             `Tiket #${ticketId} (${external_ticket_id || 'Panel'}) dari ${nama || 'User Panel'}: "${judul}"`,
-            `/tickets/${ticketId}`,
+            `/staff/tickets/${ticketId}`,
             wibNow
           ]
         );
@@ -154,7 +156,7 @@ const receiveExternalTicket = async (req, res) => {
     }
 
     // ── 6. Antrekan Notifikasi WhatsApp ──────────────────────────────────────
-    const targetJid = process.env.WA_TARGET_JID || '120363xxxxx@g.us';
+    const targetJid = process.env.WA_TARGET_JID;
     const prioritasLabel = isPriority ? '🔴 Tinggi (High)' : '🟢 Normal';
     const newUserNote = isNewUser ? '\n⚠️ _Akun baru telah dibuat secara otomatis (JIT)_' : '';
 
@@ -174,7 +176,7 @@ const receiveExternalTicket = async (req, res) => {
       updateNotificationStatus
     } = require('../utils/notificationQueue');
 
-    queueNotification(targetJid, messageContent)
+    if (targetJid) queueNotification(targetJid, messageContent)
       .then(async (queueId) => {
         if (!queueId) return;
         const result = await sendNotification(targetJid, messageContent);
@@ -202,16 +204,14 @@ const receiveExternalTicket = async (req, res) => {
     console.error('[ExternalController] Error:', error);
     return res.status(500).json({
       success: false,
-      message: 'Internal server error',
-      error: error.message
+      message: 'Internal server error'
     });
   }
 };
 
 const receiveExternalStatus = async (req, res) => {
   try {
-    const apiKey = req.headers['x-api-key'];
-    if (!apiKey || apiKey !== process.env.KROOMCARE_API_KEY) {
+    if (!isServiceRequest(req)) {
       return res.status(401).json({ success: false, message: 'Invalid API Key' });
     }
 
@@ -228,7 +228,18 @@ const receiveExternalStatus = async (req, res) => {
         ? 'diproses'
         : 'menunggu';
 
+    const [rows] = await db.query('SELECT id, user_id, judul, status FROM tickets WHERE external_ticket_id = ?', [external_ticket_id]);
     await db.query('UPDATE tickets SET status = ? WHERE external_ticket_id = ?', [dbStatus, external_ticket_id]);
+
+    const ticket = rows[0];
+    if (ticket && ticket.status !== dbStatus) {
+      const uiStatus = dbStatus === 'selesai' ? 'Resolved' : (dbStatus === 'diproses' ? 'In Progress' : 'Open');
+      const label = { Open: 'Dibuka kembali', 'In Progress': 'Sedang diproses', Resolved: 'Selesai' }[uiStatus];
+      await notifyUser(ticket.user_id, `Status tiket #${ticket.id}: ${label}`, `Status tiket "${ticket.judul}" diperbarui dari Support Center Panel menjadi ${label}.`, `/tickets/${ticket.id}`);
+      try {
+        require('../utils/realtimeHub').broadcastTicketEvent(ticket.id, 'StatusChanged', { ticket_id: String(ticket.id), status: uiStatus, changed_by: 'Support Center Panel' }, external_ticket_id);
+      } catch (_) {}
+    }
 
     res.status(200).json({ success: true });
   } catch (error) {
@@ -239,23 +250,23 @@ const receiveExternalStatus = async (req, res) => {
 
 const receiveExternalReply = async (req, res) => {
   try {
-    const apiKey = req.headers['x-api-key'];
-    if (!apiKey || apiKey !== process.env.KROOMCARE_API_KEY) {
+    if (!isServiceRequest(req)) {
       return res.status(401).json({ success: false, message: 'Invalid API Key' });
     }
 
-    const { external_ticket_id, email, text, konten, ticket_id, id: rawId, message } = req.body;
+    const { external_ticket_id, email, text, konten, ticket_id, id: rawId, message, external_message_id, message_id } = req.body;
     const extTicketId = external_ticket_id || ticket_id || rawId;
     const replyContent = text || konten || message;
+    const extMessageId = external_message_id || message_id || (rawId && String(rawId).startsWith('m_') ? String(rawId) : ('m_ext_' + Date.now()));
 
     if (!extTicketId || !replyContent) {
       return res.status(400).json({ success: false, message: 'Missing required fields: external_ticket_id/ticket_id, text/konten/message' });
     }
 
     // Cari tiket berdasarkan external_ticket_id atau ID tiket lokal
-    let [tickets] = await db.query('SELECT id, user_id, staff_id, judul FROM tickets WHERE external_ticket_id = ?', [extTicketId]);
+    let [tickets] = await db.query('SELECT id, user_id, staff_id, judul, external_ticket_id FROM tickets WHERE external_ticket_id = ?', [extTicketId]);
     if (tickets.length === 0 && !isNaN(Number(extTicketId))) {
-      [tickets] = await db.query('SELECT id, user_id, staff_id, judul FROM tickets WHERE id = ?', [Number(extTicketId)]);
+      [tickets] = await db.query('SELECT id, user_id, staff_id, judul, external_ticket_id FROM tickets WHERE id = ?', [Number(extTicketId)]);
     }
 
     if (tickets.length === 0) {
@@ -272,14 +283,31 @@ const receiveExternalReply = async (req, res) => {
       }
     }
 
+    // Cegah duplikasi balasan yang persis sama
+    // Duplikat = ID pesan panel yang sama, atau teks sama dalam 2 menit terakhir (pantulan balasan yang baru dikirim
+    // ke panel). Teks yang sama di waktu lain ("ok", "terima kasih") tetap disimpan.
+    const [existing] = await db.query(
+      `SELECT id FROM ticket_replies WHERE ticket_id = ? AND (external_message_id = ?
+         OR (konten = ? AND created_at >= DATE_SUB(NOW(), INTERVAL 2 MINUTE)))`,
+      [ticketId, extMessageId, replyContent]
+    );
+    if (existing.length > 0) {
+      return res.status(200).json({ success: true, message: 'Reply already recorded', data: { replyId: existing[0].id, ticketId } });
+    }
+
     const wibNow = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' });
     const [result] = await db.query(
-      'INSERT INTO ticket_replies (ticket_id, user_id, konten, created_at) VALUES (?, ?, ?, ?)',
-      [ticketId, senderUserId, replyContent, wibNow]
+      'INSERT INTO ticket_replies (ticket_id, user_id, konten, external_message_id, created_at) VALUES (?, ?, ?, ?, ?)',
+      [ticketId, senderUserId, replyContent, extMessageId, wibNow]
     );
 
-    // Update updated_at tiket
-    await db.query('UPDATE tickets SET updated_at = ? WHERE id = ?', [wibNow, ticketId]);
+    // Update updated_at tiket; balasan pelanggan pada tiket selesai membuka kembali tiket tersebut.
+    const [senderRows] = await db.query('SELECT role FROM users WHERE id = ?', [senderUserId]);
+    const fromCustomer = !senderRows.length || (senderRows[0].role !== 'staff' && senderRows[0].role !== 'admin');
+    await db.query(
+      `UPDATE tickets SET updated_at = ?${fromCustomer ? ", status = IF(status = 'selesai', 'menunggu', status)" : ''} WHERE id = ?`,
+      [wibNow, ticketId]
+    );
 
     // Beritahukan staff atau customer jika ada balasan masuk
     try {
@@ -312,7 +340,7 @@ const receiveExternalReply = async (req, res) => {
           `, [
             recipient.id,
             `Pengguna membalas tiket #${ticketId} "${tickets[0].judul}": "${replyContent.slice(0, 80)}"`,
-            `/tickets/${ticketId}`,
+            `/staff/tickets/${ticketId}`,
             wibNow
           ]);
         }
@@ -361,17 +389,21 @@ const receiveExternalReply = async (req, res) => {
     });
   } catch (error) {
     console.error('[ExternalController] receiveExternalReply Error:', error);
-    return res.status(500).json({ success: false, message: 'Internal error', error: error.message });
+    return res.status(500).json({ success: false, message: 'Internal error' });
   }
 };
 
 const triggerPanelSync = async (req, res) => {
   try {
+    if (!isServiceRequest(req)) {
+      return res.status(401).json({ success: false, message: 'Invalid API Key' });
+    }
     const { syncPanelTickets } = require('../utils/panelSyncWorker');
     await syncPanelTickets();
     return res.status(200).json({ success: true, message: 'Sinkronisasi tiket & balasan panel Kroombox selesai.' });
   } catch (err) {
-    return res.status(500).json({ success: false, message: 'Gagal sinkronisasi panel', error: err.message });
+    console.error('[ExternalController] triggerPanelSync Error:', err);
+    return res.status(500).json({ success: false, message: 'Gagal sinkronisasi panel' });
   }
 };
 

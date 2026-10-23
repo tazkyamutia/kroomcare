@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { cn } from '../lib/utils';
 import { useUser } from '../context/UserContext';
 import { useLanguageTheme } from '../context/LanguageThemeContext';
+import { withAuthToken } from '../utils/fetchAuth';
 
 interface AppNotification {
   id: string | number;
@@ -36,7 +37,7 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar, isSidebarOpen =
     if (!user?.id) return;
 
     try {
-      const res = await fetch(`/api/notifications?user_id=${user.id}&_t=${Date.now()}`);
+      const res = await fetch(`/api/notifications?_t=${Date.now()}`);
       if (res.ok) {
         const result = await res.json();
         if (result.success && Array.isArray(result.data)) {
@@ -83,7 +84,7 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar, isSidebarOpen =
 
     const connectSSE = () => {
       try {
-        eventSource = new EventSource('/api/realtime/staff');
+        eventSource = new EventSource(withAuthToken('/api/realtime/staff'));
 
         eventSource.addEventListener('connected', () => {
           isConnected = true;
@@ -135,7 +136,13 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar, isSidebarOpen =
       }
     };
 
-    connectSSE();
+    // Channel realtime staf hanya untuk staff/admin; pelanggan cukup memeriksa notifikasinya berkala.
+    const isStaffViewer = user?.role === 'staff' || user?.role === 'admin';
+    if (isStaffViewer) {
+      connectSSE();
+    } else if (!fallbackInterval) {
+      fallbackInterval = setInterval(fetchNotifications, 15000);
+    }
 
     // Cleanup: unsubscribe & clear timers saat unmount
     return () => {
@@ -143,7 +150,7 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar, isSidebarOpen =
       if (reconnectTimeout) clearTimeout(reconnectTimeout);
       stopFallbackPolling();
     };
-  }, [fetchNotifications]);
+  }, [fetchNotifications, user?.role]);
 
   const unreadCount = React.useMemo(() => {
     return notifications.filter(n => !n.is_read).length;

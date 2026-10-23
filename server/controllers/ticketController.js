@@ -1,6 +1,22 @@
 const db = require('../config/db');
 const https = require('https');
 const http = require('http');
+const { isStaffRole, isAdminRole } = require('../middleware/auth');
+const {
+  toDbStatus,
+  toUiStatus,
+  ESCALATION_TEXT,
+  isEscalationText,
+  wibNow,
+  loadTicketForUser,
+  notifyUser,
+  notifyRoles,
+  notifyTicketHandlers
+} = require('../utils/ticketAccess');
+const { applyTicketReward } = require('./pointController');
+
+const MAX_SUBJECT = 200;
+const MAX_TEXT = 10000;
 
 const sendWebhook = (webhookUrl, payload, method = 'POST') => {
   return new Promise((resolve) => {
@@ -36,186 +52,170 @@ const sendWebhook = (webhookUrl, payload, method = 'POST') => {
       req.end();
     } catch (err) {
       console.error('[Webhook] Setup error:', err.message);
-      resolve({ success: false, error: err.message });
+      resolve({ success: false });
     }
   });
 };
 
+// Sinkronisasi ke KolabPanel hanya untuk tiket yang memang berasal dari panel (external_ticket_id diisi oleh panel).
+const syncReplyToPanel = (ticket, senderName, text) => {
+  if (!ticket.external_ticket_id || !process.env.KOLABPANEL_WEBHOOK_URL) return;
+  sendWebhook(process.env.KOLABPANEL_WEBHOOK_URL, {
+    external_ticket_id: ticket.external_ticket_id,
+    sender_name: senderName,
+    text
+  });
+};
+
+const syncStatusToPanel = (ticket, status) => {
+  if (!ticket.external_ticket_id || !process.env.KOLABPANEL_WEBHOOK_URL) return;
+  sendWebhook(process.env.KOLABPANEL_WEBHOOK_URL.replace('/external-reply', '/external-status'), {
+    external_ticket_id: ticket.external_ticket_id,
+    status
+  });
+};
+
+// Server lokal developer (port 5000 / MySQL 3306) meneruskan perubahan ke server live memakai API key layanan.
+const isLocalDevServer = () => process.env.PORT === '5000' || process.env.DB_PORT === '3306';
+const forwardToLive = (path, payload, method = 'POST') => {
+  const url = (process.env.LIVE_KROOMCARE_URL || 'https://kroomcare.kroombox.com') + path;
+  sendWebhook(url, { ...payload, is_synced: true }, method)
+    .catch(err => console.error('[LocalSync] Gagal meneruskan ke live server:', err.message));
+};
+
+const broadcast = (fn, ...args) => {
+  try {
+    require('../utils/realtimeHub')[fn](...args);
+  } catch (rtErr) {
+    console.warn('[RealtimeHub] Broadcast error:', rtErr.message);
+  }
+};
+
+const serverError = (res, label, error) => {
+  console.error(`Error in ${label}:`, error);
+  res.status(500).json({ success: false, message: 'Terjadi kesalahan server.' });
+};
+
+const notFound = (res) => res.status(404).json({ success: false, message: 'Tiket tidak ditemukan.' });
+
+// Pengirim aksi: pengguna dari token, atau user_id dari body bila dipanggil layanan internal.
+const resolveActorId = (req) => (req.user.service ? Number(req.body.user_id || req.body.staff_id) || null : req.user.id);
+
+const getUserBrief = async (userId) => {
+  if (!userId) return null;
+  const [rows] = await db.query('SELECT id, nama, email, role FROM users WHERE id = ?', [userId]);
+  return rows[0] || null;
+};
 
 // Create Ticket
 const createTicket = async (req, res) => {
   try {
-    const { user_id, judul, deskripsi, is_priority, kategori } = req.body;
-    
-    if (!user_id || !judul || !deskripsi) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'user_id, judul, dan deskripsi wajib diisi.' 
-      });
+    const { judul, deskripsi, is_priority, kategori } = req.body;
+    // Pelanggan selalu membuat tiket atas namanya sendiri; staff/admin/layanan boleh membuatkan untuk pelanggan.
+    const ownerId = isStaffRole(req.user) ? Number(req.body.user_id || req.user.id) : req.user.id;
+
+    if (!ownerId || !judul || !deskripsi) {
+      return res.status(400).json({ success: false, message: 'Judul dan deskripsi wajib diisi.' });
+    }
+    if (String(judul).length > MAX_SUBJECT || String(deskripsi).length > MAX_TEXT) {
+      return res.status(400).json({ success: false, message: 'Judul atau deskripsi terlalu panjang.' });
     }
 
-    // Pastikan akun user_id benar-benar ada di database
-    const [userRows] = await db.query('SELECT id, nama, email FROM users WHERE id = ?', [user_id]);
-    if (!userRows || userRows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: `Pengguna (ID: ${user_id}) tidak ditemukan di database. Silakan muat ulang halaman atau login ulang.`
-      });
+    const owner = await getUserBrief(ownerId);
+    if (!owner) {
+      return res.status(404).json({ success: false, message: 'Pengguna tidak ditemukan. Silakan login ulang.' });
     }
 
-    const finalKategori = kategori || 'General';
-    const wibNow = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' });
-    const query = 'INSERT INTO tickets (user_id, judul, deskripsi, is_priority, kategori, created_at) VALUES (?, ?, ?, ?, ?, ?)';
-    const [result] = await db.query(query, [user_id, judul, deskripsi, is_priority ? 1 : 0, finalKategori, wibNow]);
+    // Prioritas dari pelanggan adalah permintaan; staff tetap bisa membatalkannya lewat PUT /:id/priority.
+    const priority = is_priority ? 1 : 0;
+    const finalKategori = String(kategori || 'General').slice(0, 50);
+    const now = wibNow();
+    const [result] = await db.query(
+      'INSERT INTO tickets (user_id, judul, deskripsi, is_priority, kategori, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+      [ownerId, judul, deskripsi, priority, finalKategori, now]
+    );
     const ticketId = result.insertId;
 
-    // Cek batasan reward harian anti-spam (Maksimal 1 reward tiket per hari, senilai 10 poin)
+    // Batas reward harian anti-spam (maksimal 1 reward tiket per hari, senilai 10 poin)
     let pointsAwarded = 0;
     try {
       const [todayReward] = await db.query(
-        `SELECT id FROM point_histories 
-         WHERE user_id = ? 
-           AND jenis_transaksi = 'masuk' 
-           AND keterangan LIKE 'Reward pembuatan tiket%' 
-           AND DATE(created_at) = CURDATE()`,
-        [user_id]
+        `SELECT id FROM point_histories
+         WHERE user_id = ? AND jenis_transaksi = 'masuk' AND keterangan LIKE 'Reward pembuatan tiket%' AND DATE(created_at) = CURDATE()`,
+        [ownerId]
       );
-
       if (todayReward.length === 0) {
-        // Belum menerima reward tiket hari ini: Berikan +10 koin
         pointsAwarded = 10;
-        await db.query('UPDATE users SET koin_reward = COALESCE(koin_reward, 0) + ? WHERE id = ?', [pointsAwarded, user_id]);
-        const desc = `Reward pembuatan tiket baru #${ticketId}`;
+        await db.query('UPDATE users SET koin_reward = COALESCE(koin_reward, 0) + ? WHERE id = ?', [pointsAwarded, ownerId]);
         await db.query(
           'INSERT INTO point_histories (user_id, jenis_transaksi, jumlah_poin, keterangan, created_at) VALUES (?, ?, ?, ?, ?)',
-          [user_id, 'masuk', pointsAwarded, desc, wibNow]
+          [ownerId, 'masuk', pointsAwarded, `Reward pembuatan tiket baru #${ticketId}`, now]
         );
       }
     } catch (pointErr) {
       console.error('Failed to process daily ticket reward:', pointErr.message);
     }
 
-    // Kirim Notifikasi WhatsApp via GoWA
-    let userNama = 'Unknown';
-    let userEmail = 'unknown@kroombox.com';
-    try {
-      const [userRows] = await db.query('SELECT * FROM users WHERE id = ?', [user_id]);
-      if (userRows && userRows.length > 0) {
-        userNama = userRows[0].nama || 'Unknown';
-        userEmail = userRows[0].email || 'unknown@kroombox.com';
-      }
-    } catch (dbErr) {
-      console.error('Failed to fetch user details for WhatsApp notification:', dbErr.message);
-    }
+    await notifyRoles(['staff', 'admin'], `Tiket Baru #${ticketId}`, `Tiket baru dari ${owner.nama}: "${judul}"`, `/staff/tickets/${ticketId}`, req.user.id);
 
-    const targetJid = process.env.WA_TARGET_JID || '120363xxxxx@g.us';
-    const messageContent = `🎫 *Tiket Keluhan Baru #${ticketId}*
-*Nama:* ${userNama}
-*Email:* ${userEmail}
+    broadcast('broadcastStaffNotification', 'TicketCreated', {
+      ticket_id: String(ticketId),
+      external_ticket_id: null,
+      subject: judul,
+      title: judul,
+      category: finalKategori,
+      priority: priority ? 'high' : 'normal',
+      isPriority: Boolean(priority),
+      customer_name: owner.nama,
+      status: 'Open',
+      timestamp: now,
+      created_at: now,
+      link: `/staff/tickets/${ticketId}`
+    });
+
+    // Notifikasi WhatsApp ke grup staf (antrean + pengiriman awal asinkron)
+    const targetJid = process.env.WA_TARGET_JID;
+    if (targetJid) {
+      const messageContent = `🎫 *Tiket Keluhan Baru #${ticketId}*
+*Nama:* ${owner.nama}
+*Email:* ${owner.email}
 *Subjek:* ${judul}
 *Deskripsi:* ${deskripsi}
-*Prioritas:* ${is_priority ? 'Tinggi (High)' : 'Normal'}`;
-
-    // Kirim Notifikasi in-app ke seluruh staff & admin
-    try {
-      const [staffAndAdmin] = await db.query("SELECT id FROM users WHERE role IN ('staff', 'admin')");
-      for (const sa of staffAndAdmin) {
-        await db.query(
-          "INSERT INTO notifications (user_id, title, type, message, link, is_read, created_at) VALUES (?, ?, 'ticket', ?, ?, 0, ?)",
-          [
-            sa.id,
-            `Tiket Baru #${ticketId}`,
-            `Tiket baru dari ${userNama}: "${judul}"`,
-            `/tickets/${ticketId}`,
-            wibNow
-          ]
-        );
-      }
-    } catch (nErr) {
-      console.error('Failed to notify staff/admin of new ticket:', nErr.message);
+*Prioritas:* ${priority ? 'Tinggi (High)' : 'Normal'}`;
+      const { queueNotification, sendNotification, updateNotificationStatus } = require('../utils/notificationQueue');
+      queueNotification(targetJid, messageContent)
+        .then(async (queueId) => {
+          if (!queueId) return;
+          const sent = await sendNotification(targetJid, messageContent);
+          await updateNotificationStatus(queueId, sent.success ? 'sent' : 'failed', sent.success ? undefined : 1);
+        })
+        .catch((err) => console.error('Failed to trigger initial notification send:', err.message));
     }
-
-    // Broadcast instant real-time event ke channel presence-staff-notifications (Staff Dashboard)
-    try {
-      const { broadcastStaffNotification } = require('../utils/realtimeHub');
-      broadcastStaffNotification('TicketCreated', {
-        ticket_id: String(ticketId),
-        external_ticket_id: null,
-        subject: judul,
-        title: judul,
-        category: kategori || 'Support',
-        priority: is_priority ? 'high' : 'normal',
-        isPriority: Boolean(is_priority),
-        customer_name: userNama,
-        customer_email: userEmail,
-        status: 'Open',
-        timestamp: wibNow,
-        created_at: wibNow,
-        link: `/staff/tickets/${ticketId}`
-      });
-    } catch (rtErr) {
-      console.warn('[TicketController] Realtime broadcast error:', rtErr.message);
-    }
-
-    // Antrekan notifikasi dan lakukan pengiriman awal secara asinkron
-    const { queueNotification, sendNotification, updateNotificationStatus } = require('../utils/notificationQueue');
-    queueNotification(targetJid, messageContent)
-      .then(async (queueId) => {
-        if (!queueId) return;
-        const result = await sendNotification(targetJid, messageContent);
-        if (result.success) {
-          await updateNotificationStatus(queueId, 'sent');
-        } else {
-          await updateNotificationStatus(queueId, 'failed', 1);
-        }
-      })
-      .catch((err) => {
-        console.error('Failed to trigger initial notification send:', err.message);
-      });
-
 
     res.status(201).json({
       success: true,
-      message: pointsAwarded > 0 
-        ? `Tiket berhasil dibuat (+${pointsAwarded} Koin Reward).`
-        : 'Tiket berhasil dibuat.',
+      message: pointsAwarded > 0 ? `Tiket berhasil dibuat (+${pointsAwarded} Koin Reward).` : 'Tiket berhasil dibuat.',
       data: {
         id: ticketId,
-        user_id,
+        user_id: ownerId,
         judul,
         deskripsi,
-        isPriority: !!is_priority,
+        isPriority: Boolean(priority),
         pointsAwarded
       }
     });
   } catch (error) {
-    console.error('Error in createTicket:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Terjadi kesalahan server.',
-      error: error.message
-    });
+    serverError(res, 'createTicket', error);
   }
 };
 
-// Get Tickets (Seluruh tiket untuk Staff/Admin, atau filter berdasarkan user_id untuk Customer)
+// Get Tickets: staff/admin melihat semua (opsional filter user_id/assigned), pelanggan hanya tiketnya sendiri.
 const getTickets = async (req, res) => {
   try {
-    const { user_id } = req.query;
-    
     let query = `
-      SELECT 
-        t.id, 
-        t.external_ticket_id,
-        t.user_id, 
-        t.staff_id, 
-        t.judul, 
-        t.deskripsi, 
-        t.status, 
-        t.is_priority, 
-        t.kategori,
-        t.created_at,
-        t.updated_at,
+      SELECT
+        t.id, t.external_ticket_id, t.user_id, t.staff_id, t.judul, t.deskripsi, t.status, t.is_priority, t.kategori,
+        t.created_at, t.updated_at,
         u1.nama AS nama_pengirim,
         u2.nama AS nama_staf,
         COALESCE(rep.reply_count, 0) AS reply_count,
@@ -234,34 +234,39 @@ const getTickets = async (req, res) => {
       LEFT JOIN ticket_replies latest_rep ON rep.max_reply_id = latest_rep.id
       LEFT JOIN users latest_user ON latest_rep.user_id = latest_user.id
     `;
-    let params = [];
+    const where = [];
+    const params = [];
 
-    if (user_id) {
-      query += ' WHERE t.user_id = ?';
-      params.push(user_id);
+    if (!isStaffRole(req.user)) {
+      where.push('t.user_id = ?');
+      params.push(req.user.id);
+    } else {
+      if (req.query.user_id) {
+        where.push('t.user_id = ?');
+        params.push(req.query.user_id);
+      }
+      if (req.query.assigned === 'me' && req.user.id) {
+        where.push('t.staff_id = ?');
+        params.push(req.user.id);
+      }
     }
-    
+    if (where.length) query += ' WHERE ' + where.join(' AND ');
     query += ' ORDER BY t.id DESC';
 
     const [rows] = await db.query(query, params);
-    
-    // Map untuk kompatibilitas frontend
-    const mappedRows = rows.map(row => {
-      let mappedStatus = 'Open';
-      const s = (row.status || '').toLowerCase();
-      if (s === 'menunggu' || s === 'open') mappedStatus = 'Open';
-      else if (s === 'diproses' || s === 'proses' || s === 'in progress' || s === 'progress') mappedStatus = 'In Progress';
-      else mappedStatus = 'Resolved';
 
+    const mappedRows = rows.map(row => {
       const lastReplyRoleMapped = row.last_reply_role === 'member' ? 'customer' : row.last_reply_role;
       const hasStaffReply = row.last_reply_role === 'staff' || row.last_reply_role === 'admin';
 
       return {
         id: row.id.toString(),
         externalTicketId: row.external_ticket_id || null,
+        external_ticket_id: row.external_ticket_id || null,
+        isFromPanel: Boolean(row.external_ticket_id),
         subject: row.judul,
         description: row.deskripsi,
-        status: mappedStatus,
+        status: toUiStatus(row.status),
         isPriority: !!row.is_priority,
         createdAt: row.created_at,
         updatedAt: row.last_reply_at || row.updated_at || row.created_at,
@@ -282,542 +287,358 @@ const getTickets = async (req, res) => {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
-    res.status(200).json({
-      success: true,
-      data: mappedRows
-    });
+    res.status(200).json({ success: true, data: mappedRows });
   } catch (error) {
-    console.error('Error in getTickets:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Terjadi kesalahan server.',
-      error: error.message
-    });
+    serverError(res, 'getTickets', error);
   }
 };
 
 // Get Ticket Detail
 const getTicketDetail = async (req, res) => {
   try {
-    const { id } = req.params;
+    const ticket = await loadTicketForUser(req.user, req.params.id);
+    if (!ticket) return notFound(res);
 
-    const query = `
-      SELECT 
-        t.id, 
-        t.external_ticket_id,
-        t.user_id, 
-        t.staff_id, 
-        t.judul, 
-        t.deskripsi, 
-        t.status, 
-        t.is_priority, 
-        t.created_at,
-        u1.nama AS nama_pengirim,
-        u2.nama AS nama_staf
-      FROM tickets t
-      LEFT JOIN users u1 ON t.user_id = u1.id
-      LEFT JOIN users u2 ON t.staff_id = u2.id
-      WHERE t.id = ?
-    `;
-    const [rows] = await db.query(query, [id]);
+    const [rows] = await db.query(
+      `SELECT t.created_at, u1.nama AS nama_pengirim, u2.nama AS nama_staf
+       FROM tickets t
+       LEFT JOIN users u1 ON t.user_id = u1.id
+       LEFT JOIN users u2 ON t.staff_id = u2.id
+       WHERE t.id = ?`,
+      [ticket.id]
+    );
+    const row = rows[0] || {};
 
-    if (rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'Tiket tidak ditemukan.'
-      });
-    }
-
-    const row = rows[0];
-
-    // Cek apakah reward penyelesaian tiket sudah pernah diberikan untuk tiket ini
-    const rewardQuery = "SELECT id, jumlah_poin FROM point_histories WHERE user_id = ? AND keterangan LIKE ? ORDER BY id DESC LIMIT 1";
-    const [rewardRows] = await db.query(rewardQuery, [row.user_id, `%penyelesaian tiket #${row.id}%`]);
+    const [rewardRows] = await db.query(
+      'SELECT id, jumlah_poin FROM point_histories WHERE user_id = ? AND keterangan LIKE ? ORDER BY id DESC LIMIT 1',
+      [ticket.user_id, `%penyelesaian tiket #${ticket.id}%`]
+    );
     const rewardGiven = rewardRows.length > 0;
-    const rewardAmount = rewardGiven ? rewardRows[0].jumlah_poin : 50;
 
-    const mappedTicket = {
-      id: row.id.toString(),
-      externalTicketId: row.external_ticket_id || null,
-      subject: row.judul,
-      description: row.deskripsi,
-      status: row.status === 'menunggu' ? 'Open' : (row.status === 'diproses' ? 'In Progress' : 'Resolved'),
-      isPriority: !!row.is_priority,
-      createdAt: row.created_at,
-      customerId: row.user_id ? row.user_id.toString() : '',
-      customerName: row.nama_pengirim || 'Unknown Customer',
-      assignedTo: row.staff_id ? row.staff_id.toString() : undefined,
-      category: 'Support',
-      isPrivate: true,
-      rewardGiven: rewardGiven,
-      rewardAmount: rewardAmount
-    };
+    // Eskalasi dihitung dari balasan staf/admin yang diawali penanda eskalasi, bukan dari kata di pesan mana pun.
+    const [escRows] = await db.query(
+      `SELECT tr.konten FROM ticket_replies tr JOIN users u ON tr.user_id = u.id
+       WHERE tr.ticket_id = ? AND u.role IN ('staff', 'admin') AND (tr.konten LIKE '[%' OR tr.konten LIKE 'Tiket telah dieskalasi%')`,
+      [ticket.id]
+    );
 
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
     res.status(200).json({
       success: true,
-      data: mappedTicket
+      data: {
+        id: ticket.id.toString(),
+        externalTicketId: ticket.external_ticket_id || null,
+        external_ticket_id: ticket.external_ticket_id || null,
+        isFromPanel: Boolean(ticket.external_ticket_id),
+        subject: ticket.judul,
+        description: ticket.deskripsi,
+        status: toUiStatus(ticket.status),
+        isPriority: !!ticket.is_priority,
+        createdAt: row.created_at,
+        customerId: ticket.user_id ? ticket.user_id.toString() : '',
+        customerName: row.nama_pengirim || 'Unknown Customer',
+        assignedTo: ticket.staff_id ? ticket.staff_id.toString() : undefined,
+        assignedStaffName: row.nama_staf || null,
+        category: ticket.kategori || 'Support',
+        isPrivate: true,
+        isEscalated: escRows.some(r => isEscalationText(r.konten)),
+        rewardGiven,
+        rewardAmount: rewardGiven ? rewardRows[0].jumlah_poin : 50
+      }
     });
   } catch (error) {
-    console.error('Error in getTicketDetail:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Terjadi kesalahan server.',
-      error: error.message
-    });
+    serverError(res, 'getTicketDetail', error);
   }
 };
 
-// Set Priority
+// Set Priority (staff/admin)
 const setPriority = async (req, res) => {
   try {
-    const { id } = req.params;
     const { is_priority } = req.body;
-
     if (is_priority === undefined) {
-      return res.status(400).json({
-        success: false,
-        message: 'Field is_priority wajib dikirim.'
-      });
+      return res.status(400).json({ success: false, message: 'Field is_priority wajib dikirim.' });
     }
 
-    const query = 'UPDATE tickets SET is_priority = ? WHERE id = ?';
-    const [result] = await db.query(query, [is_priority ? 1 : 0, id]);
+    const ticket = await loadTicketForUser(req.user, req.params.id);
+    if (!ticket) return notFound(res);
 
-    if (result.affectedRows === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'Tiket tidak ditemukan atau gagal diperbarui.'
-      });
-    }
+    await db.query('UPDATE tickets SET is_priority = ? WHERE id = ?', [is_priority ? 1 : 0, ticket.id]);
+    broadcast('broadcastTicketEvent', ticket.id, 'TicketUpdated', { ticket_id: String(ticket.id), isPriority: !!is_priority }, ticket.external_ticket_id);
 
     res.status(200).json({
       success: true,
       message: 'Prioritas tiket berhasil diperbarui.',
-      data: {
-        id,
-        isPriority: !!is_priority
-      }
+      data: { id: String(ticket.id), isPriority: !!is_priority }
     });
   } catch (error) {
-    console.error('Error in setPriority:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Terjadi kesalahan server.',
-      error: error.message
-    });
+    serverError(res, 'setPriority', error);
   }
 };
 
 // Update Status Tiket
+// Staff/admin: semua status. Pelanggan: hanya menutup (Resolved) atau membuka kembali (Open) tiket miliknya.
 const updateStatus = async (req, res) => {
   try {
-    const { id } = req.params;
-    const { status, staff_id } = req.body; // Open, In Progress, Resolved, staff_id optional
-
-    if (!status) {
-      return res.status(400).json({
-        success: false,
-        message: 'Status wajib diisi.'
-      });
+    const { status } = req.body;
+    const dbStatus = toDbStatus(status);
+    if (!dbStatus) {
+      return res.status(400).json({ success: false, message: 'Status tidak valid. Gunakan Open, In Progress, atau Resolved.' });
     }
 
-    // Map frontend status to DB status
-    let dbStatus = 'menunggu';
-    if (status === 'In Progress') dbStatus = 'diproses';
-    else if (status === 'Resolved' || status === 'Closed') dbStatus = 'selesai';
+    const ticket = await loadTicketForUser(req.user, req.params.id);
+    if (!ticket) return notFound(res);
 
-    let query = 'UPDATE tickets SET status = ?';
-    let params = [dbStatus];
-    if (staff_id) {
-      query += ', staff_id = ?';
-      params.push(staff_id);
+    const staffActor = isStaffRole(req.user);
+    if (!staffActor && dbStatus === 'diproses') {
+      return res.status(403).json({ success: false, message: 'Pelanggan hanya dapat menutup atau membuka kembali tiket.' });
     }
-    query += ' WHERE id = ?';
-    params.push(id);
-
-    const [result] = await db.query(query, params);
-
-    if (result.affectedRows === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'Tiket tidak ditemukan.'
-      });
+    if (ticket.status === dbStatus) {
+      return res.status(200).json({ success: true, message: 'Status tiket tidak berubah.', data: { id: String(ticket.id), status: toUiStatus(dbStatus) } });
     }
 
-    // Sync status to KolabPanel if external_ticket_id exists
-    try {
-      const [ticketRows] = await db.query('SELECT external_ticket_id FROM tickets WHERE id = ?', [id]);
-      if (ticketRows.length > 0 && ticketRows[0].external_ticket_id && process.env.KOLABPANEL_WEBHOOK_URL) {
-          const webhookUrl = process.env.KOLABPANEL_WEBHOOK_URL.replace('/external-reply', '/external-status');
-          sendWebhook(webhookUrl, {
-              external_ticket_id: ticketRows[0].external_ticket_id,
-              status: status
-          });
+    const now = wibNow();
+    await db.query('UPDATE tickets SET status = ?, updated_at = ? WHERE id = ?', [dbStatus, now, ticket.id]);
+
+    // Staff yang mulai memproses tiket tanpa penanggung jawab otomatis menjadi penanggung jawabnya.
+    if (staffActor && req.user.id && !ticket.staff_id && dbStatus === 'diproses') {
+      await db.query('UPDATE tickets SET staff_id = ? WHERE id = ? AND staff_id IS NULL', [req.user.id, ticket.id]);
+    }
+
+    const uiStatus = toUiStatus(dbStatus);
+    const actor = await getUserBrief(resolveActorId(req));
+    const actorName = actor ? actor.nama : 'Sistem';
+    const statusLabel = { Open: 'Dibuka kembali', 'In Progress': 'Sedang diproses', Resolved: 'Selesai' }[uiStatus];
+
+    if (staffActor) {
+      await notifyUser(ticket.user_id, `Status tiket #${ticket.id}: ${statusLabel}`, `${actorName} mengubah status tiket "${ticket.judul}" menjadi ${statusLabel}.`, `/tickets/${ticket.id}`);
+    } else {
+      await notifyTicketHandlers(ticket, `Tiket #${ticket.id} ${dbStatus === 'selesai' ? 'ditutup pelanggan' : 'dibuka kembali'}`, `${actorName} ${dbStatus === 'selesai' ? 'menutup' : 'membuka kembali'} tiket "${ticket.judul}".`, req.user.id);
+    }
+
+    broadcast('broadcastTicketEvent', ticket.id, 'StatusChanged', { ticket_id: String(ticket.id), status: uiStatus, changed_by: actorName, timestamp: now }, ticket.external_ticket_id);
+    syncStatusToPanel(ticket, uiStatus);
+    if (!req.body.is_synced && isLocalDevServer()) forwardToLive(`/api/tickets/${ticket.id}/status`, { status }, 'PUT');
+
+    res.status(200).json({ success: true, message: 'Status tiket berhasil diperbarui.', data: { id: String(ticket.id), status: uiStatus } });
+  } catch (error) {
+    serverError(res, 'updateStatus', error);
+  }
+};
+
+// Tugaskan tiket ke staff. Admin bebas memilih staff (atau melepas penugasan); staff hanya bisa mengambil tiket yang belum dipegang.
+const assignTicket = async (req, res) => {
+  try {
+    const ticket = await loadTicketForUser(req.user, req.params.id);
+    if (!ticket) return notFound(res);
+
+    const requested = req.body.staff_id === null || req.body.staff_id === '' ? null : Number(req.body.staff_id || req.user.id);
+    if (!isAdminRole(req.user)) {
+      if (requested !== req.user.id) {
+        return res.status(403).json({ success: false, message: 'Staff hanya dapat mengambil tiket untuk dirinya sendiri.' });
       }
-    } catch (syncErr) {
-      console.error('[Kroomcare] Error fetching ticket for sync:', syncErr.message);
+      if (ticket.staff_id && Number(ticket.staff_id) !== req.user.id) {
+        return res.status(409).json({ success: false, message: 'Tiket sudah ditangani staff lain. Hubungi admin untuk memindahkan.' });
+      }
     }
 
-    // Jika di lokal, teruskan juga pembaruan status ke live server KroomCare
-    if (!req.body.is_synced && (process.env.PORT === '5000' || process.env.DB_PORT === '3306')) {
-      const liveStatusEndpoint = (process.env.LIVE_KROOMCARE_URL || 'https://kroomcare.kroombox.com') + `/api/tickets/${id}/status`;
-      sendWebhook(liveStatusEndpoint, {
-        status,
-        staff_id,
-        is_synced: true
-      }, 'PUT').catch(err => console.error('[LocalSync] Gagal meneruskan status ke live server:', err.message));
+    let staff = null;
+    if (requested !== null) {
+      staff = await getUserBrief(requested);
+      if (!staff || (staff.role !== 'staff' && staff.role !== 'admin')) {
+        return res.status(400).json({ success: false, message: 'Staff tujuan tidak valid.' });
+      }
     }
+
+    await db.query('UPDATE tickets SET staff_id = ?, updated_at = ? WHERE id = ?', [requested, wibNow(), ticket.id]);
+
+    if (staff && Number(staff.id) !== Number(req.user.id)) {
+      await notifyUser(staff.id, `Tiket #${ticket.id} ditugaskan ke Anda`, `Anda ditugaskan menangani tiket "${ticket.judul}".`, `/staff/tickets/${ticket.id}`);
+    }
+    if (ticket.staff_id && Number(ticket.staff_id) !== Number(requested) && Number(ticket.staff_id) !== Number(req.user.id)) {
+      await notifyUser(ticket.staff_id, `Tiket #${ticket.id} dipindahkan`, `Tiket "${ticket.judul}" kini ${staff ? `ditangani ${staff.nama}` : 'tidak memiliki penanggung jawab'}.`, `/staff/tickets/${ticket.id}`);
+    }
+
+    broadcast('broadcastTicketEvent', ticket.id, 'TicketAssigned', { ticket_id: String(ticket.id), assignedTo: staff ? String(staff.id) : null, assignedStaffName: staff ? staff.nama : null }, ticket.external_ticket_id);
 
     res.status(200).json({
       success: true,
-      message: 'Status tiket berhasil diperbarui.',
-      data: {
-        id,
-        status: status
-      }
+      message: staff ? `Tiket ditugaskan ke ${staff.nama}.` : 'Penugasan tiket dilepas.',
+      data: { id: String(ticket.id), assignedTo: staff ? String(staff.id) : null, assignedStaffName: staff ? staff.nama : null }
     });
   } catch (error) {
-    console.error('Error in updateStatus:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Terjadi kesalahan server.',
-      error: error.message
-    });
+    serverError(res, 'assignTicket', error);
   }
 };
 
 // Get Ticket Replies (Chat messages)
 const getTicketReplies = async (req, res) => {
   try {
-    const { id } = req.params;
+    const ticket = await loadTicketForUser(req.user, req.params.id);
+    if (!ticket) return notFound(res);
 
-    const query = `
-      SELECT 
-        tr.id, 
-        tr.ticket_id, 
-        tr.user_id, 
-        tr.konten, 
-        tr.created_at,
-        u.nama AS userName,
-        u.role AS userRole
-      FROM ticket_replies tr
-      JOIN users u ON tr.user_id = u.id
-      WHERE tr.ticket_id = ?
-      ORDER BY tr.created_at ASC
-    `;
-    const [rows] = await db.query(query, [id]);
-
-    const mappedReplies = rows.map(row => ({
-      id: row.id.toString(),
-      ticketId: row.ticket_id.toString(),
-      userId: row.user_id.toString(),
-      userName: row.userName,
-      userRole: row.userRole === 'member' ? 'customer' : row.userRole,
-      text: row.konten,
-      createdAt: row.created_at
-    }));
+    const [rows] = await db.query(
+      `SELECT tr.id, tr.ticket_id, tr.user_id, tr.konten, tr.external_message_id, tr.created_at, u.nama AS userName, u.role AS userRole
+       FROM ticket_replies tr
+       JOIN users u ON tr.user_id = u.id
+       WHERE tr.ticket_id = ?
+       ORDER BY tr.id ASC`,
+      [ticket.id]
+    );
 
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
     res.status(200).json({
       success: true,
-      data: mappedReplies
+      data: rows.map(row => ({
+        id: row.id.toString(),
+        ticketId: row.ticket_id.toString(),
+        userId: row.user_id.toString(),
+        userName: row.userName,
+        userRole: row.userRole === 'member' ? 'customer' : row.userRole,
+        text: row.konten,
+        externalMessageId: row.external_message_id || null,
+        isFromPanel: Boolean(row.external_message_id),
+        createdAt: row.created_at
+      }))
     });
   } catch (error) {
-    console.error('Error in getTicketReplies:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Terjadi kesalahan server.',
-      error: error.message
-    });
+    serverError(res, 'getTicketReplies', error);
   }
+};
+
+// Simpan balasan + notifikasi + sinkronisasi. Dipakai oleh balasan biasa dan eskalasi.
+const storeReply = async (ticket, sender, konten) => {
+  const now = wibNow();
+  const [result] = await db.query('INSERT INTO ticket_replies (ticket_id, user_id, konten, created_at) VALUES (?, ?, ?, ?)', [ticket.id, sender.id, konten, now]);
+  const senderIsStaff = sender.role === 'staff' || sender.role === 'admin';
+
+  if (senderIsStaff) {
+    // Staff pertama yang membalas menjadi penanggung jawab; tiket yang dibalas staff berstatus diproses.
+    await db.query("UPDATE tickets SET staff_id = COALESCE(staff_id, ?), status = 'diproses', updated_at = ? WHERE id = ?", [sender.id, now, ticket.id]);
+    if (Number(ticket.user_id) !== Number(sender.id)) {
+      const roleLabel = sender.role === 'admin' ? 'Administrator' : 'Staff KroomCare';
+      await notifyUser(ticket.user_id, `Balasan dari ${sender.nama} (${roleLabel})`, `Tiket #${ticket.id} "${ticket.judul}": "${konten.slice(0, 80)}"`, `/tickets/${ticket.id}`);
+    }
+    syncReplyToPanel(ticket, sender.nama, konten);
+    if (ticket.status !== 'diproses') syncStatusToPanel(ticket, 'In Progress');
+  } else {
+    // Balasan pelanggan pada tiket yang sudah selesai otomatis membuka kembali tiket tersebut.
+    const reopened = ticket.status === 'selesai';
+    await db.query(`UPDATE tickets SET updated_at = ?${reopened ? ", status = 'menunggu'" : ''} WHERE id = ?`, [now, ticket.id]);
+    await notifyTicketHandlers(
+      ticket,
+      reopened ? `Tiket #${ticket.id} dibuka kembali` : `Balasan dari ${sender.nama} (Customer)`,
+      `Pelanggan membalas tiket #${ticket.id} "${ticket.judul}": "${konten.slice(0, 80)}"`,
+      sender.id
+    );
+    syncReplyToPanel(ticket, sender.nama, konten);
+    if (reopened) {
+      syncStatusToPanel(ticket, 'Open');
+      broadcast('broadcastTicketEvent', ticket.id, 'StatusChanged', { ticket_id: String(ticket.id), status: 'Open', changed_by: sender.nama, timestamp: now }, ticket.external_ticket_id);
+    }
+  }
+
+  const senderType = senderIsStaff ? 'staff' : 'user';
+  const data = {
+    ticket_id: String(ticket.id),
+    external_ticket_id: ticket.external_ticket_id || undefined,
+    message_id: result.insertId.toString(),
+    id: result.insertId.toString(),
+    content: konten,
+    message: konten,
+    text: konten,
+    konten: konten,
+    sender_role: senderType,
+    sender_type: senderType,
+    ticketId: String(ticket.id),
+    userId: String(sender.id),
+    sender_id: String(sender.id),
+    sender_name: sender.nama,
+    userName: sender.nama,
+    userRole: sender.role === 'member' ? 'customer' : sender.role,
+    timestamp: now,
+    created_at: now,
+    createdAt: now,
+    isAdmin: senderIsStaff,
+    status: 'sent'
+  };
+  broadcast('broadcastTicketMessage', ticket.id, data, ticket.external_ticket_id);
+  return data;
 };
 
 // Add Reply to Ticket
 const addTicketReply = async (req, res) => {
   try {
-    const { id } = req.params;
-    const { user_id, konten } = req.body;
-
-    if (!user_id || !konten) {
-      return res.status(400).json({
-        success: false,
-        message: 'user_id dan konten wajib diisi.'
-      });
+    const konten = String(req.body.konten || '').trim();
+    if (!konten) {
+      return res.status(400).json({ success: false, message: 'Konten balasan wajib diisi.' });
+    }
+    if (konten.length > MAX_TEXT) {
+      return res.status(400).json({ success: false, message: 'Balasan terlalu panjang.' });
     }
 
-    const wibNow = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' });
-    const query = 'INSERT INTO ticket_replies (ticket_id, user_id, konten, created_at) VALUES (?, ?, ?, ?)';
-    const [result] = await db.query(query, [id, user_id, konten, wibNow]);
+    const ticket = await loadTicketForUser(req.user, req.params.id);
+    if (!ticket) return notFound(res);
 
-    // Ambil info pengirim balasan untuk dikembalikan ke frontend
-    const [userRows] = await db.query('SELECT nama, role FROM users WHERE id = ?', [user_id]);
-    const user = userRows[0] || { nama: 'Unknown', role: 'member' };
-
-    // Ambil info tiket untuk sinkronisasi notifikasi dan webhook
-    const [tktRows] = await db.query('SELECT user_id, staff_id, external_ticket_id, judul, deskripsi FROM tickets WHERE id = ?', [id]);
-    const ticketData = tktRows.length > 0 ? tktRows[0] : null;
-
-    // Jika pengirim adalah staff atau admin, secara otomatis assign tiket dan ubah status menjadi 'diproses'
-    if (user.role === 'staff' || user.role === 'admin') {
-      await db.query("UPDATE tickets SET staff_id = COALESCE(staff_id, ?), status = 'diproses', updated_at = ? WHERE id = ?", [user_id, wibNow, id]);
-
-      // Buat notifikasi in-app untuk customer jika dibalas oleh staff / admin
-      if (ticketData && ticketData.user_id && ticketData.user_id !== parseInt(user_id, 10)) {
-        try {
-          const roleLabel = user.role === 'admin' ? 'Administrator' : 'Staff KroomCare';
-          await db.query(`
-            INSERT INTO notifications (user_id, title, type, message, link, is_read, created_at)
-            VALUES (?, ?, 'ticket', ?, ?, FALSE, ?)
-          `, [
-            ticketData.user_id,
-            `Balasan dari ${user.nama} (${roleLabel})`,
-            `Staff membalas tiket #${id} "${ticketData.judul}": "${konten.slice(0, 80)}"`,
-            `/tickets/${id}`,
-            wibNow
-          ]);
-        } catch (notifErr) {
-          console.error('Failed to create in-app notification for customer:', notifErr.message);
-        }
-      }
-
-      // --- Sync reply to KolabPanel if this is an external ticket ---
-      try {
-        let extTicketId = ticketData ? ticketData.external_ticket_id : null;
-
-        // 1. Jika external_ticket_id masih kosong, cari berdasarkan judul yang sama di tiket lain
-        if (!extTicketId && ticketData && ticketData.judul) {
-          const [matchRows] = await db.query(
-            'SELECT external_ticket_id FROM tickets WHERE judul = ? AND external_ticket_id IS NOT NULL ORDER BY id DESC LIMIT 1',
-            [ticketData.judul]
-          );
-          if (matchRows.length > 0) {
-            extTicketId = matchRows[0].external_ticket_id;
-            await db.query('UPDATE tickets SET external_ticket_id = ? WHERE id = ?', [extTicketId, id]);
-          }
-        }
-
-        // 2. Jika masih kosong, cek apakah subjek atau deskripsi mengandung ID panel format (t_...)
-        if (!extTicketId && ticketData) {
-          const combinedText = `${ticketData.judul} ${ticketData.deskripsi || ''}`;
-          const matchRegex = combinedText.match(/\b(t_\d+_[a-z0-9]+)\b/i);
-          if (matchRegex) {
-            extTicketId = matchRegex[1];
-            await db.query('UPDATE tickets SET external_ticket_id = ? WHERE id = ?', [extTicketId, id]);
-          }
-        }
-
-        if (extTicketId && process.env.KOLABPANEL_WEBHOOK_URL) {
-          console.log(`[Webhook] Syncing reply for ticket #${id} (Ext: ${extTicketId}) to ${process.env.KOLABPANEL_WEBHOOK_URL}`);
-          sendWebhook(process.env.KOLABPANEL_WEBHOOK_URL, {
-            external_ticket_id: extTicketId,
-            sender_name: user.nama,
-            text: konten
-          });
-
-          // Sinkronisasikan status tiket ke KolabPanel juga
-          const webhookStatusUrl = process.env.KOLABPANEL_WEBHOOK_URL.replace('/external-reply', '/external-status');
-          sendWebhook(webhookStatusUrl, {
-            external_ticket_id: extTicketId,
-            status: 'In Progress'
-          });
-        }
-      } catch(err) {
-        console.error('Failed to process KolabPanel webhook:', err.message);
-      }
-    } else {
-      // Jika pengguna (customer / member) yang membalas
-      await db.query("UPDATE tickets SET updated_at = ? WHERE id = ?", [wibNow, id]);
-
-      // Buat notifikasi untuk staff/admin yang menangani tiket atau seluruh staff & admin jika belum di-assign
-      try {
-        const targetStaff = (ticketData && ticketData.staff_id)
-          ? [{ id: ticketData.staff_id }]
-          : (await db.query("SELECT id FROM users WHERE role IN ('staff', 'admin')"))[0];
-
-        for (const st of targetStaff) {
-          if (st.id !== parseInt(user_id, 10)) {
-            await db.query(`
-              INSERT INTO notifications (user_id, title, type, message, link, is_read, created_at)
-              VALUES (?, ?, 'ticket', ?, ?, FALSE, ?)
-            `, [
-              st.id,
-              `Balasan dari ${user.nama} (Customer)`,
-              `Pelanggan membalas tiket #${id} "${ticketData?.judul || ''}": "${konten.slice(0, 80)}"`,
-              `/staff/tickets/${id}`,
-              wibNow
-            ]);
-          }
-        }
-      } catch (notifErr) {
-        console.error('Failed to create in-app notification for staff/admin:', notifErr.message);
-      }
-
-      // Sinkronkan balasan customer ke KolabPanel webhook jika tiket berasal dari panel
-      try {
-        let extTicketId = ticketData ? ticketData.external_ticket_id : null;
-        if (!extTicketId && ticketData && ticketData.judul) {
-          const [matchRows] = await db.query(
-            'SELECT external_ticket_id FROM tickets WHERE judul = ? AND external_ticket_id IS NOT NULL ORDER BY id DESC LIMIT 1',
-            [ticketData.judul]
-          );
-          if (matchRows.length > 0) {
-            extTicketId = matchRows[0].external_ticket_id;
-          }
-        }
-        if (extTicketId && process.env.KOLABPANEL_WEBHOOK_URL) {
-          sendWebhook(process.env.KOLABPANEL_WEBHOOK_URL, {
-            external_ticket_id: extTicketId,
-            sender_name: user.nama,
-            text: konten
-          });
-        }
-      } catch (syncErr) {
-        console.error('Failed to sync customer reply to KolabPanel webhook:', syncErr.message);
-      }
+    const sender = await getUserBrief(resolveActorId(req));
+    if (!sender) {
+      return res.status(400).json({ success: false, message: 'Pengirim balasan tidak dikenali.' });
     }
 
-    // Jika balasan dibuat di server lokal (port 5000 / DB port 3306), otomatis sinkronkan ke Live Server KroomCare (port 5550)
-    // agar balasan yang diketik oleh staf di localhost langsung muncul di Support Center Panel Kroombox
-    if (!req.body.is_synced && (process.env.PORT === '5000' || process.env.DB_PORT === '3306')) {
-      const liveEndpoint = (process.env.LIVE_KROOMCARE_URL || 'https://kroomcare.kroombox.com') + `/api/tickets/${id}/replies`;
-      sendWebhook(liveEndpoint, {
-        user_id,
-        konten,
-        is_synced: true
-      }).catch(err => console.error('[LocalSync] Gagal meneruskan balasan ke live server:', err.message));
-    }
+    const data = await storeReply(ticket, sender, konten);
+    if (!req.body.is_synced && isLocalDevServer()) forwardToLive(`/api/tickets/${ticket.id}/replies`, { user_id: sender.id, konten });
 
-    const senderType = (user.role === 'staff' || user.role === 'admin') ? 'staff' : 'user';
-    const standardizedData = {
-      ticket_id: id.toString(),
-      external_ticket_id: extTicketId || undefined,
-      message_id: result.insertId.toString(),
-      id: result.insertId.toString(),
-      content: konten,
-      message: konten,
-      text: konten,
-      konten: konten,
-      sender_role: senderType,
-      sender_type: senderType,
-      ticketId: id.toString(),
-      userId: user_id.toString(),
-      sender_id: user_id.toString(),
-      sender_name: user.nama,
-      userName: user.nama,
-      userRole: user.role === 'member' ? 'customer' : user.role,
-      timestamp: wibNow,
-      created_at: wibNow,
-      createdAt: wibNow,
-      isAdmin: senderType === 'staff',
-      status: 'sent'
-    };
-
-    // Broadcast ke Realtime Event Channels: private-ticket.{ticket_id}, kroomcare_ticket_{ticket_id}, and presence-staff-notifications
-    try {
-      const { broadcastTicketMessage } = require('../utils/realtimeHub');
-      broadcastTicketMessage(id, standardizedData, extTicketId);
-    } catch (rtErr) {
-      console.warn('[RealtimeHub] Broadcast error:', rtErr.message);
-    }
-
-    res.status(201).json({
-      success: true,
-      message: 'Balasan tiket berhasil ditambahkan.',
-      data: standardizedData
-    });
+    res.status(201).json({ success: true, message: 'Balasan tiket berhasil ditambahkan.', data });
   } catch (error) {
-    console.error('Error in addTicketReply:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Terjadi kesalahan server.',
-      error: error.message
-    });
+    serverError(res, 'addTicketReply', error);
   }
 };
 
-// Give Point Reward to Customer
+// Give Point Reward to Customer (staff/admin). Satu reward per tiket; mengirim ulang mengubah jumlahnya.
 const giveReward = async (req, res) => {
   try {
-    const { id } = req.params; // ticket ID
-    const { points } = req.body; // read points from request body
-    const pointsAmount = parseInt(points) || 50; // default to 50 if not specified
-
-    // Cari tiket untuk mendapatkan customer user_id
-    const [ticketRows] = await db.query('SELECT user_id, judul FROM tickets WHERE id = ?', [id]);
-    if (ticketRows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'Tiket tidak ditemukan.'
-      });
-    }
-
-    const ticket = ticketRows[0];
-    const customerId = ticket.user_id;
-
-    // Tambahkan poin ke user
-    await db.query('UPDATE users SET koin_reward = koin_reward + ? WHERE id = ?', [pointsAmount, customerId]);
-
-    // Catat histori poin
-    const desc = `Reward penyelesaian tiket #${id}: ${ticket.judul}`;
-    await db.query(
-      'INSERT INTO point_histories (user_id, jenis_transaksi, jumlah_poin, keterangan) VALUES (?, ?, ?, ?)',
-      [customerId, 'masuk', pointsAmount, desc]
-    );
-
-    res.status(200).json({
-      success: true,
-      message: 'Poin reward berhasil diberikan kepada pelanggan.',
-      data: { points: pointsAmount }
-    });
+    const ticket = await loadTicketForUser(req.user, req.params.id);
+    if (!ticket) return notFound(res);
+    const result = await applyTicketReward(ticket, req.body.points);
+    res.status(result.status).json(result.body);
   } catch (error) {
-    console.error('Error in giveReward:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Terjadi kesalahan server.',
-      error: error.message
-    });
+    serverError(res, 'giveReward', error);
   }
 };
 
-// Escalate Ticket to Maintenance
+// Escalate Ticket to Maintenance (staff/admin): prioritas tinggi, status diproses, catatan eskalasi, notifikasi admin.
 const escalateTicket = async (req, res) => {
   try {
-    const { id } = req.params;
-    const { staff_id } = req.body;
+    const ticket = await loadTicketForUser(req.user, req.params.id);
+    if (!ticket) return notFound(res);
 
-    // 1. Update status to 'diproses'
-    await db.query("UPDATE tickets SET status = 'diproses' WHERE id = ?", [id]);
+    const sender = await getUserBrief(resolveActorId(req));
+    if (!sender || (sender.role !== 'staff' && sender.role !== 'admin')) {
+      return res.status(400).json({ success: false, message: 'Eskalasi harus dilakukan oleh staff atau admin.' });
+    }
 
-    // 2. Update priority to High (is_priority = 1)
-    await db.query("UPDATE tickets SET is_priority = 1 WHERE id = ?", [id]);
+    const [existing] = await db.query(
+      "SELECT tr.konten FROM ticket_replies tr JOIN users u ON tr.user_id = u.id WHERE tr.ticket_id = ? AND u.role IN ('staff','admin')",
+      [ticket.id]
+    );
+    if (existing.some(r => isEscalationText(r.konten))) {
+      return res.status(409).json({ success: false, message: 'Tiket ini sudah dieskalasi.' });
+    }
 
-    // 3. Catat eskalasi ke ticket_replies
-    const systemUserId = staff_id || 2; // Default to staff_id or Sarah Staff (2)
-    const content = "Tiket telah dieskalasi ke tim teknis (Transfer to Maintenance).";
-    const wibNow = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' });
-    await db.query('INSERT INTO ticket_replies (ticket_id, user_id, konten, created_at) VALUES (?, ?, ?, ?)', [id, systemUserId, content, wibNow]);
+    await db.query('UPDATE tickets SET is_priority = 1 WHERE id = ?', [ticket.id]);
+    const data = await storeReply(ticket, sender, ESCALATION_TEXT);
+    await notifyRoles(['admin'], `Eskalasi tiket #${ticket.id}`, `${sender.nama} mengeskalasi tiket "${ticket.judul}" ke tim teknis.`, `/staff/tickets/${ticket.id}`, sender.id);
 
     res.status(200).json({
       success: true,
       message: 'Tiket berhasil dieskalasi ke tim teknis.',
-      data: {
-        id,
-        status: 'In Progress',
-        isPriority: true
-      }
+      data: { id: String(ticket.id), status: 'In Progress', isPriority: true, isEscalated: true, reply: data }
     });
   } catch (error) {
-    console.error('Error in escalateTicket:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Terjadi kesalahan server.',
-      error: error.message
-    });
+    serverError(res, 'escalateTicket', error);
   }
 };
 
@@ -827,9 +648,9 @@ module.exports = {
   getTicketDetail,
   setPriority,
   updateStatus,
+  assignTicket,
   getTicketReplies,
   addTicketReply,
   giveReward,
   escalateTicket
 };
-

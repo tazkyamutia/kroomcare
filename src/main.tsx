@@ -4,6 +4,9 @@ import App from './App.tsx';
 import './index.css';
 import { UserProvider } from './context/UserContext.tsx';
 import { LanguageThemeProvider } from './context/LanguageThemeContext.tsx';
+import { installAuthFetchPatch } from './utils/fetchAuth';
+
+installAuthFetchPatch();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

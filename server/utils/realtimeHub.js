@@ -11,8 +11,47 @@
  * - Verified payload validation ({ ticket_id, message_id, content, sender_role, timestamp })
  */
 
+const db = require('../config/db');
+const { resolveIdentity, isStaffRole } = require('../middleware/auth');
+
 // Channels store: Map<string, Set<http.ServerResponse>>
 const channelSubscribers = new Map();
+
+const STAFF_CHANNELS = new Set(['presence-staff-notifications', 'staff-notifications']);
+
+const deny = (res, status, message) => res.status(status).json({ success: false, message });
+
+/**
+ * Otorisasi langganan SSE. EventSource tidak bisa mengirim header Authorization, jadi token dikirim lewat ?token=.
+ * Channel staf hanya untuk staff/admin; channel tiket hanya untuk pemilik tiket atau staff/admin.
+ * Mengembalikan true bila boleh, atau sudah mengirim respons penolakan.
+ */
+async function authorizeChannel(req, res, channelName) {
+  const user = await resolveIdentity(req, { allowQueryToken: true });
+  if (!user) {
+    deny(res, 401, 'Sesi tidak valid atau sudah kedaluwarsa.');
+    return false;
+  }
+  if (STAFF_CHANNELS.has(channelName)) {
+    if (isStaffRole(user)) return true;
+    deny(res, 403, 'Akses ditolak.');
+    return false;
+  }
+  const match = /^(?:private-ticket\.|kroomcare_ticket_)(.+)$/.exec(channelName);
+  if (!match) {
+    deny(res, 404, 'Channel tidak dikenal.');
+    return false;
+  }
+  if (isStaffRole(user)) return true;
+  const ref = match[1];
+  const [rows] = await db.query(
+    'SELECT user_id FROM tickets WHERE ' + (/^\d+$/.test(ref) ? 'id = ?' : 'external_ticket_id = ?'),
+    [ref]
+  );
+  if (rows.length && Number(rows[0].user_id) === Number(user.id)) return true;
+  deny(res, 404, 'Tiket tidak ditemukan.');
+  return false;
+}
 
 /**
  * Get or create subscriber set for any channel name
@@ -29,16 +68,20 @@ function getChannelSet(channelName) {
 /**
  * Generic SSE subscription handler for any channel
  */
-function handleChannelSubscription(req, res) {
-  const channelName = req.params.channel || req.query.channel || 'presence-staff-notifications';
+async function handleChannelSubscription(req, res) {
+  const channelName = String(req.params.channel || req.query.channel || 'presence-staff-notifications').trim();
+  try {
+    if (!(await authorizeChannel(req, res, channelName))) return;
+  } catch (err) {
+    console.error('[RealtimeHub] authorize error:', err.message);
+    return deny(res, 500, 'Terjadi kesalahan server.');
+  }
 
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
     'Cache-Control': 'no-cache, no-transform',
     'Connection': 'keep-alive',
-    'X-Accel-Buffering': 'no',
-    'Access-Control-Allow-Origin': '*',
-    'Content-Security-Policy': 'frame-ancestors *'
+    'X-Accel-Buffering': 'no'
   });
 
   const subs = getChannelSet(channelName);
@@ -70,18 +113,22 @@ function handleChannelSubscription(req, res) {
 /**
  * Subscription handler for Ticket Chat (subscribes to both private-ticket.{id} and kroomcare_ticket_{id})
  */
-function handleTicketSubscription(req, res) {
+async function handleTicketSubscription(req, res) {
   const ticketId = String(req.params.id);
   const primaryChannel = `private-ticket.${ticketId}`;
   const aliasChannel = `kroomcare_ticket_${ticketId}`;
+  try {
+    if (!(await authorizeChannel(req, res, primaryChannel))) return;
+  } catch (err) {
+    console.error('[RealtimeHub] authorize error:', err.message);
+    return deny(res, 500, 'Terjadi kesalahan server.');
+  }
 
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
     'Cache-Control': 'no-cache, no-transform',
     'Connection': 'keep-alive',
-    'X-Accel-Buffering': 'no',
-    'Access-Control-Allow-Origin': '*',
-    'Content-Security-Policy': 'frame-ancestors *'
+    'X-Accel-Buffering': 'no'
   });
 
   const primarySubs = getChannelSet(primaryChannel);
@@ -200,6 +247,17 @@ function broadcastTicketMessage(ticketId, rawPayload, externalTicketId) {
 }
 
 /**
+ * Broadcast event non-pesan (StatusChanged, TicketAssigned, TicketUpdated) ke channel tiket dan staf.
+ */
+function broadcastTicketEvent(ticketId, eventName, payload, externalTicketId) {
+  const tid = String(ticketId);
+  const channels = [`private-ticket.${tid}`, `kroomcare_ticket_${tid}`];
+  if (externalTicketId) channels.push(`private-ticket.${externalTicketId}`, `kroomcare_ticket_${externalTicketId}`);
+  for (const ch of channels) broadcastToChannel(ch, eventName, payload);
+  broadcastToChannel('presence-staff-notifications', eventName, payload);
+}
+
+/**
  * Broadcast event notifikasi global staff (misal: TicketCreated)
  * @param {string} eventName - 'TicketCreated' | 'NotificationCreated'
  * @param {object} payload
@@ -220,6 +278,7 @@ module.exports = {
   handleStaffSubscription,
   broadcastToChannel,
   broadcastTicketMessage,
+  broadcastTicketEvent,
   broadcastStaffNotification,
   channelSubscribers
 };

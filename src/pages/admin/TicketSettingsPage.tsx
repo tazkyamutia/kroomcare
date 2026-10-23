@@ -16,6 +16,7 @@ export const TicketSettingsPage = () => {
   const [updatingId, setUpdatingId] = React.useState<string | null>(null);
   const [showToast, setShowToast] = React.useState(false);
   const [toastMessage, setToastMessage] = React.useState('');
+  const [staffOptions, setStaffOptions] = React.useState<{ id: string; name: string; role: string }[]>([]);
 
   const fetchTickets = async (silent = false) => {
     if (!silent) setLoading(true);
@@ -39,9 +40,13 @@ export const TicketSettingsPage = () => {
 
   React.useEffect(() => {
     fetchTickets(false);
+    fetch('/api/admin/staff')
+      .then(res => res.json())
+      .then(result => { if (result.success && Array.isArray(result.data)) setStaffOptions(result.data); })
+      .catch(() => {});
     const interval = setInterval(() => {
       fetchTickets(true);
-    }, 3000);
+    }, 15000);
     return () => clearInterval(interval);
   }, []);
 
@@ -62,6 +67,31 @@ export const TicketSettingsPage = () => {
         setTimeout(() => setShowToast(false), 3000);
       } else {
         alert(result.message || (language === 'en' ? 'Failed to update priority.' : 'Gagal mengubah prioritas.'));
+      }
+    } catch (err) {
+      console.error(err);
+      alert(language === 'en' ? 'Failed to connect to server.' : 'Koneksi gagal ke server.');
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const handleAssign = async (ticketId: string, staffId: string) => {
+    setUpdatingId(ticketId);
+    try {
+      const response = await fetch(`/api/tickets/${ticketId}/assign`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ staff_id: staffId || null })
+      });
+      const result = await response.json();
+      if (response.ok && result.success) {
+        setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, assignedTo: result.data.assignedTo || undefined, assignedStaffName: result.data.assignedStaffName } : t));
+        setToastMessage(result.message || (language === 'en' ? 'Ticket assignment updated.' : 'Penugasan tiket diperbarui.'));
+        setShowToast(true);
+        setTimeout(() => setShowToast(false), 3000);
+      } else {
+        alert(result.message || (language === 'en' ? 'Failed to assign ticket.' : 'Gagal menugaskan tiket.'));
       }
     } catch (err) {
       console.error(err);
@@ -168,6 +198,7 @@ export const TicketSettingsPage = () => {
                   <th className="px-4 py-3 sm:px-5">{t('admin_tickets.col_subject')}</th>
                   <th className="px-4 py-3 sm:px-5">{t('admin_tickets.col_priority')}</th>
                   <th className="px-4 py-3 sm:px-5">{t('admin_tickets.col_status')}</th>
+                  <th className="px-4 py-3 sm:px-5">{language === 'en' ? 'Handler' : 'Penanggung jawab'}</th>
                   <th className="px-4 py-3 sm:px-5 text-right">{language === 'en' ? 'Action' : 'Aksi'}</th>
                 </tr>
               </thead>
@@ -233,6 +264,22 @@ export const TicketSettingsPage = () => {
                           <option value="Resolved">{language === 'en' ? 'Resolved' : 'Selesai'}</option>
                         </select>
                       </td>
+                      <td className="px-4 py-3 sm:px-5">
+                        <select
+                          value={ticket.assignedTo || ''}
+                          disabled={updatingId === ticket.id}
+                          onChange={(e) => handleAssign(ticket.id, e.target.value)}
+                          className="text-[10px] font-semibold px-2 py-1 rounded-lg focus:outline-none cursor-pointer border bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700 max-w-[10rem]"
+                        >
+                          <option value="">{language === 'en' ? 'Unassigned' : 'Belum ditugaskan'}</option>
+                          {ticket.assignedTo && !staffOptions.some(s => s.id === String(ticket.assignedTo)) && (
+                            <option value={ticket.assignedTo}>{ticket.assignedStaffName || `#${ticket.assignedTo}`}</option>
+                          )}
+                          {staffOptions.map(s => (
+                            <option key={s.id} value={s.id}>{s.name}{s.role === 'admin' ? ' (Admin)' : ''}</option>
+                          ))}
+                        </select>
+                      </td>
                       <td className="px-4 py-3 sm:px-5 text-right">
                         <button
                           onClick={() => navigate(`/tickets/${ticket.id}`)}
@@ -246,7 +293,7 @@ export const TicketSettingsPage = () => {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={6} className="text-center py-8 text-slate-400 text-xs sm:text-sm">
+                    <td colSpan={7} className="text-center py-8 text-slate-400 text-xs sm:text-sm">
                       {language === 'en' ? 'No tickets found.' : 'Tiket tidak ditemukan.'}
                     </td>
                   </tr>

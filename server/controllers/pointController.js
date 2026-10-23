@@ -1,4 +1,5 @@
 const db = require('../config/db');
+const { loadTicketForUser, notifyUser } = require('../utils/ticketAccess');
 
 // Get Point History for a User
 const getPointHistory = async (req, res) => {
@@ -24,8 +25,7 @@ const getPointHistory = async (req, res) => {
     console.error('Error in getPointHistory:', error);
     res.status(500).json({
       success: false,
-      message: 'Terjadi kesalahan server.',
-      error: error.message
+      message: 'Terjadi kesalahan server.'
     });
   }
 };
@@ -33,39 +33,32 @@ const getPointHistory = async (req, res) => {
 // Redeem Points (Point Keluar)
 const redeemPoints = async (req, res) => {
   try {
-    const { user_id, points_required, keterangan } = req.body;
+    const userId = req.user.id;
+    const pointsRequired = Number(req.body.points_required);
+    const keterangan = String(req.body.keterangan || '').slice(0, 255);
 
-    if (!user_id || !points_required || !keterangan) {
+    if (!Number.isInteger(pointsRequired) || pointsRequired <= 0 || !keterangan) {
       return res.status(400).json({
         success: false,
-        message: 'user_id, points_required, dan keterangan wajib disertakan.'
+        message: 'points_required harus bilangan bulat positif dan keterangan wajib disertakan.'
       });
     }
 
-    // 1. Cek saldo koin_reward user saat ini
-    const [userRows] = await db.query('SELECT koin_reward FROM users WHERE id = ?', [user_id]);
-    if (userRows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'User tidak ditemukan.'
-      });
-    }
-
-    const currentPoints = userRows[0].koin_reward;
-    if (currentPoints < points_required) {
+    // Pengurangan atomik: saldo dicek dan dipotong dalam satu query sehingga tidak bisa minus lewat request paralel.
+    const [result] = await db.query(
+      'UPDATE users SET koin_reward = koin_reward - ? WHERE id = ? AND koin_reward >= ?',
+      [pointsRequired, userId, pointsRequired]
+    );
+    if (result.affectedRows === 0) {
       return res.status(400).json({
         success: false,
         message: 'Poin Anda tidak mencukupi untuk melakukan penukaran ini.'
       });
     }
 
-    // 2. Kurangi koin_reward di tabel users
-    await db.query('UPDATE users SET koin_reward = koin_reward - ? WHERE id = ?', [points_required, user_id]);
-
-    // 3. Catat transaksi keluar di tabel point_histories
     await db.query(
       'INSERT INTO point_histories (user_id, jenis_transaksi, jumlah_poin, keterangan) VALUES (?, ?, ?, ?)',
-      [user_id, 'keluar', points_required, keterangan]
+      [userId, 'keluar', pointsRequired, keterangan]
     );
 
     res.status(200).json({
@@ -76,8 +69,7 @@ const redeemPoints = async (req, res) => {
     console.error('Error in redeemPoints:', error);
     res.status(500).json({
       success: false,
-      message: 'Terjadi kesalahan server.',
-      error: error.message
+      message: 'Terjadi kesalahan server.'
     });
   }
 };
@@ -111,103 +103,72 @@ const getPointBalance = async (req, res) => {
     console.error('Error in getPointBalance:', error);
     res.status(500).json({
       success: false,
-      message: 'Terjadi kesalahan server.',
-      error: error.message
+      message: 'Terjadi kesalahan server.'
     });
   }
 };
 
-// Reward Customer with Points (Staf/Admin memberi atau mengedit poin ke customer untuk tiket)
-const rewardCustomer = async (req, res) => {
-  try {
-    const { ticket_id, ticketId, user_id, userId, points } = req.body;
-    const targetUserId = user_id || userId;
-    const targetTicketId = ticket_id || ticketId;
-    const pointsAmount = parseInt(points, 10);
+// Reward penyelesaian tiket. Satu catatan reward per tiket: mengirim ulang mengubah jumlahnya (selisih saja).
+const MAX_REWARD_POINTS = 1000;
+const applyTicketReward = async (ticket, rawPoints) => {
+  const pointsAmount = Number(rawPoints === undefined || rawPoints === '' ? 50 : rawPoints);
+  if (!Number.isInteger(pointsAmount) || pointsAmount < 0 || pointsAmount > MAX_REWARD_POINTS) {
+    return { status: 400, body: { success: false, message: `Jumlah poin harus bilangan bulat 0 sampai ${MAX_REWARD_POINTS}.` } };
+  }
 
-    if (isNaN(pointsAmount) || pointsAmount < 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Jumlah poin harus berupa angka valid (minimal 0).'
-      });
-    }
+  const customerId = ticket.user_id;
+  const desc = `Reward penyelesaian tiket #${ticket.id}: ${ticket.judul}`;
+  const [histRows] = await db.query(
+    'SELECT id, jumlah_poin FROM point_histories WHERE user_id = ? AND keterangan LIKE ? ORDER BY id DESC LIMIT 1',
+    [customerId, `%penyelesaian tiket #${ticket.id}%`]
+  );
+  const existing = histRows[0] || null;
 
-    if (!targetUserId) {
-      return res.status(400).json({
-        success: false,
-        message: 'user_id wajib disertakan.'
-      });
-    }
+  if (existing) {
+    const diff = pointsAmount - Number(existing.jumlah_poin);
+    await db.query('UPDATE users SET koin_reward = GREATEST(0, COALESCE(koin_reward, 0) + ?) WHERE id = ?', [diff, customerId]);
+    await db.query('UPDATE point_histories SET jumlah_poin = ?, keterangan = ? WHERE id = ?', [pointsAmount, desc, existing.id]);
+  } else {
+    await db.query('UPDATE users SET koin_reward = COALESCE(koin_reward, 0) + ? WHERE id = ?', [pointsAmount, customerId]);
+    await db.query(
+      'INSERT INTO point_histories (user_id, jenis_transaksi, jumlah_poin, keterangan) VALUES (?, ?, ?, ?)',
+      [customerId, 'masuk', pointsAmount, desc]
+    );
+  }
 
-    // 1. Cek user
-    const [userRows] = await db.query('SELECT id, nama, koin_reward FROM users WHERE id = ?', [targetUserId]);
-    if (userRows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'User pelanggan tidak ditemukan.'
-      });
-    }
+  const [balanceRows] = await db.query('SELECT koin_reward FROM users WHERE id = ?', [customerId]);
+  await notifyUser(customerId, 'Reward poin diterima', `Anda menerima ${pointsAmount} poin untuk tiket #${ticket.id} "${ticket.judul}".`, '/points-history');
 
-    const currentBalance = userRows[0].koin_reward || 0;
-
-    // 2. Cek apakah sudah pernah diberi reward untuk tiket ini
-    let existingReward = null;
-    if (targetTicketId) {
-      const [histRows] = await db.query(
-        "SELECT id, jumlah_poin FROM point_histories WHERE user_id = ? AND keterangan LIKE ? ORDER BY id DESC LIMIT 1",
-        [targetUserId, `%penyelesaian tiket #${targetTicketId}%`]
-      );
-      if (histRows.length > 0) {
-        existingReward = histRows[0];
-      }
-    }
-
-    let newBalance = currentBalance;
-    const desc = targetTicketId 
-      ? `Reward penyelesaian tiket #${targetTicketId}`
-      : `Reward poin pelayanan pelanggan`;
-
-    if (existingReward) {
-      // Edit / Update poin yang sudah pernah diberikan: hitung selisih
-      const diff = pointsAmount - existingReward.jumlah_poin;
-      newBalance = Math.max(0, currentBalance + diff);
-      await db.query('UPDATE users SET koin_reward = ? WHERE id = ?', [newBalance, targetUserId]);
-      
-      // Update record history lama
-      await db.query(
-        'UPDATE point_histories SET jumlah_poin = ?, keterangan = ? WHERE id = ?',
-        [pointsAmount, desc, existingReward.id]
-      );
-    } else {
-      // Pemberian reward pertama kali
-      newBalance = currentBalance + pointsAmount;
-      await db.query('UPDATE users SET koin_reward = ? WHERE id = ?', [newBalance, targetUserId]);
-
-      await db.query(
-        'INSERT INTO point_histories (user_id, jenis_transaksi, jumlah_poin, keterangan) VALUES (?, ?, ?, ?)',
-        [targetUserId, 'masuk', pointsAmount, desc]
-      );
-    }
-
-    res.status(200).json({
+  return {
+    status: 200,
+    body: {
       success: true,
-      message: existingReward
+      message: existing
         ? `Berhasil memperbarui reward menjadi ${pointsAmount} koin.`
         : `Berhasil memberikan ${pointsAmount} koin reward kepada pelanggan.`,
       data: {
-        userId: targetUserId,
+        userId: String(customerId),
+        points: pointsAmount,
         pointsAwarded: pointsAmount,
-        isUpdated: !!existingReward,
-        newBalance: newBalance
+        isUpdated: Boolean(existing),
+        newBalance: balanceRows[0] ? balanceRows[0].koin_reward : null
       }
-    });
+    }
+  };
+};
+
+// Reward Customer with Points (staff/admin, lewat /api/points/reward dengan ticket_id)
+const rewardCustomer = async (req, res) => {
+  try {
+    const ticket = await loadTicketForUser(req.user, req.body.ticket_id || req.body.ticketId);
+    if (!ticket) {
+      return res.status(404).json({ success: false, message: 'Tiket tidak ditemukan. Reward hanya dapat diberikan untuk tiket.' });
+    }
+    const result = await applyTicketReward(ticket, req.body.points);
+    res.status(result.status).json(result.body);
   } catch (error) {
     console.error('Error in rewardCustomer:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Gagal memberikan reward poin.',
-      error: error.message
-    });
+    res.status(500).json({ success: false, message: 'Gagal memberikan reward poin.' });
   }
 };
 
@@ -215,5 +176,6 @@ module.exports = {
   getPointHistory,
   redeemPoints,
   getPointBalance,
-  rewardCustomer
+  rewardCustomer,
+  applyTicketReward
 };

@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useUser } from '../../context/UserContext';
-import { setToken as saveTokenUtil } from '../../utils/token';
+import { setToken as saveTokenUtil, getStoredUser, setStoredUser } from '../../utils/token';
 import { Loader2, ShieldCheck, AlertCircle, Headphones } from 'lucide-react';
 
 export const SSOPage: React.FC = () => {
@@ -20,7 +20,9 @@ export const SSOPage: React.FC = () => {
     const lang = searchParams.get('lang') || searchParams.get('locale');
     const themeParam = searchParams.get('theme') || searchParams.get('mode');
 
-    let redirectPath = rawRedirect.startsWith('/') ? rawRedirect : `/${rawRedirect}`;
+    // Hanya path internal: tolak "//host" atau "/\\host" yang dibaca browser sebagai URL situs lain.
+    const safeRedirect = /^\/(?![\/\\])/.test(rawRedirect) ? rawRedirect : '/tickets';
+    let redirectPath = safeRedirect;
     if (lang) {
       try {
         localStorage.setItem('kroombox_parent_lang', lang);
@@ -38,7 +40,7 @@ export const SSOPage: React.FC = () => {
       } catch (_) {}
     }
 
-    const savedUserStr = typeof window !== 'undefined' ? localStorage.getItem('kroomcare_user') : null;
+    const savedUserStr = typeof window !== 'undefined' ? getStoredUser() : null;
 
     if (!ticket) {
       if (savedUserStr || user) {
@@ -75,7 +77,7 @@ export const SSOPage: React.FC = () => {
 
         // 1. Simpan token & user ke storage
         saveTokenUtil(data.token);
-        localStorage.setItem('kroomcare_user', JSON.stringify(data.data));
+        setStoredUser(JSON.stringify(data.data));
         if (data.lang || data.data?.lang) {
           const l = data.lang || data.data.lang;
           try {

@@ -4,6 +4,7 @@ import { Mail, Lock, Loader2, Eye, EyeOff, ShieldCheck } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useUser } from '../../context/UserContext';
 import { AuthIllustration } from '../../components/auth/AuthIllustration';
+import { setToken } from '../../utils/token';
 
 export const LoginPage = () => {
   const { setUser } = useUser();
@@ -51,13 +52,14 @@ export const LoginPage = () => {
       if (response.ok && result.success) {
         if (result.twoFactorRequired) {
           setTwoFactorRequired(true);
-          setTwoFactorUserId(result.userId);
+          setTwoFactorUserId(result.twoFactorToken);
           setIsLoading(false);
           return;
         }
+        setToken(result.token);
         setUser(result.data);
         const redirect = searchParams.get('redirect');
-        if (redirect && result.data.role === 'customer') {
+        if (redirect && redirect.startsWith('/') && !redirect.startsWith('//') && result.data.role === 'customer') {
           navigate(redirect);
         } else {
           navigate('/');
@@ -84,15 +86,16 @@ export const LoginPage = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ userId: twoFactorUserId, code: twoFactorCode }),
+        body: JSON.stringify({ twoFactorToken: twoFactorUserId, code: twoFactorCode }),
       });
 
       const result = await response.json();
 
       if (response.ok && result.success) {
+        setToken(result.token);
         setUser(result.data);
         const redirect = searchParams.get('redirect');
-        if (redirect && result.data.role === 'customer') {
+        if (redirect && redirect.startsWith('/') && !redirect.startsWith('//') && result.data.role === 'customer') {
           navigate(redirect);
         } else {
           navigate('/');

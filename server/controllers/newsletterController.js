@@ -65,8 +65,7 @@ const subscribeNewsletter = async (req, res) => {
 
     res.status(500).json({
       success: false,
-      message: 'Terjadi kesalahan server saat memproses langganan.',
-      error: error.message
+      message: 'Terjadi kesalahan server saat memproses langganan.'
     });
   }
 };

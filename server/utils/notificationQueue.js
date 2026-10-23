@@ -174,7 +174,7 @@ const sendNotification = async (targetJid, message) => {
   } catch (err) {
     clearTimeout(timeoutId);
     console.error('[Kroomhook] Network / Timeout Error:', err.message);
-    return { success: false, status: 0, error: err.message };
+    return { success: false, status: 0 };
   }
 };
 

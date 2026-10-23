@@ -184,14 +184,16 @@ export const ProfilePage: React.FC = () => {
     if (!user?.id) return;
 
     if (twoFactorEnabled) {
-      const confirmDisable = window.confirm(language === 'en' ? 'Are you sure you want to disable 2FA?' : 'Apakah Anda yakin ingin menonaktifkan 2FA?');
-      if (!confirmDisable) return;
+      const disableCode = window.prompt(language === 'en'
+        ? 'Enter the 6-digit code from your authenticator app to disable 2FA:'
+        : 'Masukkan 6 digit kode dari aplikasi authenticator untuk menonaktifkan 2FA:');
+      if (!disableCode) return;
 
       try {
         const response = await fetch('/api/auth/2fa/disable', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: user.id })
+          body: JSON.stringify({ code: disableCode.trim() })
         });
         const result = await response.json();
         if (response.ok && result.success) {

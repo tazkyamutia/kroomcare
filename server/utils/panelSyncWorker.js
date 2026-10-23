@@ -3,9 +3,11 @@ const db = require('../config/db');
 const https = require('https');
 const { queueNotification, sendNotification, updateNotificationStatus } = require('./notificationQueue');
 const { broadcastTicketMessage, broadcastStaffNotification } = require('./realtimeHub');
+const { randomUnusablePassword } = require('./password');
 
 let isSyncRunning = false;
-const MCP_API_KEY = process.env.KROOMBOX_MCP_KEY || 'kp_live_b1b2e0b48460bfeb5fcc9db0312ec0e2b95da9e283f6e41ddb64a95c05fa2431';
+// Kunci MCP KolabPanel wajib dari .env (KROOMBOX_MCP_KEY); tanpa kunci, worker tidak berjalan.
+const MCP_API_KEY = process.env.KROOMBOX_MCP_KEY || '';
 
 /**
  * Helper: Panggil Kroombox Panel MCP Tool via SSE/HTTP
@@ -138,7 +140,9 @@ function callPanelMcpTool(toolName, args = {}) {
 async function syncPanelReplies() {
   try {
     const [tickets] = await db.query(
-      'SELECT id, external_ticket_id, user_id, staff_id, judul FROM tickets WHERE external_ticket_id IS NOT NULL'
+      // Hanya tiket yang masih aktif atau baru diperbarui, agar panel tidak dipanggil untuk seluruh riwayat tiap putaran.
+      `SELECT id, external_ticket_id, user_id, staff_id, judul, status FROM tickets
+       WHERE external_ticket_id IS NOT NULL AND (status <> 'selesai' OR updated_at >= DATE_SUB(NOW(), INTERVAL 3 DAY))`
     );
 
     for (const t of tickets) {
@@ -159,8 +163,10 @@ async function syncPanelReplies() {
           }
 
           // Cek apakah pesan sudah ada di database KroomCare
+          // Duplikat = ID pesan panel sama, atau teks sama dalam 2 menit (pantulan balasan yang baru dikirim ke panel).
           const [existing] = await db.query(
-            'SELECT id FROM ticket_replies WHERE ticket_id = ? AND (external_message_id = ? OR konten = ?)',
+            `SELECT id FROM ticket_replies WHERE ticket_id = ? AND (external_message_id = ?
+               OR (konten = ? AND created_at >= DATE_SUB(NOW(), INTERVAL 2 MINUTE)))`,
             [t.id, msg.id, msg.text]
           );
 
@@ -175,19 +181,40 @@ async function syncPanelReplies() {
             }
           }
 
-          // Simpan balasan pengguna dari panel ke KroomCare
+          // Pesan admin panel dicatat atas nama staff penanggung jawab (atau admin pertama), bukan atas nama pelanggan.
+          const fromPanelAdmin = msg.isAdmin === true;
+          let senderUserId = t.user_id;
+          if (fromPanelAdmin) {
+            if (t.staff_id) senderUserId = t.staff_id;
+            else {
+              const [admins] = await db.query("SELECT id FROM users WHERE role = 'admin' ORDER BY id ASC LIMIT 1");
+              if (!admins.length) continue;
+              senderUserId = admins[0].id;
+            }
+          }
+
           const [insertRes] = await db.query(
             'INSERT INTO ticket_replies (ticket_id, user_id, konten, external_message_id, created_at) VALUES (?, ?, ?, ?, ?)',
-            [t.id, t.user_id, msg.text, msg.id, createdAtWib]
+            [t.id, senderUserId, msg.text, msg.id, createdAtWib]
           );
 
           console.log(`[PanelSync] Balasan baru dari panel #${insertRes.insertId} pada tiket #${t.id} ("${msg.text.slice(0, 40)}...")`);
 
-          // Update status & waktu updated_at tiket
-          await db.query('UPDATE tickets SET updated_at = ? WHERE id = ?', [createdAtWib, t.id]);
+          // Update waktu tiket; balasan pelanggan pada tiket selesai membuka kembali tiket tersebut.
+          await db.query(
+            `UPDATE tickets SET updated_at = ?${fromPanelAdmin ? '' : ", status = IF(status = 'selesai', 'menunggu', status)"} WHERE id = ?`,
+            [createdAtWib, t.id]
+          );
 
-          // Masukkan notifikasi staf
-          const [staffRecipients] = t.staff_id
+          if (fromPanelAdmin) {
+            await db.query(`
+              INSERT INTO notifications (user_id, title, type, message, link, is_read, created_at)
+              VALUES (?, 'Balasan dari Support Kroombox', 'ticket', ?, ?, FALSE, ?)
+            `, [t.user_id, `Tiket #${t.id} "${t.judul}": "${msg.text.slice(0, 80)}"`, `/tickets/${t.id}`, createdAtWib]);
+          }
+
+          // Masukkan notifikasi staf (hanya untuk balasan pelanggan)
+          const [staffRecipients] = fromPanelAdmin ? [[]] : t.staff_id
             ? [[{ id: t.staff_id }]]
             : await db.query("SELECT id FROM users WHERE role IN ('staff', 'admin')");
 
@@ -198,7 +225,7 @@ async function syncPanelReplies() {
             `, [
               recipient.id,
               `Pengguna membalas tiket #${t.id} "${t.judul}": "${msg.text.slice(0, 80)}"`,
-              `/tickets/${t.id}`,
+              `/staff/tickets/${t.id}`,
               createdAtWib
             ]);
           }
@@ -213,13 +240,13 @@ async function syncPanelReplies() {
             message: msg.text,
             text: msg.text,
             konten: msg.text,
-            sender_role: 'user',
-            sender_type: 'user',
-            sender_id: String(t.user_id),
+            sender_role: fromPanelAdmin ? 'staff' : 'user',
+            sender_type: fromPanelAdmin ? 'staff' : 'user',
+            sender_id: String(senderUserId),
             sender_name: msg.senderName || 'Akun Kroombox',
             timestamp: createdAtWib,
             created_at: createdAtWib,
-            isAdmin: false,
+            isAdmin: fromPanelAdmin,
             status: 'sent'
           };
 
@@ -262,14 +289,17 @@ async function syncPanelTickets() {
           }
         } catch (_) {}
 
-        const email = `${pt.username || pt.user_id || 'user'}@kroombox.com`;
-        const nama = pt.username || 'User Kroombox';
+        // Pemilik tiket harus dikenali dari email asli di panel. Tanpa email, tiket tidak diimpor (tiket baru panel
+        // sudah dikirim lewat webhook /api/external/tickets) supaya tidak tertampung di akun palsu bersama.
+        const email = pt.user_email || pt.email || null;
+        if (!email) continue;
+        const nama = pt.username || String(email).split('@')[0];
 
         // JIT User Provisioning
         const [kcUserRows] = await db.query('SELECT id FROM users WHERE email = ?', [email]);
         let kcUserId;
         if (kcUserRows.length === 0) {
-          const defaultPassword = 'EXT_USER_' + Date.now();
+          const defaultPassword = await randomUnusablePassword();
           const [insertUserRes] = await db.query(
             'INSERT INTO users (nama, email, password, role, koin_reward) VALUES (?, ?, ?, "member", 0)',
             [nama, email, defaultPassword]
@@ -333,7 +363,11 @@ async function syncPanelTickets() {
  * startPanelSyncWorker
  * Menjalankan background worker setiap 5 detik untuk auto-sync tiket & balasan panel
  */
-function startPanelSyncWorker(intervalMs = 6000) {
+function startPanelSyncWorker(intervalMs = Number(process.env.PANEL_SYNC_INTERVAL_MS) || 30000) {
+  if (!MCP_API_KEY) {
+    console.warn('[PanelSync Worker] KROOMBOX_MCP_KEY belum diset di .env, sinkronisasi panel tidak dijalankan.');
+    return;
+  }
   console.log(`[PanelSync Worker] Aktif, memindai tiket & balasan Support Center Panel setiap ${Math.round(intervalMs / 1000)} detik.`);
   setTimeout(() => {
     syncPanelTickets().catch(() => {});

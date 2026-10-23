@@ -1,6 +1,50 @@
 const db = require('../config/db');
 const QRCode = require('qrcode');
-const { verifyPassword, hashPassword } = require('../utils/password');
+const { verifyPassword, hashPassword, randomUnusablePassword } = require('../utils/password');
+const { issueSessionToken, signToken, verifyToken, safeEqual } = require('../middleware/auth');
+
+// Percobaan kode salah per akun (OTP reset & 2FA). Melengkapi rate limit per IP agar tebakan terdistribusi tetap terbatas.
+const MAX_CODE_FAILURES = 5;
+const CODE_WINDOW_MS = 15 * 60 * 1000;
+const codeFailures = new Map();
+const recordCodeFailure = (key) => {
+  const now = Date.now();
+  const entry = codeFailures.get(key);
+  const current = entry && now - entry.firstAt <= CODE_WINDOW_MS ? entry : { count: 0, firstAt: now };
+  current.count += 1;
+  codeFailures.set(key, current);
+  return current.count >= MAX_CODE_FAILURES;
+};
+const isCodeLocked = (key) => {
+  const entry = codeFailures.get(key);
+  return Boolean(entry) && Date.now() - entry.firstAt <= CODE_WINDOW_MS && entry.count >= MAX_CODE_FAILURES;
+};
+const clearCodeFailures = (key) => codeFailures.delete(key);
+
+// Tiket SSO hanya boleh ditukar sekali (nonce disimpan sampai tiket kedaluwarsa).
+const usedSsoNonces = new Map();
+const consumeSsoNonce = (nonce, exp) => {
+  const now = Date.now();
+  for (const [key, until] of usedSsoNonces) if (until < now) usedSsoNonces.delete(key);
+  if (!nonce || usedSsoNonces.has(nonce)) return false;
+  usedSsoNonces.set(nonce, (Number(exp) || Math.floor(now / 1000) + 300) * 1000);
+  return true;
+};
+
+const sessionPayload = (user) => {
+  let statusMapped = 'online';
+  if (user.status_kerja === 'sibuk') statusMapped = 'busy';
+  else if (user.status_kerja === 'offline') statusMapped = 'offline';
+  return {
+    id: user.id.toString(),
+    name: user.nama,
+    email: user.email,
+    role: user.role === 'member' ? 'customer' : user.role,
+    points: user.koin_reward || 0,
+    avatar: user.foto || '',
+    status: statusMapped
+  };
+};
 
 // Login User
 const login = async (req, res) => {
@@ -20,51 +64,46 @@ const login = async (req, res) => {
     if (rows.length === 0) {
       return res.status(401).json({
         success: false,
-        message: 'Email tidak terdaftar.'
+        message: 'Email atau password salah.'
       });
     }
 
     const user = rows[0];
 
     // Verifikasi password (mendukung scrypt hash maupun legacy plaintext)
-    const { match } = await verifyPassword(password, user.password);
+    const { match, needsRehash } = await verifyPassword(password, user.password);
     if (!match) {
       return res.status(401).json({
         success: false,
-        message: 'Password salah.'
+        message: 'Email atau password salah.'
       });
     }
+    if (needsRehash) {
+      await db.query('UPDATE users SET password = ? WHERE id = ?', [await hashPassword(password), user.id]);
+    }
 
-    // Cek apakah 2FA diaktifkan untuk akun ini
+    // Cek apakah 2FA diaktifkan untuk akun ini. Langkah 2FA hanya bisa dilanjutkan dengan token sementara ini,
+    // sehingga kode OTP tidak bisa ditebak tanpa lebih dulu mengetahui password.
     if (user.two_factor === 1) {
       return res.status(200).json({
         success: true,
         twoFactorRequired: true,
-        userId: user.id.toString()
+        userId: user.id.toString(),
+        twoFactorToken: signToken({ purpose: '2fa', userId: Number(user.id) }, 5 * 60)
       });
     }
-
-    // Map 'member' ke 'customer' untuk kompatibilitas dengan frontend React
-    const roleMapped = user.role === 'member' ? 'customer' : user.role;
 
     res.status(200).json({
       success: true,
       message: 'Login berhasil.',
-      data: {
-        id: user.id.toString(),
-        name: user.nama,
-        email: user.email,
-        role: roleMapped,
-        points: user.koin_reward || 0,
-        avatar: user.foto || ''
-      }
+      token: issueSessionToken(user),
+      data: sessionPayload(user)
     });
   } catch (error) {
     console.error('Error in login:', error);
     res.status(500).json({
       success: false,
-      message: 'Terjadi kesalahan server.',
-      error: error.message
+      message: 'Terjadi kesalahan server.'
     });
   }
 };
@@ -106,8 +145,7 @@ const getProfile = async (req, res) => {
     console.error('Error in getProfile:', error);
     res.status(500).json({
       success: false,
-      message: 'Gagal mengambil data profil.',
-      error: error.message
+      message: 'Gagal mengambil data profil.'
     });
   }
 };
@@ -123,6 +161,15 @@ const updateProfile = async (req, res) => {
         success: false,
         message: 'Nama dan email wajib diisi.'
       });
+    }
+
+    // Email adalah identitas login & SSO: hanya admin yang boleh mengubahnya.
+    const [currentRows] = await db.query('SELECT email FROM users WHERE id = ?', [id]);
+    if (!currentRows.length) {
+      return res.status(404).json({ success: false, message: 'User tidak ditemukan.' });
+    }
+    if (req.user.role !== 'admin' && String(email).trim().toLowerCase() !== String(currentRows[0].email).trim().toLowerCase()) {
+      return res.status(403).json({ success: false, message: 'Email tidak dapat diubah. Hubungi administrator.' });
     }
 
     // Map frontend status ke db status_kerja
@@ -155,8 +202,7 @@ const updateProfile = async (req, res) => {
     console.error('Error in updateProfile:', error);
     res.status(500).json({
       success: false,
-      message: 'Gagal memperbarui profil di server.',
-      error: error.message
+      message: 'Gagal memperbarui profil di server.'
     });
   }
 };
@@ -206,8 +252,7 @@ const changePassword = async (req, res) => {
     console.error('Error in changePassword:', error);
     res.status(500).json({
       success: false,
-      message: 'Gagal memperbarui password di server.',
-      error: error.message
+      message: 'Gagal memperbarui password di server.'
     });
   }
 };
@@ -287,11 +332,7 @@ function generateSecret() {
 // Setup 2FA
 const setup2FA = async (req, res) => {
   try {
-    const { id } = req.body;
-    if (!id) {
-      return res.status(400).json({ success: false, message: 'User ID wajib diisi.' });
-    }
-
+    const id = req.user.id;
     const [rows] = await db.query('SELECT email FROM users WHERE id = ?', [id]);
     if (rows.length === 0) {
       return res.status(404).json({ success: false, message: 'User tidak ditemukan.' });
@@ -314,22 +355,18 @@ const setup2FA = async (req, res) => {
     });
   } catch (error) {
     console.error('Error in setup2FA:', error);
-    res.status(500).json({ success: false, message: 'Gagal membuat 2FA setup.', error: error.message });
+    res.status(500).json({ success: false, message: 'Gagal membuat 2FA setup.' });
   }
 };
 
 // Verify & Enable 2FA
 const verify2FA = async (req, res) => {
   try {
-    const { id, secret, code } = req.body;
+    const { secret, code } = req.body;
+    const userId = req.user.id;
 
-    if (!id || !secret || !code) {
-      return res.status(400).json({ success: false, message: 'ID, secret, dan OTP code wajib diisi.' });
-    }
-
-    const userId = parseInt(id, 10);
-    if (isNaN(userId)) {
-      return res.status(400).json({ success: false, message: 'ID pengguna tidak valid.' });
+    if (!userId || !secret || !code) {
+      return res.status(400).json({ success: false, message: 'Secret dan kode OTP wajib diisi.' });
     }
 
     const isValid = verifyTOTP(secret, code);
@@ -345,22 +382,25 @@ const verify2FA = async (req, res) => {
     });
   } catch (error) {
     console.error('Error in verify2FA:', error);
-    res.status(500).json({ success: false, message: 'Gagal memverifikasi 2FA.', error: error.message });
+    res.status(500).json({ success: false, message: 'Gagal memverifikasi 2FA.' });
   }
 };
 
 // Disable 2FA
 const disable2FA = async (req, res) => {
   try {
-    const { id } = req.body;
+    const userId = req.user.id;
+    const { code } = req.body;
 
-    if (!id) {
-      return res.status(400).json({ success: false, message: 'User ID wajib diisi.' });
+    // Menonaktifkan 2FA wajib membuktikan masih memegang authenticator.
+    const [secretRows] = await db.query('SELECT two_factor, two_factor_secret FROM users WHERE id = ?', [userId]);
+    if (!secretRows.length) {
+      return res.status(404).json({ success: false, message: 'User tidak ditemukan.' });
     }
-
-    const userId = parseInt(id, 10);
-    if (isNaN(userId)) {
-      return res.status(400).json({ success: false, message: 'User ID tidak valid.' });
+    if (secretRows[0].two_factor && secretRows[0].two_factor_secret) {
+      if (!code || !verifyTOTP(secretRows[0].two_factor_secret, String(code))) {
+        return res.status(400).json({ success: false, message: 'Kode OTP dari aplikasi authenticator wajib dan harus benar untuk menonaktifkan 2FA.' });
+      }
     }
 
     await db.query('UPDATE users SET two_factor = 0, two_factor_secret = NULL WHERE id = ?', [userId]);
@@ -371,17 +411,25 @@ const disable2FA = async (req, res) => {
     });
   } catch (error) {
     console.error('Error in disable2FA:', error);
-    res.status(500).json({ success: false, message: 'Gagal menonaktifkan 2FA.', error: error.message });
+    res.status(500).json({ success: false, message: 'Gagal menonaktifkan 2FA.' });
   }
 };
 
 // Login 2FA
 const login2FA = async (req, res) => {
   try {
-    const { userId, code } = req.body;
+    const { twoFactorToken, code } = req.body;
+    const pending = verifyToken(twoFactorToken);
+    if (!pending || pending.purpose !== '2fa' || !pending.userId) {
+      return res.status(401).json({ success: false, message: 'Sesi verifikasi 2FA kedaluwarsa. Silakan login ulang.' });
+    }
+    const userId = pending.userId;
 
-    if (!userId || !code) {
-      return res.status(400).json({ success: false, message: 'User ID dan Kode OTP wajib diisi.' });
+    if (!code) {
+      return res.status(400).json({ success: false, message: 'Kode OTP wajib diisi.' });
+    }
+    if (isCodeLocked(`2fa:${userId}`)) {
+      return res.status(429).json({ success: false, message: 'Terlalu banyak kode salah. Coba lagi dalam 15 menit.' });
     }
 
     const [rows] = await db.query('SELECT * FROM users WHERE id = ?', [userId]);
@@ -395,32 +443,22 @@ const login2FA = async (req, res) => {
       return res.status(400).json({ success: false, message: '2FA belum aktif untuk akun ini.' });
     }
 
-    const isValid = verifyTOTP(user.two_factor_secret, code);
+    const isValid = verifyTOTP(user.two_factor_secret, String(code));
     if (!isValid) {
+      recordCodeFailure(`2fa:${userId}`);
       return res.status(400).json({ success: false, message: 'Kode OTP salah atau sudah kadaluarsa.' });
     }
-
-    const roleMapped = user.role === 'member' ? 'customer' : user.role;
-    let statusMapped = 'online';
-    if (user.status_kerja === 'sibuk') statusMapped = 'busy';
-    else if (user.status_kerja === 'offline') statusMapped = 'offline';
+    clearCodeFailures(`2fa:${userId}`);
 
     res.status(200).json({
       success: true,
       message: 'Login 2FA berhasil.',
-      data: {
-        id: user.id.toString(),
-        name: user.nama,
-        email: user.email,
-        role: roleMapped,
-        points: user.koin_reward || 0,
-        avatar: user.foto || '',
-        status: statusMapped
-      }
+      token: issueSessionToken(user),
+      data: sessionPayload(user)
     });
   } catch (error) {
     console.error('Error in login2FA:', error);
-    res.status(500).json({ success: false, message: 'Terjadi kesalahan server.', error: error.message });
+    res.status(500).json({ success: false, message: 'Terjadi kesalahan server.' });
   }
 };
 
@@ -448,11 +486,13 @@ const forgotPassword = async (req, res) => {
 
     const [rows] = await db.query('SELECT id, nama FROM users WHERE email = ?', [email]);
     if (rows.length === 0) {
-      return res.status(404).json({ success: false, message: 'Email tidak ditemukan.' });
+      // Jawaban sama dengan email terdaftar agar daftar akun tidak bisa ditebak.
+      return res.status(200).json({ success: true, message: 'Jika email terdaftar, kode OTP telah dikirim.' });
     }
 
     const user = rows[0];
-    otp = Math.floor(100000 + Math.random() * 900000).toString();
+    otp = crypto.randomInt(100000, 1000000).toString();
+    clearCodeFailures(`reset:${String(email).toLowerCase()}`);
     const expires = new Date(Date.now() + 10 * 60 * 1000); // 10 menit dari sekarang
 
     // Simpan OTP di Database
@@ -486,14 +526,13 @@ const forgotPassword = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: 'Kode OTP telah berhasil dikirim ke email Anda.'
+      message: 'Jika email terdaftar, kode OTP telah dikirim.'
     });
   } catch (error) {
     console.error('Error in forgotPassword:', error);
     res.status(500).json({ 
       success: false, 
-      message: 'Gagal mengirim email OTP. Silakan periksa konfigurasi email atau coba lagi nanti.',
-      error: error.message 
+      message: 'Gagal mengirim email OTP. Silakan periksa konfigurasi email atau coba lagi nanti.'
     });
   }
 };
@@ -507,16 +546,24 @@ const resetPassword = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Email, OTP, dan password baru wajib diisi.' });
     }
 
+    const attemptKey = `reset:${String(email).toLowerCase()}`;
     const [rows] = await db.query('SELECT reset_otp, reset_otp_expires FROM users WHERE email = ?', [email]);
     if (rows.length === 0) {
-      return res.status(404).json({ success: false, message: 'Email tidak terdaftar.' });
+      return res.status(400).json({ success: false, message: 'Kode OTP salah.' });
     }
 
     const user = rows[0];
 
-    if (!user.reset_otp || user.reset_otp !== otp) {
+    if (!user.reset_otp || !safeEqual(user.reset_otp, String(otp))) {
+      // Setelah 5 kali salah, kode dibatalkan dan pengguna harus meminta kode baru.
+      if (recordCodeFailure(attemptKey)) {
+        clearCodeFailures(attemptKey);
+        await db.query('UPDATE users SET reset_otp = NULL, reset_otp_expires = NULL WHERE email = ?', [email]);
+        return res.status(400).json({ success: false, message: 'Terlalu banyak kode salah. Silakan minta kode OTP baru.' });
+      }
       return res.status(400).json({ success: false, message: 'Kode OTP salah.' });
     }
+    clearCodeFailures(attemptKey);
 
     const now = new Date();
     if (new Date(user.reset_otp_expires) < now) {
@@ -533,7 +580,7 @@ const resetPassword = async (req, res) => {
     });
   } catch (error) {
     console.error('Error in resetPassword:', error);
-    res.status(500).json({ success: false, message: 'Gagal memperbarui password.', error: error.message });
+    res.status(500).json({ success: false, message: 'Gagal memperbarui password.' });
   }
 };
 // Register User
@@ -572,8 +619,7 @@ const register = async (req, res) => {
     console.error('Error in register:', error);
     res.status(500).json({
       success: false,
-      message: 'Terjadi kesalahan server saat registrasi.',
-      error: error.message
+      message: 'Terjadi kesalahan server saat registrasi.'
     });
   }
 };
@@ -600,21 +646,10 @@ const ssoExchange = async (req, res) => {
     const [headerB64, payloadB64, signature] = parts;
 
     // Kunci rahasia untuk verifikasi HMAC-SHA256
-    const secrets = [
-      process.env.KROOMCARE_API_KEY,
-      process.env.JWT_SECRET,
-      'KC_2aa4c37a3c8647133a9ee1177a86cd2e87936e2dcb7f96dc',
-      'bda16eead8ea629aac1255feb031dd70be2c774b1be4f1a738487faf4b9c67df'
-    ].filter(Boolean);
-
-    let isValid = false;
-    for (const secret of secrets) {
-      const expectedSig = crypto.createHmac('sha256', secret).update(`${headerB64}.${payloadB64}`).digest('base64url');
-      if (expectedSig === signature) {
-        isValid = true;
-        break;
-      }
-    }
+    // Hanya kunci bersama dengan KolabPanel (KROOMCARE_API_KEY) yang boleh menandatangani tiket SSO.
+    const secret = process.env.KROOMCARE_API_KEY;
+    const expectedSig = secret ? crypto.createHmac('sha256', secret).update(`${headerB64}.${payloadB64}`).digest('base64url') : '';
+    const isValid = Boolean(secret) && safeEqual(expectedSig, signature);
 
     if (!isValid) {
       return res.status(401).json({
@@ -633,10 +668,17 @@ const ssoExchange = async (req, res) => {
       });
     }
 
-    if (payload.exp && Date.now() / 1000 > payload.exp) {
+    if (!payload.exp || Date.now() / 1000 > payload.exp) {
       return res.status(401).json({
         success: false,
         message: 'Tiket SSO telah kedaluwarsa. Silakan muat ulang halaman.'
+      });
+    }
+
+    if (!consumeSsoNonce(payload.nonce, payload.exp)) {
+      return res.status(401).json({
+        success: false,
+        message: 'Tiket SSO sudah dipakai. Silakan muat ulang halaman.'
       });
     }
 
@@ -657,7 +699,7 @@ const ssoExchange = async (req, res) => {
     } else {
       // JIT Provisioning akun baru jika belum ada
       const targetRole = payload.role === 'admin' ? 'admin' : (payload.role === 'staff' ? 'staff' : 'member');
-      const defaultPassword = 'SSO_' + Date.now();
+      const defaultPassword = await randomUnusablePassword();
       const insertQuery = `
         INSERT INTO users (nama, email, password, role, koin_reward)
         VALUES (?, ?, ?, ?, ?)
@@ -675,10 +717,11 @@ const ssoExchange = async (req, res) => {
     }
 
     const roleMapped = user.role === 'member' ? 'customer' : user.role;
-    const detectedTheme = payload.theme || payload.themePreference || payload.mode || payload.colorScheme || null;
+    const rawTheme = payload.theme || payload.themePreference || payload.mode || payload.colorScheme || null;
+    const detectedTheme = rawTheme === 'dark' || rawTheme === 'light' ? rawTheme : null;
 
-    // Buat token sesi SSO
-    const sessionToken = 'sso_token_' + Buffer.from(`${user.id}:${Date.now()}:${payload.nonce || '0'}`).toString('base64url');
+    // Token sesi bertanda tangan yang sama dengan login biasa
+    const sessionToken = issueSessionToken(user);
 
     res.status(200).json({
       success: true,
@@ -701,8 +744,7 @@ const ssoExchange = async (req, res) => {
     console.error('Error in ssoExchange:', error);
     res.status(500).json({
       success: false,
-      message: 'Terjadi kesalahan server saat memproses SSO.',
-      error: error.message
+      message: 'Terjadi kesalahan server saat memproses SSO.'
     });
   }
 };

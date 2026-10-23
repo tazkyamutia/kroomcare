@@ -1,4 +1,5 @@
 const db = require('../config/db');
+const { hashPassword } = require('../utils/password');
 
 // Dapatkan Data Statistik Admin Dashboard
 const getAdminStats = async (req, res) => {
@@ -238,8 +239,7 @@ const getAllUsers = async (req, res) => {
     console.error('Error in getAllUsers:', error);
     res.status(500).json({
       success: false,
-      message: 'Gagal memuat daftar pengguna.',
-      error: error.message
+      message: 'Gagal memuat daftar pengguna.'
     });
   }
 };
@@ -256,7 +256,13 @@ const createUser = async (req, res) => {
     }
 
     const roleDb = role === 'customer' ? 'member' : role;
-    const points = parseInt(koin_reward) || 0;
+    if (!['member', 'staff', 'admin'].includes(roleDb)) {
+      return res.status(400).json({ success: false, message: 'Role tidak valid.' });
+    }
+    if (String(password).length < 8) {
+      return res.status(400).json({ success: false, message: 'Password minimal 8 karakter.' });
+    }
+    const points = Math.max(0, parseInt(koin_reward) || 0);
 
     // Cek email duplikat
     const [exists] = await db.query('SELECT id FROM users WHERE email = ?', [email]);
@@ -268,7 +274,7 @@ const createUser = async (req, res) => {
     }
 
     const query = 'INSERT INTO users (nama, email, password, role, koin_reward) VALUES (?, ?, ?, ?, ?)';
-    const [result] = await db.query(query, [nama, email, password, roleDb, points]);
+    const [result] = await db.query(query, [nama, email, await hashPassword(password), roleDb, points]);
 
     res.status(201).json({
       success: true,
@@ -285,9 +291,32 @@ const createUser = async (req, res) => {
     console.error('Error in createUser:', error);
     res.status(500).json({
       success: false,
-      message: 'Gagal menambahkan pengguna.',
-      error: error.message
+      message: 'Gagal menambahkan pengguna.'
     });
+  }
+};
+
+// Daftar staff & admin untuk pilihan penugasan tiket
+const getStaffList = async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      `SELECT u.id, u.nama, u.role, u.status_kerja,
+              (SELECT COUNT(*) FROM tickets t WHERE t.staff_id = u.id AND t.status <> 'selesai') AS open_tickets
+       FROM users u WHERE u.role IN ('staff', 'admin') ORDER BY u.role DESC, u.nama ASC`
+    );
+    res.status(200).json({
+      success: true,
+      data: rows.map(r => ({
+        id: String(r.id),
+        name: r.nama,
+        role: r.role,
+        status: r.status_kerja === 'sibuk' ? 'busy' : (r.status_kerja === 'offline' ? 'offline' : 'online'),
+        openTickets: Number(r.open_tickets) || 0
+      }))
+    });
+  } catch (error) {
+    console.error('Error in getStaffList:', error);
+    res.status(500).json({ success: false, message: 'Gagal mengambil daftar staff.' });
   }
 };
 
@@ -295,7 +324,10 @@ const createUser = async (req, res) => {
 const deleteUser = async (req, res) => {
   try {
     const { id } = req.params;
-    
+    if (Number(id) === req.user.id) {
+      return res.status(400).json({ success: false, message: 'Admin tidak dapat menghapus akunnya sendiri.' });
+    }
+
     // Hapus data terikat terlebih dahulu agar tidak error foreign key
     await db.query('DELETE FROM point_histories WHERE user_id = ?', [id]);
     await db.query('DELETE FROM forum_replies WHERE user_id = ?', [id]);
@@ -318,8 +350,7 @@ const deleteUser = async (req, res) => {
     console.error('Error in deleteUser:', error);
     res.status(500).json({
       success: false,
-      message: 'Gagal menghapus pengguna dari database.',
-      error: error.message
+      message: 'Gagal menghapus pengguna dari database.'
     });
   }
 };
@@ -348,8 +379,7 @@ const getUserPointHistoryAdmin = async (req, res) => {
     console.error('Error in getUserPointHistoryAdmin:', error);
     res.status(500).json({
       success: false,
-      message: 'Gagal memuat riwayat koin.',
-      error: error.message
+      message: 'Gagal memuat riwayat koin.'
     });
   }
 };
@@ -463,7 +493,7 @@ const getStaffDashboardStats = async (req, res) => {
     // 7. Daftar Tiket Aktif Terkini untuk Staff Dashboard
     const [activeTickets] = await db.query(`
       SELECT 
-        t.id, t.judul, t.deskripsi, t.status, t.is_priority, t.created_at,
+        t.id, t.external_ticket_id, t.judul, t.deskripsi, t.status, t.is_priority, t.created_at,
         u.nama AS customer_name
       FROM tickets t
       LEFT JOIN users u ON t.user_id = u.id
@@ -474,6 +504,9 @@ const getStaffDashboardStats = async (req, res) => {
 
     const mappedActiveTickets = activeTickets.map(row => ({
       id: row.id.toString(),
+      externalTicketId: row.external_ticket_id || null,
+      external_ticket_id: row.external_ticket_id || null,
+      isFromPanel: Boolean(row.external_ticket_id),
       subject: row.judul,
       description: row.deskripsi,
       status: row.status === 'menunggu' ? 'Open' : 'In Progress',
@@ -498,8 +531,7 @@ const getStaffDashboardStats = async (req, res) => {
     console.error('Error in getStaffDashboardStats:', error);
     res.status(500).json({
       success: false,
-      message: 'Gagal mengambil data staff dashboard.',
-      error: error.message
+      message: 'Gagal mengambil data staff dashboard.'
     });
   }
 };
@@ -539,8 +571,7 @@ const resetUserPoints = async (req, res) => {
     console.error('Error in resetUserPoints:', error);
     res.status(500).json({
       success: false,
-      message: 'Gagal mengatur ulang koin reward.',
-      error: error.message
+      message: 'Gagal mengatur ulang koin reward.'
     });
   }
 };
@@ -723,6 +754,7 @@ const testWhatsAppNotification = async (req, res) => {
 };
 
 module.exports = {
+  getStaffList,
   getAdminStats,
   getAllUsers,
   createUser,
