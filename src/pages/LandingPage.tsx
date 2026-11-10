@@ -264,7 +264,7 @@ export const LandingPage: React.FC = () => {
           
           {/* Brand Logo & Name */}
           <div 
-            className="flex items-center gap-2 cursor-pointer select-none group" 
+            className="flex items-center gap-2 cursor-pointer select-none group min-w-0 shrink" 
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
             role="button"
             tabIndex={0}
@@ -276,7 +276,7 @@ export const LandingPage: React.FC = () => {
               alt="Logo KroomCare" 
               className="h-6 sm:h-7 w-auto object-contain group-hover:scale-105 transition-transform duration-200" 
             />
-            <span className="text-sm sm:text-base font-bold tracking-tight text-slate-900 dark:text-white">
+            <span className="text-sm sm:text-base font-bold tracking-tight text-slate-900 dark:text-white truncate">
               KroomCare
             </span>
           </div>
@@ -315,7 +315,7 @@ export const LandingPage: React.FC = () => {
             {/* Language Toggle Pill (Matching requested pill model) */}
             <button
               onClick={toggleLanguage}
-              className="h-7 sm:h-8 px-2.5 sm:px-3 rounded-full border border-blue-500 hover:border-blue-600 dark:border-blue-400 bg-white dark:bg-slate-900/90 hover:bg-blue-50/40 dark:hover:bg-blue-950/30 flex items-center gap-1.5 transition-all shadow-xs active:scale-95 cursor-pointer select-none"
+              className="hidden sm:flex h-7 sm:h-8 px-2.5 sm:px-3 rounded-full border border-blue-500 hover:border-blue-600 dark:border-blue-400 bg-white dark:bg-slate-900/90 hover:bg-blue-50/40 dark:hover:bg-blue-950/30 items-center gap-1.5 transition-all shadow-xs active:scale-95 cursor-pointer select-none"
               title={t('landing.switch_lang_title')}
             >
               {language === 'id' ? (
@@ -350,7 +350,7 @@ export const LandingPage: React.FC = () => {
             {/* Theme Toggle Pill */}
             <button 
               onClick={toggleTheme}
-              className="flex items-center p-0.5 bg-slate-100/90 dark:bg-slate-800/80 border border-slate-200/80 dark:border-white/10 rounded-full transition-all text-slate-600 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 shadow-2xs"
+              className="hidden sm:flex items-center p-0.5 bg-slate-100/90 dark:bg-slate-800/80 border border-slate-200/80 dark:border-white/10 rounded-full transition-all text-slate-600 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 shadow-2xs"
               aria-label="Toggle theme mode"
               title="Toggle theme mode"
             >
@@ -373,7 +373,7 @@ export const LandingPage: React.FC = () => {
             {/* Primary Action Button (Solid Pill) */}
             <button 
               onClick={() => navigate('/login')}
-              className="inline-flex items-center justify-center min-h-[34px] px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-xs font-semibold transition-all shadow-sm shadow-blue-500/20 hover:shadow-md hover:shadow-blue-500/30 hover:scale-[1.02] active:scale-[0.98] whitespace-nowrap"
+              className="inline-flex items-center justify-center min-h-[34px] px-3 sm:px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-xs font-semibold transition-all shadow-sm shadow-blue-500/20 hover:shadow-md hover:shadow-blue-500/30 hover:scale-[1.02] active:scale-[0.98] whitespace-nowrap"
             >
               <span>{t('landing.register_btn')}</span>
             </button>
@@ -437,6 +437,13 @@ export const LandingPage: React.FC = () => {
                   <span>{t('landing.switch_lang_title')}</span>
                 </button>
                 <button
+                  onClick={toggleTheme}
+                  className="w-full py-2 px-4 text-center text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors flex items-center justify-center gap-2"
+                >
+                  {theme === 'light' ? <Moon size={13} /> : <Sun size={13} />}
+                  <span>{theme === 'light' ? (language === 'en' ? 'Dark mode' : 'Mode gelap') : (language === 'en' ? 'Light mode' : 'Mode terang')}</span>
+                </button>
+                <button
                   onClick={() => closeMobileMenuAndNavigate('/login')}
                   className="w-full py-2.5 px-4 text-center text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
                 >
@@ -472,7 +479,7 @@ export const LandingPage: React.FC = () => {
           </div>
 
           {/* Floating Integration Bubbles on Orbits */}
-          <div className="max-w-5xl mx-auto relative pointer-events-none">
+          <div className="hidden sm:block max-w-5xl mx-auto relative pointer-events-none">
             {ORBIT_ITEMS.map((item, idx) => (
               <motion.div
                 key={item.name}
@@ -498,7 +505,7 @@ export const LandingPage: React.FC = () => {
               initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.35, ease: 'easeOut' }}
-              className="mb-3 sm:mb-4 px-3 py-1 bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-white/10 rounded-full text-[11px] font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2 shadow-xs"
+              className="mb-3 sm:mb-4 px-3 py-1 bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-white/10 rounded-full text-[11px] font-semibold text-slate-700 dark:text-slate-300 flex flex-wrap items-center justify-center gap-x-2 gap-y-0.5 shadow-xs max-w-full"
             >
               <div className="flex items-center gap-1">
                 <span className="w-3.5 h-3.5 rounded-full bg-blue-600 text-white text-[9px] font-bold flex items-center justify-center">
@@ -562,7 +569,7 @@ export const LandingPage: React.FC = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-40px" }}
               transition={{ duration: 0.35, ease: 'easeOut' }}
-              className="sticky top-20 sm:top-24 z-10 bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl border border-slate-200/90 dark:border-white/10 shadow-lg overflow-hidden text-left p-4 sm:p-5 lg:p-6 transition-all hover:shadow-xl"
+              className="relative lg:sticky lg:top-24 z-10 bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl border border-slate-200/90 dark:border-white/10 shadow-lg overflow-hidden text-left p-4 sm:p-5 lg:p-6 transition-all hover:shadow-xl"
             >
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-6 items-center">
                 {/* Left Column: Feature Description & Bullets */}
@@ -640,7 +647,7 @@ export const LandingPage: React.FC = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-40px" }}
               transition={{ duration: 0.35, ease: 'easeOut' }}
-              className="sticky top-24 sm:top-28 z-20 bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl border border-slate-200/90 dark:border-white/10 shadow-lg overflow-hidden text-left p-4 sm:p-5 lg:p-6 transition-all hover:shadow-xl"
+              className="relative lg:sticky lg:top-28 z-20 bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl border border-slate-200/90 dark:border-white/10 shadow-lg overflow-hidden text-left p-4 sm:p-5 lg:p-6 transition-all hover:shadow-xl"
             >
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-6 items-center">
                 {/* Left Column: Feature Description & Bullets */}
@@ -721,7 +728,7 @@ export const LandingPage: React.FC = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-40px" }}
               transition={{ duration: 0.35, ease: 'easeOut' }}
-              className="sticky top-28 sm:top-32 z-30 bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl border border-slate-200/90 dark:border-white/10 shadow-lg overflow-hidden text-left p-4 sm:p-5 lg:p-6 transition-all hover:shadow-xl"
+              className="relative lg:sticky lg:top-32 z-30 bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl border border-slate-200/90 dark:border-white/10 shadow-lg overflow-hidden text-left p-4 sm:p-5 lg:p-6 transition-all hover:shadow-xl"
             >
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-6 items-center">
                 {/* Left Column: Feature Description & Bullets */}
@@ -984,7 +991,7 @@ export const LandingPage: React.FC = () => {
         <div 
           role="status" 
           aria-live="polite"
-          className="fixed bottom-6 right-6 bg-slate-900 text-white px-4 py-3 rounded-full shadow-xl border border-slate-800 flex items-center gap-2.5 z-50 text-xs"
+          className="fixed bottom-4 inset-x-4 sm:inset-x-auto sm:bottom-6 sm:right-6 justify-center sm:justify-start bg-slate-900 text-white px-4 py-3 rounded-full shadow-xl border border-slate-800 flex items-center gap-2.5 z-50 text-xs"
         >
           <div className={`w-2 h-2 rounded-full ${newsletterToast.type === 'success' ? 'bg-emerald-400' : 'bg-red-400'}`} />
           <span>{newsletterToast.message}</span>
