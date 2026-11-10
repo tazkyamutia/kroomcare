@@ -264,9 +264,9 @@ const receiveExternalReply = async (req, res) => {
     }
 
     // Cari tiket berdasarkan external_ticket_id atau ID tiket lokal
-    let [tickets] = await db.query('SELECT id, user_id, staff_id, judul, external_ticket_id FROM tickets WHERE external_ticket_id = ?', [extTicketId]);
+    let [tickets] = await db.query('SELECT id, user_id, staff_id, judul, status, external_ticket_id FROM tickets WHERE external_ticket_id = ?', [extTicketId]);
     if (tickets.length === 0 && !isNaN(Number(extTicketId))) {
-      [tickets] = await db.query('SELECT id, user_id, staff_id, judul, external_ticket_id FROM tickets WHERE id = ?', [Number(extTicketId)]);
+      [tickets] = await db.query('SELECT id, user_id, staff_id, judul, status, external_ticket_id FROM tickets WHERE id = ?', [Number(extTicketId)]);
     }
 
     if (tickets.length === 0) {
@@ -328,6 +328,18 @@ const receiveExternalReply = async (req, res) => {
           wibNow
         ]);
       } else {
+        // WA ke grup staf agar balasan pelanggan diketahui tanpa membuka aplikasi
+        const [staffRows] = tickets[0].staff_id ? await db.query('SELECT nama FROM users WHERE id = ?', [tickets[0].staff_id]) : [[]];
+        require('../utils/notificationQueue').notifyCustomerReplyWhatsApp({
+          ticketId,
+          judul: tickets[0].judul,
+          customerName: senderName,
+          konten: replyContent,
+          staffName: staffRows[0] ? staffRows[0].nama : null,
+          reopened: tickets[0].status === 'selesai',
+          source: 'KolabPanel'
+        });
+
         // Balasan dari customer -> Beritahukan staf yang ditugaskan atau seluruh staf & admin
         const [targetRecipients] = tickets[0].staff_id
           ? [[{ id: tickets[0].staff_id }]]

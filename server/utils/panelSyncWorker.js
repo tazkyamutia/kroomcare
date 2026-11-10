@@ -1,7 +1,7 @@
 const mysql = require('mysql2/promise');
 const db = require('../config/db');
 const https = require('https');
-const { queueNotification, sendNotification, updateNotificationStatus } = require('./notificationQueue');
+const { queueNotification, sendNotification, updateNotificationStatus, notifyCustomerReplyWhatsApp } = require('./notificationQueue');
 const { broadcastTicketMessage, broadcastStaffNotification } = require('./realtimeHub');
 const { randomUnusablePassword } = require('./password');
 
@@ -211,6 +211,24 @@ async function syncPanelReplies() {
               INSERT INTO notifications (user_id, title, type, message, link, is_read, created_at)
               VALUES (?, 'Balasan dari Support Kroombox', 'ticket', ?, ?, FALSE, ?)
             `, [t.user_id, `Tiket #${t.id} "${t.judul}": "${msg.text.slice(0, 80)}"`, `/tickets/${t.id}`, createdAtWib]);
+          }
+
+          // WA ke grup staf untuk balasan pelanggan yang baru (pesan lama hasil sinkron awal tidak dikirim).
+          const msgAgeMs = msg.timestamp ? Date.now() - new Date(msg.timestamp).getTime() : 0;
+          if (!fromPanelAdmin && !(msgAgeMs > 30 * 60 * 1000)) {
+            const [names] = await db.query(
+              'SELECT (SELECT nama FROM users WHERE id = ?) AS customer, (SELECT nama FROM users WHERE id = ?) AS staff',
+              [t.user_id, t.staff_id || 0]
+            );
+            notifyCustomerReplyWhatsApp({
+              ticketId: t.id,
+              judul: t.judul,
+              customerName: msg.senderName || names[0].customer,
+              konten: msg.text,
+              staffName: names[0].staff,
+              reopened: t.status === 'selesai',
+              source: 'KolabPanel'
+            });
           }
 
           // Masukkan notifikasi staf (hanya untuk balasan pelanggan)

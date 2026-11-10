@@ -14,6 +14,7 @@ const {
   notifyTicketHandlers
 } = require('../utils/ticketAccess');
 const { applyTicketReward } = require('./pointController');
+const { notifyCustomerReplyWhatsApp } = require('../utils/notificationQueue');
 
 const MAX_SUBJECT = 200;
 const MAX_TEXT = 10000;
@@ -509,6 +510,24 @@ const getTicketReplies = async (req, res) => {
   }
 };
 
+// WA ke grup staf saat pelanggan membalas, agar staf tahu tanpa harus membuka aplikasi.
+const notifyCustomerReplyOnWhatsApp = async (ticket, customerName, konten, reopened, source) => {
+  try {
+    const [staffRows] = ticket.staff_id ? await db.query('SELECT nama FROM users WHERE id = ?', [ticket.staff_id]) : [[]];
+    notifyCustomerReplyWhatsApp({
+      ticketId: ticket.id,
+      judul: ticket.judul,
+      customerName,
+      konten,
+      staffName: staffRows[0] ? staffRows[0].nama : null,
+      reopened,
+      source
+    });
+  } catch (err) {
+    console.error('[WA] Gagal menyiapkan notifikasi balasan pelanggan:', err.message);
+  }
+};
+
 // Simpan balasan + notifikasi + sinkronisasi. Dipakai oleh balasan biasa dan eskalasi.
 const storeReply = async (ticket, sender, konten) => {
   const now = wibNow();
@@ -534,6 +553,7 @@ const storeReply = async (ticket, sender, konten) => {
       `Pelanggan membalas tiket #${ticket.id} "${ticket.judul}": "${konten.slice(0, 80)}"`,
       sender.id
     );
+    await notifyCustomerReplyOnWhatsApp(ticket, sender.nama, konten, reopened, 'Aplikasi KroomCare');
     syncReplyToPanel(ticket, sender.nama, konten);
     if (reopened) {
       syncStatusToPanel(ticket, 'Open');

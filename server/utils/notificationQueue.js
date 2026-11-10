@@ -220,6 +220,55 @@ const processQueue = async () => {
   }
 };
 
+/**
+ * Antrekan + kirim langsung satu pesan WA ke grup staf (WA_TARGET_JID).
+ * Bila pengiriman langsung gagal, worker antrean akan mencoba ulang.
+ */
+const notifyStaffWhatsApp = (message) => {
+  const targetJid = process.env.WA_TARGET_JID;
+  if (!targetJid) return;
+  queueNotification(targetJid, message)
+    .then(async (queueId) => {
+      if (!queueId) return;
+      const sent = await sendNotification(targetJid, message);
+      await updateNotificationStatus(queueId, sent.success ? 'sent' : 'failed', sent.success ? null : 1);
+    })
+    .catch((err) => console.error('[NotificationQueue] Gagal mengirim WA staf:', err.message));
+};
+
+// Jeda per tiket agar beberapa pesan beruntun dari pelanggan tidak membanjiri grup WA.
+const REPLY_WA_COOLDOWN_MS = Number(process.env.WA_REPLY_COOLDOWN_SECONDS || 120) * 1000;
+const lastReplyWaAt = new Map();
+
+/**
+ * Notifikasi WA ke grup staf saat pelanggan membalas tiket (dari aplikasi KroomCare maupun KolabPanel).
+ * Server lokal developer dilewati (kecuali WA_NOTIFY_LOCAL=1) karena balasannya juga diproses server live,
+ * sehingga WA tidak terkirim dua kali.
+ */
+const notifyCustomerReplyWhatsApp = ({ ticketId, judul, customerName, konten, staffName, reopened, source }) => {
+  const isLocalDev = process.env.PORT === '5000' || process.env.DB_PORT === '3306';
+  if (isLocalDev && process.env.WA_NOTIFY_LOCAL !== '1') return;
+
+  const key = String(ticketId);
+  const now = Date.now();
+  if (!reopened && now - (lastReplyWaAt.get(key) || 0) < REPLY_WA_COOLDOWN_MS) return;
+  lastReplyWaAt.set(key, now);
+
+  const text = String(konten || '').trim();
+  const preview = text.length > 300 ? `${text.slice(0, 300)}…` : text;
+  const baseUrl = process.env.LIVE_KROOMCARE_URL || 'https://kroomcare.kroombox.com';
+  const message =
+    `💬 *${reopened ? 'Tiket Dibuka Kembali' : 'Balasan Baru dari Pelanggan'} — Tiket #${ticketId}*\n` +
+    `*Pelanggan:* ${customerName || 'Pelanggan'}\n` +
+    `*Subjek:* ${judul || '-'}\n` +
+    `*Ditangani:* ${staffName || 'Belum ada (siap diambil)'}\n` +
+    (source ? `*Sumber:* ${source}\n` : '') +
+    `*Pesan:* ${preview}\n\n` +
+    `Balas di: ${baseUrl}/staff/tickets/${ticketId}`;
+
+  notifyStaffWhatsApp(message);
+};
+
 let workerIntervalId = null;
 const startNotificationWorker = () => {
   if (workerIntervalId) return;
@@ -237,6 +286,8 @@ module.exports = {
   queueNotification,
   sendNotification,
   updateNotificationStatus,
+  notifyStaffWhatsApp,
+  notifyCustomerReplyWhatsApp,
   startNotificationWorker,
   processQueue
 };
