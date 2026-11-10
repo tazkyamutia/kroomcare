@@ -1,0 +1,38 @@
+# Deploy otomatis ke Kroombox Panel setiap ada push ke branch main.
+# Butuh GitHub secret: KROOMBOX_API_KEY (token API/MCP Kroombox Panel).
+name: Deploy ke Kroombox Panel
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  build-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      # Pastikan frontend bisa di-build sebelum menyentuh produksi
+      - run: npm run build
+
+  deploy:
+    needs: build-check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Jalankan pipeline CI/CD panel
+        run: node scripts/deploy-panel.cjs
+        env:
+          KROOMBOX_API_KEY: ${{ secrets.KROOMBOX_API_KEY }}

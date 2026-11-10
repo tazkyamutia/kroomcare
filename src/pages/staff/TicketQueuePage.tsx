@@ -9,7 +9,9 @@ import { withAuthToken } from '../../utils/fetchAuth';
 export const TicketQueuePage = () => {
   const navigate = useNavigate();
   const { t, language } = useLanguageTheme();
-  const [filter, setFilter] = React.useState('All');
+  // Default menampilkan semua tiket (termasuk yang selesai) agar sama dengan halaman admin;
+  // tiket selesai tetap bisa dibalas staff/admin.
+  const [filter, setFilter] = React.useState('Every');
   const [searchQuery, setSearchQuery] = React.useState('');
   const [tickets, setTickets] = React.useState<any[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
@@ -85,12 +87,12 @@ export const TicketQueuePage = () => {
   const priorityCount = tickets.filter(tkt => tkt.isPriority && tkt.status !== 'Resolved' && tkt.status !== 'selesai').length;
 
   const tabs = [
+    { id: 'Every', label: language === 'en' ? 'All Tickets' : 'Semua Tiket' },
     { id: 'All', label: language === 'en' ? 'All Active' : 'Semua Aktif' },
     { id: 'Open', label: language === 'en' ? 'New (Waiting)' : 'Baru (Menunggu)' },
     { id: 'InProgress', label: language === 'en' ? 'In Progress' : 'Diproses' },
     { id: 'Priority', label: language === 'en' ? 'Urgent' : 'Prioritas Tinggi' },
-    { id: 'Resolved', label: language === 'en' ? 'Resolved' : 'Selesai' },
-    { id: 'Every', label: language === 'en' ? 'All Tickets' : 'Semua Tiket' }
+    { id: 'Resolved', label: language === 'en' ? 'Resolved' : 'Selesai' }
   ];
 
   return (

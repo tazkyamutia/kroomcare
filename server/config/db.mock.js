@@ -11,7 +11,7 @@ function readData() {
     const initialData = {
       users: [
         { id: 1, nama: 'John Customer', email: 'customer@kroombox.com', password: 'password123', role: 'member', koin_reward: 850, foto: '', status_kerja: 'online', two_factor: 0, two_factor_secret: null, reset_otp: null, reset_otp_expires: null },
-        { id: 2, nama: 'Sarah Staff', email: 'staff@kroombox.com', password: 'password123', role: 'staff', koin_reward: 0, foto: '', status_kerja: 'online', two_factor: 0, two_factor_secret: null, reset_otp: null, reset_otp_expires: null },
+        { id: 2, nama: 'Sarah Staff', email: 'staff@kroombox.com', password: 'staff123', role: 'staff', koin_reward: 0, foto: '', status_kerja: 'online', two_factor: 0, two_factor_secret: null, reset_otp: null, reset_otp_expires: null },
         { id: 3, nama: 'Alex Admin', email: 'admin@kroombox.com', password: 'password123', role: 'admin', koin_reward: 0, foto: '', status_kerja: 'online', two_factor: 0, two_factor_secret: null, reset_otp: null, reset_otp_expires: null },
         { id: 4, nama: 'Budi Santoso', email: 'budi@gmail.com', password: 'password123', role: 'member', koin_reward: 300, foto: '', status_kerja: 'online', two_factor: 0, two_factor_secret: null, reset_otp: null, reset_otp_expires: null },
         { id: 5, nama: 'Siti Aminah', email: 'siti@outlook.com', password: 'password123', role: 'member', koin_reward: 150, foto: '', status_kerja: 'online', two_factor: 0, two_factor_secret: null, reset_otp: null, reset_otp_expires: null },

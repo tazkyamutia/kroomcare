@@ -13,7 +13,8 @@
     "server-install": "npm install --prefix server",
     "server-start": "npm start --prefix server",
     "server-dev": "npm run dev --prefix server",
-    "sync-tickets": "node scripts/sync_all_panel_tickets.cjs"
+    "sync-tickets": "node scripts/sync_all_panel_tickets.cjs",
+    "deploy:panel": "node scripts/deploy-panel.cjs"
   },
   "dependencies": {
     "@google/genai": "^1.29.0",
